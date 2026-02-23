@@ -368,9 +368,6 @@
       <strong>⚙️ Setup Required — Paste your Apps Script URL</strong>
       After deploying your Google Apps Script, paste the Web App URL below and tap Save.
       <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" />
-      <div style="margin-top:12px;font-size:12px;color:#c0a080;font-weight:600;">🔒 Admin Password <span style="font-weight:400;color:#8a6a4a">(optional — enables delete on this device)</span></div>
-      <div style="font-size:11px;color:#6a5a3a;margin-bottom:4px;">Only enter a password on the device that should have delete access. Leave blank on all other devices.</div>
-      <input type="password" id="adminPwInput" placeholder="Choose an admin password…" />
       <button class="save-url-btn" onclick="saveScriptUrl()">Save Settings</button>
     </div>
 
@@ -481,8 +478,11 @@
 //  CONFIG
 // ══════════════════════════════════════════════════
 const SCRIPT_URL_KEY = "piglog_script_url";
-const ADMIN_PW_KEY   = "piglog_admin_pw";    // hashed password stored locally
 const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
+
+// Shared admin password hash — to change the password, replace this hash.
+// Current password: kitwe123
+const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443bc3e5ad5d";
 
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
 
@@ -497,15 +497,10 @@ let currentPage = "pageHome";
 // ── Admin State ───────────────────────────────────
 
 function isAdminEnabled() {
-  // Admin mode is on for this session AND a password is stored on this device
-  return sessionStorage.getItem(ADMIN_ON_KEY) === "1" && !!localStorage.getItem(ADMIN_PW_KEY);
+  return sessionStorage.getItem(ADMIN_ON_KEY) === "1";
 }
 
-function hasAdminPassword() {
-  return !!localStorage.getItem(ADMIN_PW_KEY);
-}
-
-// Simple hash (not cryptographic — good enough to obscure from casual users)
+// Simple hash — obscures password from casual inspection
 async function hashPw(pw) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw + "piglog_salt"));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
@@ -513,7 +508,6 @@ async function hashPw(pw) {
 
 function updateAdminBadge() {
   const badge = document.getElementById("adminBadge");
-  if (!hasAdminPassword()) { badge.style.display = "none"; return; }
   badge.style.display = "inline-flex";
   if (isAdminEnabled()) {
     badge.className = "admin-badge active";
@@ -526,13 +520,11 @@ function updateAdminBadge() {
 
 function toggleAdminMode() {
   if (isAdminEnabled()) {
-    // Lock out
     sessionStorage.removeItem(ADMIN_ON_KEY);
     updateAdminBadge();
-    renderList();
+    if (currentPage === "pageList") renderList();
     showToast("Admin mode off");
   } else {
-    // Show password modal
     document.getElementById("adminPwEntry").value = "";
     document.getElementById("adminPwError").textContent = "";
     document.getElementById("adminModal").style.display = "flex";
@@ -548,8 +540,7 @@ async function submitAdminPw() {
   const pw = document.getElementById("adminPwEntry").value;
   if (!pw) { document.getElementById("adminPwError").textContent = "Please enter a password."; return; }
   const hash = await hashPw(pw);
-  const stored = localStorage.getItem(ADMIN_PW_KEY);
-  if (hash !== stored) {
+  if (hash !== ADMIN_PW_HASH) {
     document.getElementById("adminPwError").textContent = "Incorrect password.";
     document.getElementById("adminPwEntry").value = "";
     return;
@@ -579,19 +570,8 @@ async function saveScriptUrl() {
   if (!v.startsWith("https://")) { showToast("Please enter a valid URL", true); return; }
   SCRIPT_URL = v;
   localStorage.setItem(SCRIPT_URL_KEY, v);
-
-  // Save admin password if provided
-  const pw = document.getElementById("adminPwInput").value.trim();
-  if (pw) {
-    const hash = await hashPw(pw);
-    localStorage.setItem(ADMIN_PW_KEY, hash);
-    showToast("Settings saved! Admin password set.");
-  } else {
-    showToast("URL saved! Loading records…");
-  }
-
   document.getElementById("configBanner").style.display = "none";
-  updateAdminBadge();
+  showToast("URL saved! Loading records…");
   loadRecords();
 }
 
