@@ -261,6 +261,30 @@
       transition: border-color 0.15s;
     }
     .btn-delete:hover { border-color: var(--red-dim); }
+
+    /* ── Admin ── */
+    .admin-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #1a0a00; border: 1px solid #c05050;
+      border-radius: 20px; padding: 3px 10px;
+      font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: #e08060; cursor: pointer; transition: border-color 0.2s;
+      margin-top: 4px;
+    }
+    .admin-badge.active { background: #0a1a00; border-color: var(--green); color: var(--green-light); }
+    .admin-badge:hover { opacity: 0.8; }
+    .admin-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 500; padding: 20px;
+    }
+    .admin-modal {
+      background: #111; border: 1px solid #3a2a10;
+      border-radius: 20px; padding: 28px; width: 100%; max-width: 360px;
+    }
+    .admin-modal-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold); margin-bottom: 6px; }
+    .admin-modal-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; }
+    .admin-modal-error { color: #e08080; font-size: 12px; margin-top: 8px; min-height: 18px; }
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); font-size: 14px; }
 
     /* ── Bottom Nav ── */
@@ -309,6 +333,25 @@
     <div style="text-align:right">
       <div class="header-count" id="recordCount">— records</div>
       <button class="back-btn" id="backBtn" onclick="goHome()" style="display:none">← Home</button>
+      <div id="adminBadge" style="display:none" onclick="toggleAdminMode()"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN UNLOCK MODAL -->
+<div class="admin-modal-overlay" id="adminModal" style="display:none" onclick="closeAdminModal(event)">
+  <div class="admin-modal">
+    <div class="admin-modal-title">🔒 Admin Access</div>
+    <div class="admin-modal-sub">Enter the admin password to enable delete controls.</div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" class="form-input" id="adminPwEntry" placeholder="Admin password…"
+        onkeydown="if(event.key==='Enter') submitAdminPw()" />
+    </div>
+    <div class="admin-modal-error" id="adminPwError"></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn-primary btn-gold" onclick="submitAdminPw()">UNLOCK</button>
+      <button class="btn-cancel" onclick="document.getElementById('adminModal').style.display='none'">Cancel</button>
     </div>
   </div>
 </div>
@@ -325,7 +368,10 @@
       <strong>⚙️ Setup Required — Paste your Apps Script URL</strong>
       After deploying your Google Apps Script, paste the Web App URL below and tap Save.
       <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" />
-      <button class="save-url-btn" onclick="saveScriptUrl()">Save URL</button>
+      <div style="margin-top:12px;font-size:12px;color:#c0a080;font-weight:600;">🔒 Admin Password <span style="font-weight:400;color:#8a6a4a">(optional — enables delete on this device)</span></div>
+      <div style="font-size:11px;color:#6a5a3a;margin-bottom:4px;">Only enter a password on the device that should have delete access. Leave blank on all other devices.</div>
+      <input type="password" id="adminPwInput" placeholder="Choose an admin password…" />
+      <button class="save-url-btn" onclick="saveScriptUrl()">Save Settings</button>
     </div>
 
     <p class="home-subtitle">What would you like to do?</p>
@@ -432,10 +478,12 @@
 
 <script>
 // ══════════════════════════════════════════════════
-//  CONFIG — paste your Apps Script URL here OR
-//  enter it in the banner when you first open the app
+//  CONFIG
 // ══════════════════════════════════════════════════
 const SCRIPT_URL_KEY = "piglog_script_url";
+const ADMIN_PW_KEY   = "piglog_admin_pw";    // hashed password stored locally
+const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
+
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
 
 const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Status","Weight","Dewormed","Pen","Notes"];
@@ -446,6 +494,73 @@ let allRecords = [];
 let currentEditId = null;
 let currentPage = "pageHome";
 
+// ── Admin State ───────────────────────────────────
+
+function isAdminEnabled() {
+  // Admin mode is on for this session AND a password is stored on this device
+  return sessionStorage.getItem(ADMIN_ON_KEY) === "1" && !!localStorage.getItem(ADMIN_PW_KEY);
+}
+
+function hasAdminPassword() {
+  return !!localStorage.getItem(ADMIN_PW_KEY);
+}
+
+// Simple hash (not cryptographic — good enough to obscure from casual users)
+async function hashPw(pw) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pw + "piglog_salt"));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+function updateAdminBadge() {
+  const badge = document.getElementById("adminBadge");
+  if (!hasAdminPassword()) { badge.style.display = "none"; return; }
+  badge.style.display = "inline-flex";
+  if (isAdminEnabled()) {
+    badge.className = "admin-badge active";
+    badge.innerHTML = "🔓 Admin On";
+  } else {
+    badge.className = "admin-badge";
+    badge.innerHTML = "🔒 Admin";
+  }
+}
+
+function toggleAdminMode() {
+  if (isAdminEnabled()) {
+    // Lock out
+    sessionStorage.removeItem(ADMIN_ON_KEY);
+    updateAdminBadge();
+    renderList();
+    showToast("Admin mode off");
+  } else {
+    // Show password modal
+    document.getElementById("adminPwEntry").value = "";
+    document.getElementById("adminPwError").textContent = "";
+    document.getElementById("adminModal").style.display = "flex";
+    setTimeout(() => document.getElementById("adminPwEntry").focus(), 100);
+  }
+}
+
+function closeAdminModal(e) {
+  if (e.target.id === "adminModal") document.getElementById("adminModal").style.display = "none";
+}
+
+async function submitAdminPw() {
+  const pw = document.getElementById("adminPwEntry").value;
+  if (!pw) { document.getElementById("adminPwError").textContent = "Please enter a password."; return; }
+  const hash = await hashPw(pw);
+  const stored = localStorage.getItem(ADMIN_PW_KEY);
+  if (hash !== stored) {
+    document.getElementById("adminPwError").textContent = "Incorrect password.";
+    document.getElementById("adminPwEntry").value = "";
+    return;
+  }
+  sessionStorage.setItem(ADMIN_ON_KEY, "1");
+  document.getElementById("adminModal").style.display = "none";
+  updateAdminBadge();
+  if (currentPage === "pageList") renderList();
+  showToast("🔓 Admin mode on");
+}
+
 // ── Init ──────────────────────────────────────────
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -455,16 +570,28 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   buildForm("newFormGrid", "new");
   buildForm("editFormGrid", "edit");
+  updateAdminBadge();
   loadRecords();
 });
 
-function saveScriptUrl() {
+async function saveScriptUrl() {
   const v = document.getElementById("scriptUrlInput").value.trim();
   if (!v.startsWith("https://")) { showToast("Please enter a valid URL", true); return; }
   SCRIPT_URL = v;
   localStorage.setItem(SCRIPT_URL_KEY, v);
+
+  // Save admin password if provided
+  const pw = document.getElementById("adminPwInput").value.trim();
+  if (pw) {
+    const hash = await hashPw(pw);
+    localStorage.setItem(ADMIN_PW_KEY, hash);
+    showToast("Settings saved! Admin password set.");
+  } else {
+    showToast("URL saved! Loading records…");
+  }
+
   document.getElementById("configBanner").style.display = "none";
-  showToast("URL saved! Loading records…");
+  updateAdminBadge();
   loadRecords();
 }
 
@@ -726,7 +853,7 @@ function renderList() {
       ${rec.Notes ? `<div class="record-notes">${rec.Notes}</div>` : ""}
       <div class="record-actions">
         <button class="btn-edit" onclick="editFromList(${rec.DB_ID})">Edit</button>
-        <button class="btn-delete" onclick="deleteRecord(${rec.DB_ID})">Delete</button>
+        ${isAdminEnabled() ? `<button class="btn-delete" onclick="deleteRecord(${rec.DB_ID})">Delete</button>` : ""}
       </div>
     </div>
   `).join("");
