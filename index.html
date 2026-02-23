@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Pig Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #c9a84c;
+      --gold-light: #f0c060;
+      --gold-dim: #8a7a5a;
+      --green: #4a9a6a;
+      --green-light: #6abf8a;
+      --bg: #0d0d0d;
+      --surface: #111111;
+      --surface2: #181818;
+      --border: #2a2a2a;
+      --border2: #3a3a3a;
+      --text: #f0e6d0;
+      --text-dim: #8a8070;
+      --text-faint: #4a4a4a;
+      --red: #c05050;
+      --red-dim: #7a3030;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Source Serif 4', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1a1200 0%, #0d0d0d 50%, #1a0d00 100%);
+      border-bottom: 1px solid #3a2a10;
+      padding: 16px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 640px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-sub { font-size: 10px; letter-spacing: 0.3em; color: var(--gold-dim); text-transform: uppercase; margin-bottom: 2px; }
+    .header-title { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--gold); letter-spacing: 0.04em; }
+    .header-count { font-size: 11px; color: var(--text-dim); }
+    .back-btn { font-size: 12px; color: var(--gold); background: none; border: none; cursor: pointer; padding: 4px 0; display: block; margin-top: 4px; }
+    .back-btn:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    .page { max-width: 640px; margin: 0 auto; padding: 24px 16px 100px; }
+
+    /* ── Config Banner ── */
+    .config-banner {
+      background: #1a0a00;
+      border: 1px solid #c05050;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #e08060;
+      line-height: 1.5;
+    }
+    .config-banner strong { color: #f0a080; display: block; margin-bottom: 4px; }
+    .config-banner input {
+      width: 100%;
+      margin-top: 8px;
+      background: #0d0d0d;
+      border: 1px solid #5a3030;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: monospace;
+    }
+    .config-banner input:focus { outline: none; border-color: var(--gold); }
+    .save-url-btn {
+      margin-top: 8px;
+      background: #3a1a00;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      border-radius: 8px;
+      padding: 6px 16px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: 'Source Serif 4', serif;
+    }
+
+    /* ── Home Cards ── */
+    .home-subtitle { text-align: center; color: var(--text-dim); font-size: 13px; margin-bottom: 20px; }
+    .action-card {
+      width: 100%;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .action-card:hover { transform: translateY(-1px); }
+    .action-card:active { transform: scale(0.98); }
+    .card-gold { background: linear-gradient(135deg, #2a1f00, #1a1400); border: 1px solid var(--gold); }
+    .card-gold:hover { border-color: var(--gold-light); }
+    .card-green { background: linear-gradient(135deg, #001a0d, #00140a); border: 1px solid var(--green); }
+    .card-green:hover { border-color: var(--green-light); }
+    .card-purple { background: linear-gradient(135deg, #0d001a, #0a0014); border: 1px solid #7a5aa0; }
+    .card-purple:hover { border-color: #9a7ac0; }
+    .card-icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+    }
+    .icon-gold { background: #c9a84c20; }
+    .icon-green { background: #4a9a6a20; }
+    .icon-purple { background: #7a5aa020; }
+    .card-title { font-family: 'Playfair Display', serif; font-size: 18px; }
+    .card-title-gold { color: var(--gold); }
+    .card-title-green { color: var(--green); }
+    .card-title-purple { color: #7a5aa0; }
+    .card-desc { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+
+    /* ── Forms ── */
+    .section-title { font-family: 'Playfair Display', serif; font-size: 20px; margin-bottom: 4px; }
+    .section-sub { color: var(--text-dim); font-size: 12px; margin-bottom: 20px; }
+
+    .db-id-badge {
+      background: var(--surface);
+      border: 1px dashed var(--border2);
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .db-id-label { font-size: 10px; letter-spacing: 0.3em; color: var(--text-faint); text-transform: uppercase; }
+    .db-id-val { font-family: monospace; color: var(--text-faint); font-size: 14px; }
+
+    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.25em;
+      color: var(--gold-dim); text-transform: uppercase; margin-bottom: 5px;
+    }
+    .form-input, .form-select, .form-textarea {
+      background: #1a1a1a;
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Source Serif 4', Georgia, serif;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+    .form-input::placeholder { color: var(--text-faint); }
+    .form-select { cursor: pointer; }
+    .form-select option { background: #1a1a1a; }
+    .form-textarea { resize: vertical; min-height: 80px; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-primary {
+      flex: 1; padding: 14px; border-radius: 12px;
+      font-family: 'Source Serif 4', serif; font-size: 13px;
+      font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+      cursor: pointer; transition: opacity 0.2s;
+      border: 1px solid;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-gold { background: #2a1f00; border-color: var(--gold); color: var(--gold); }
+    .btn-green { background: #001a0d; border-color: var(--green); color: var(--green); }
+    .btn-cancel {
+      padding: 14px 20px; border-radius: 12px;
+      background: var(--surface2); border: 1px solid var(--border2);
+      color: var(--text-dim); font-size: 13px; cursor: pointer;
+      font-family: 'Source Serif 4', serif; transition: border-color 0.2s;
+    }
+    .btn-cancel:hover { border-color: #6a5a4a; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: #0a2a1a; border: 1px solid var(--green);
+      border-radius: 12px; padding: 12px 24px;
+      color: var(--green); font-size: 13px; font-weight: 600;
+      z-index: 999; transition: opacity 0.4s;
+      white-space: nowrap;
+    }
+    .toast.error { background: #1a0a0a; border-color: var(--red); color: #e08080; }
+    .toast.hidden { opacity: 0; pointer-events: none; }
+
+    /* ── Search ── */
+    .search-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+    .search-error { color: #e08080; font-size: 13px; background: #1a0a0a; border-radius: 10px; padding: 10px 14px; margin-top: 10px; }
+    .pig-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .pig-chip {
+      background: #1a1400; border: 1px solid #3a2a10;
+      border-radius: 20px; padding: 4px 12px;
+      font-size: 12px; color: var(--gold); cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .pig-chip:hover { border-color: var(--gold); }
+    .chips-label { font-size: 10px; letter-spacing: 0.3em; color: var(--text-faint); text-transform: uppercase; margin-top: 16px; margin-bottom: 6px; }
+
+    /* ── Records List ── */
+    .list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .list-search {
+      width: 100%; background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 10px 14px; color: var(--text);
+      font-size: 14px; font-family: 'Source Serif 4', serif; margin-bottom: 16px;
+    }
+    .list-search:focus { outline: none; border-color: var(--gold); }
+    .list-search::placeholder { color: var(--text-faint); }
+    .record-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px; margin-bottom: 10px;
+      transition: border-color 0.15s;
+    }
+    .record-card:hover { border-color: var(--border2); }
+    .record-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .record-pig-id { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 17px; }
+    .record-db-id { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+    .status-badge {
+      font-size: 10px; padding: 3px 10px; border-radius: 20px;
+      background: #1a2a1a; border: 1px solid var(--green); color: var(--green);
+    }
+    .record-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 12px; color: var(--text-dim); margin-bottom: 10px; }
+    .field-label { color: var(--text-faint); }
+    .record-notes { font-size: 12px; color: #6a5a4a; font-style: italic; border-top: 1px solid var(--border); padding-top: 8px; margin-bottom: 10px; }
+    .record-actions { display: flex; gap: 8px; }
+    .btn-edit {
+      flex: 1; padding: 8px; border-radius: 8px;
+      background: #001a0d; border: 1px solid var(--green); color: var(--green);
+      font-size: 12px; cursor: pointer; font-family: 'Source Serif 4', serif;
+      transition: background 0.15s;
+    }
+    .btn-edit:hover { background: #002a14; }
+    .btn-delete {
+      padding: 8px 16px; border-radius: 8px;
+      background: #1a0000; border: 1px solid #4a1a1a; color: #804040;
+      font-size: 12px; cursor: pointer; font-family: 'Source Serif 4', serif;
+      transition: border-color 0.15s;
+    }
+    .btn-delete:hover { border-color: var(--red-dim); }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-faint); font-size: 14px; }
+
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #0d0d0d; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; padding: 10px 16px 14px;
+      z-index: 100;
+    }
+    .nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      background: none; border: none; cursor: pointer; padding: 4px 12px;
+      transition: opacity 0.15s;
+    }
+    .nav-btn:hover { opacity: 0.8; }
+    .nav-icon { font-size: 20px; }
+    .nav-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; }
+    .nav-active { color: var(--gold); }
+    .nav-inactive { color: var(--text-faint); }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      width: 28px; height: 28px; border: 3px solid var(--border2);
+      border-top-color: var(--gold); border-radius: 50%;
+      animation: spin 0.7s linear infinite; margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state { text-align: center; padding: 40px; }
+
+    @media (max-width: 400px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: 1; }
+      .record-fields { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="header-sub">Farm Management</div>
+      <div class="header-title">🐷 Pig Log</div>
+    </div>
+    <div style="text-align:right">
+      <div class="header-count" id="recordCount">— records</div>
+      <button class="back-btn" id="backBtn" onclick="goHome()" style="display:none">← Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast hidden" id="toast"></div>
+
+<!-- PAGES -->
+<div class="page" id="app">
+
+  <!-- HOME -->
+  <div id="pageHome">
+    <div class="config-banner" id="configBanner" style="display:none">
+      <strong>⚙️ Setup Required — Paste your Apps Script URL</strong>
+      After deploying your Google Apps Script, paste the Web App URL below and tap Save.
+      <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" />
+      <button class="save-url-btn" onclick="saveScriptUrl()">Save URL</button>
+    </div>
+
+    <p class="home-subtitle">What would you like to do?</p>
+
+    <button class="action-card card-gold" onclick="showPage('pageNew')">
+      <div class="card-icon icon-gold">➕</div>
+      <div>
+        <div class="card-title card-title-gold">Add New Pig</div>
+        <div class="card-desc">Create a new record entry</div>
+      </div>
+    </button>
+
+    <button class="action-card card-green" onclick="showPage('pageSearch')">
+      <div class="card-icon icon-green">✏️</div>
+      <div>
+        <div class="card-title card-title-green">Update Existing Record</div>
+        <div class="card-desc">Search by PIG ID and edit</div>
+      </div>
+    </button>
+
+    <button class="action-card card-purple" onclick="showPageList()">
+      <div class="card-icon icon-purple">📋</div>
+      <div>
+        <div class="card-title" style="color:#7a5aa0">View All Records</div>
+        <div class="card-desc" id="homeCount">Loading records…</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- NEW PIG FORM -->
+  <div id="pageNew" style="display:none">
+    <div class="section-title" style="color:var(--gold)">New Pig Entry</div>
+    <div class="section-sub">PIG ID format: BOAR#-SOW#-LitterNumber (e.g. B1-S2-L3)</div>
+
+    <div class="db-id-badge">
+      <span class="db-id-label">DB_ID (Auto-assigned)</span>
+      <span class="db-id-val" id="newDbId">—</span>
+    </div>
+
+    <div class="form-card">
+      <div class="form-grid" id="newFormGrid"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary btn-gold" id="btnSaveNew" onclick="saveNew()">SAVE RECORD</button>
+      <button class="btn-cancel" onclick="goHome()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- SEARCH / EDIT -->
+  <div id="pageSearch" style="display:none">
+    <div class="section-title" style="color:var(--green)">Update Record</div>
+    <div class="section-sub">Enter the PIG ID to load and edit existing data</div>
+
+    <div class="search-card">
+      <div class="form-group">
+        <label class="form-label">PIG ID</label>
+        <input type="text" class="form-input" id="searchInput" placeholder="e.g. B1-S2-L3"
+          onkeydown="if(event.key==='Enter') doSearch()" />
+      </div>
+      <div class="search-error" id="searchError" style="display:none"></div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn-primary btn-green" onclick="doSearch()">LOAD RECORD →</button>
+      </div>
+    </div>
+
+    <div id="recentChips" style="display:none">
+      <div class="chips-label">Recent PIG IDs</div>
+      <div class="pig-chips" id="chipsContainer"></div>
+    </div>
+  </div>
+
+  <!-- EDIT FORM -->
+  <div id="pageEdit" style="display:none">
+    <div class="section-title" style="color:var(--green)" id="editTitle">Editing Record</div>
+    <div class="section-sub" id="editSub">DB_ID is read-only</div>
+
+    <div class="db-id-badge">
+      <span class="db-id-label">DB_ID (Read-only)</span>
+      <span class="db-id-val" id="editDbId">—</span>
+    </div>
+
+    <div class="form-card">
+      <div class="form-grid" id="editFormGrid"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary btn-green" id="btnSaveEdit" onclick="saveEdit()">SAVE CHANGES</button>
+      <button class="btn-cancel" onclick="showPage('pageSearch')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- RECORDS LIST -->
+  <div id="pageList" style="display:none">
+    <div class="list-header">
+      <div class="section-title" style="color:#7a5aa0;margin-bottom:0">All Records</div>
+      <button class="btn-edit" style="flex:none;padding:8px 14px" onclick="showPage('pageNew')">+ Add New</button>
+    </div>
+    <input type="text" class="list-search" id="listSearch" placeholder="Search records…" oninput="renderList()" />
+    <div id="listContainer"></div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  CONFIG — paste your Apps Script URL here OR
+//  enter it in the banner when you first open the app
+// ══════════════════════════════════════════════════
+const SCRIPT_URL_KEY = "piglog_script_url";
+let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
+
+const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Status","Weight","Dewormed","Pen","Notes"];
+const SEX_OPTS = ["","Male","Female","Barrow"];
+const STATUS_OPTS = ["","Active","Sold","Deceased","Breeding","Grower","Finisher"];
+
+let allRecords = [];
+let currentEditId = null;
+let currentPage = "pageHome";
+
+// ── Init ──────────────────────────────────────────
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (!SCRIPT_URL) {
+    document.getElementById("configBanner").style.display = "block";
+    document.getElementById("scriptUrlInput").value = "";
+  }
+  buildForm("newFormGrid", "new");
+  buildForm("editFormGrid", "edit");
+  loadRecords();
+});
+
+function saveScriptUrl() {
+  const v = document.getElementById("scriptUrlInput").value.trim();
+  if (!v.startsWith("https://")) { showToast("Please enter a valid URL", true); return; }
+  SCRIPT_URL = v;
+  localStorage.setItem(SCRIPT_URL_KEY, v);
+  document.getElementById("configBanner").style.display = "none";
+  showToast("URL saved! Loading records…");
+  loadRecords();
+}
+
+// ── Navigation ────────────────────────────────────
+
+function showPage(id) {
+  document.querySelectorAll("#app > div").forEach(d => d.style.display = "none");
+  document.getElementById(id).style.display = "block";
+  currentPage = id;
+  document.getElementById("backBtn").style.display = id === "pageHome" ? "none" : "block";
+  document.getElementById("searchError").style.display = "none";
+  window.scrollTo(0, 0);
+
+  if (id === "pageNew") prepNewForm();
+  if (id === "pageSearch") prepSearchPage();
+}
+
+function goHome() { showPage("pageHome"); }
+
+function showPageList() {
+  showPage("pageList");
+  renderList();
+}
+
+// ── API ───────────────────────────────────────────
+
+async function apiGet(params) {
+  if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
+  const url = SCRIPT_URL + "?" + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function apiPost(body) {
+  if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
+  const res = await fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+async function loadRecords() {
+  try {
+    const data = await apiGet({ action: "getAll" });
+    if (data && data.success) {
+      allRecords = data.records || [];
+      updateCounts();
+      prepSearchPage();
+    }
+  } catch (e) {
+    // silently fail if no URL yet
+  }
+}
+
+// ── Count display ─────────────────────────────────
+
+function updateCounts() {
+  const n = allRecords.length;
+  document.getElementById("recordCount").textContent = `${n} record${n !== 1 ? "s" : ""}`;
+  document.getElementById("homeCount").textContent = `${n} pig${n !== 1 ? "s" : ""} in database`;
+}
+
+// ── Form Builder ──────────────────────────────────
+
+function buildForm(containerId, prefix) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  COLUMNS.forEach(col => {
+    const div = document.createElement("div");
+    div.className = "form-group" + (col === "Notes" ? " full" : "");
+
+    const label = document.createElement("label");
+    label.className = "form-label";
+    label.textContent = col === "Weight" ? "Weight (lbs)" : col === "Dewormed" ? "Dewormed Date" : col;
+    div.appendChild(label);
+
+    let input;
+    if (col === "SEX") {
+      input = document.createElement("select");
+      input.className = "form-select";
+      SEX_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
+    } else if (col === "Status") {
+      input = document.createElement("select");
+      input.className = "form-select";
+      STATUS_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
+    } else if (col === "DOB" || col === "Dewormed") {
+      input = document.createElement("input");
+      input.type = "date";
+      input.className = "form-input";
+    } else if (col === "Notes") {
+      input = document.createElement("textarea");
+      input.className = "form-textarea";
+      input.placeholder = "Any additional notes…";
+    } else if (col === "Weight") {
+      input = document.createElement("input");
+      input.type = "number"; input.step = "0.1";
+      input.className = "form-input";
+      input.placeholder = "0.0";
+    } else {
+      input = document.createElement("input");
+      input.type = "text";
+      input.className = "form-input";
+      input.placeholder = col === "PIG ID" ? "e.g. B1-S2-L3" : col;
+    }
+    input.id = `${prefix}_${col.replace(/\s/g, "_")}`;
+    div.appendChild(input);
+    container.appendChild(div);
+  });
+}
+
+function getFormValues(prefix) {
+  const data = {};
+  COLUMNS.forEach(col => {
+    const el = document.getElementById(`${prefix}_${col.replace(/\s/g, "_")}`);
+    if (el) data[col] = el.value;
+  });
+  return data;
+}
+
+function setFormValues(prefix, record) {
+  COLUMNS.forEach(col => {
+    const el = document.getElementById(`${prefix}_${col.replace(/\s/g, "_")}`);
+    if (el) el.value = record[col] !== undefined ? record[col] : "";
+  });
+}
+
+function clearForm(prefix) {
+  COLUMNS.forEach(col => {
+    const el = document.getElementById(`${prefix}_${col.replace(/\s/g, "_")}`);
+    if (el) el.value = "";
+  });
+}
+
+// ── NEW ───────────────────────────────────────────
+
+function prepNewForm() {
+  clearForm("new");
+  const nextId = allRecords.length > 0
+    ? Math.max(...allRecords.map(r => Number(r.DB_ID) || 0)) + 1
+    : 1;
+  document.getElementById("newDbId").textContent = nextId;
+}
+
+async function saveNew() {
+  const data = getFormValues("new");
+  if (!data["PIG ID"]) { showToast("PIG ID is required", true); return; }
+
+  const btn = document.getElementById("btnSaveNew");
+  btn.disabled = true; btn.textContent = "Saving…";
+
+  const result = await apiPost({ action: "add", data });
+  btn.disabled = false; btn.textContent = "SAVE RECORD";
+
+  if (result && result.success) {
+    showToast("✓ Record saved!");
+    await loadRecords();
+    clearForm("new");
+    prepNewForm();
+  } else {
+    showToast(result?.error || "Save failed", true);
+  }
+}
+
+// ── SEARCH ────────────────────────────────────────
+
+function prepSearchPage() {
+  const chips = document.getElementById("chipsContainer");
+  const recentDiv = document.getElementById("recentChips");
+  const ids = [...new Set(allRecords.map(r => r["PIG ID"]).filter(Boolean))].slice(-12);
+  if (ids.length > 0) {
+    chips.innerHTML = "";
+    ids.forEach(id => {
+      const btn = document.createElement("button");
+      btn.className = "pig-chip"; btn.textContent = id;
+      btn.onclick = () => { document.getElementById("searchInput").value = id; doSearch(); };
+      chips.appendChild(btn);
+    });
+    recentDiv.style.display = "block";
+  } else {
+    recentDiv.style.display = "none";
+  }
+}
+
+async function doSearch() {
+  const pigId = document.getElementById("searchInput").value.trim();
+  const errEl = document.getElementById("searchError");
+  if (!pigId) { errEl.textContent = "Please enter a PIG ID"; errEl.style.display = "block"; return; }
+
+  errEl.style.display = "none";
+  const result = await apiGet({ action: "getByPigId", pigId });
+
+  if (!result || !result.success) {
+    errEl.textContent = result?.error || `No record found for PIG ID: "${pigId}"`;
+    errEl.style.display = "block";
+    return;
+  }
+
+  const rec = result.record;
+  currentEditId = rec.DB_ID;
+  document.getElementById("editDbId").textContent = rec.DB_ID;
+  document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
+  document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
+  setFormValues("edit", rec);
+  showPage("pageEdit");
+}
+
+// ── EDIT ─────────────────────────────────────────
+
+async function saveEdit() {
+  const data = getFormValues("edit");
+  const btn = document.getElementById("btnSaveEdit");
+  btn.disabled = true; btn.textContent = "Saving…";
+
+  const result = await apiPost({ action: "update", id: currentEditId, data });
+  btn.disabled = false; btn.textContent = "SAVE CHANGES";
+
+  if (result && result.success) {
+    showToast("✓ Record updated!");
+    await loadRecords();
+  } else {
+    showToast(result?.error || "Update failed", true);
+  }
+}
+
+// ── LIST ──────────────────────────────────────────
+
+function renderList() {
+  const filter = document.getElementById("listSearch").value.toLowerCase();
+  const container = document.getElementById("listContainer");
+
+  const filtered = allRecords.filter(r =>
+    Object.values(r).some(v => String(v).toLowerCase().includes(filter))
+  );
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state">${allRecords.length === 0 ? "No records yet. Add your first pig!" : "No records match your search."}</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(rec => `
+    <div class="record-card">
+      <div class="record-header">
+        <div>
+          <div class="record-pig-id">${rec["PIG ID"] || '<span style="color:var(--text-faint);font-style:italic">No PIG ID</span>'}</div>
+          <div class="record-db-id">DB_ID: ${rec.DB_ID}</div>
+        </div>
+        ${rec.Status ? `<span class="status-badge">${rec.Status}</span>` : ""}
+      </div>
+      <div class="record-fields">
+        ${rec.Boar ? `<span><span class="field-label">Boar: </span>${rec.Boar}</span>` : ""}
+        ${rec.SOW ? `<span><span class="field-label">Sow: </span>${rec.SOW}</span>` : ""}
+        ${rec.DOB ? `<span><span class="field-label">DOB: </span>${rec.DOB}</span>` : ""}
+        ${rec.SEX ? `<span><span class="field-label">Sex: </span>${rec.SEX}</span>` : ""}
+        ${rec.Weight ? `<span><span class="field-label">Wt: </span>${rec.Weight} lbs</span>` : ""}
+        ${rec.Pen ? `<span><span class="field-label">Pen: </span>${rec.Pen}</span>` : ""}
+        ${rec.Dewormed ? `<span><span class="field-label">Dewormed: </span>${rec.Dewormed}</span>` : ""}
+      </div>
+      ${rec.Notes ? `<div class="record-notes">${rec.Notes}</div>` : ""}
+      <div class="record-actions">
+        <button class="btn-edit" onclick="editFromList(${rec.DB_ID})">Edit</button>
+        <button class="btn-delete" onclick="deleteRecord(${rec.DB_ID})">Delete</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function editFromList(dbId) {
+  const rec = allRecords.find(r => Number(r.DB_ID) === Number(dbId));
+  if (!rec) return;
+  currentEditId = rec.DB_ID;
+  document.getElementById("editDbId").textContent = rec.DB_ID;
+  document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
+  document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
+  setFormValues("edit", rec);
+  showPage("pageEdit");
+}
+
+async function deleteRecord(dbId) {
+  if (!confirm("Delete this record? This cannot be undone.")) return;
+  const result = await apiPost({ action: "delete", id: dbId });
+  if (result && result.success) {
+    showToast("Record deleted");
+    await loadRecords();
+    renderList();
+  } else {
+    showToast(result?.error || "Delete failed", true);
+  }
+}
+
+// ── Toast ─────────────────────────────────────────
+
+let toastTimer;
+function showToast(msg, isError = false) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast" + (isError ? " error" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = "toast hidden", 3000);
+}
+</script>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn" onclick="goHome()">
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label nav-inactive">Home</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('pageNew')">
+    <span class="nav-icon">➕</span>
+    <span class="nav-label nav-inactive">Add</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('pageSearch')">
+    <span class="nav-icon">✏️</span>
+    <span class="nav-label nav-inactive">Edit</span>
+  </button>
+  <button class="nav-btn" onclick="showPageList()">
+    <span class="nav-icon">📋</span>
+    <span class="nav-label nav-inactive">Records</span>
+  </button>
+</nav>
+
+</body>
+</html>
