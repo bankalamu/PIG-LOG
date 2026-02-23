@@ -251,6 +251,54 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-state { text-align: center; padding: 40px; }
 
+
+    /* ── Notching ── */
+    .notch-mode-tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 1.5px solid var(--brand); }
+    .notch-tab {
+      flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 700;
+      cursor: pointer; border: none; font-family: 'Source Serif 4', serif;
+      transition: background 0.2s, color 0.2s;
+    }
+    .notch-tab.active { background: var(--brand); color: #fff; }
+    .notch-tab:not(.active) { background: var(--surface); color: var(--brand); }
+
+    .notch-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .notch-input-group { display: flex; flex-direction: column; }
+    .notch-input-group label { font-size: 11px; font-weight: 800; color: #000; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .notch-input-group input {
+      background: var(--surface2); border: 1.5px solid var(--border-dark);
+      border-radius: 8px; padding: 9px 10px; font-size: 16px; font-weight: 700;
+      color: #000; font-family: 'Source Serif 4', serif; text-align: center; width: 100%;
+    }
+    .notch-input-group input:focus { outline: none; border-color: var(--brand); background: #fff; }
+    .notch-input-group .notch-max { font-size: 10px; color: #555; margin-top: 3px; text-align: center; }
+    .notch-error { color: var(--danger); font-size: 11px; font-weight: 600; margin-top: 3px; text-align: center; }
+
+    .ears-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    .ear-panel {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow);
+      width: 100%;
+    }
+    .ear-panel-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #000; text-align: center; margin-bottom: 4px; }
+    .ear-panel-sub { font-size: 10px; color: #444; text-align: center; margin-bottom: 10px; }
+    .ear-svg-wrap { display: flex; justify-content: center; }
+    .notch-circle { cursor: pointer; transition: fill 0.15s; }
+    .notch-circle:hover { opacity: 0.7; }
+    .notch-circle.active { fill: #c0392b !important; stroke: #800000 !important; }
+
+    .notch-results {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 16px; box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .notch-results-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #000; margin-bottom: 12px; }
+    .notch-result-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .notch-result-row:last-child { border-bottom: none; }
+    .notch-result-label { font-size: 13px; font-weight: 700; color: #000; }
+    .notch-result-val { font-size: 22px; font-weight: 900; color: var(--brand-dark); font-family: 'Playfair Display', serif; }
+    .notch-result-desc { font-size: 11px; color: #555; }
+    .notch-hint { text-align:center; font-size:12px; color:#444; margin-bottom:16px; font-style:italic; }
+
     @media (max-width: 400px) {
       .form-grid { grid-template-columns: 1fr; }
       .form-group.full { grid-column: 1; }
@@ -333,6 +381,14 @@
         <div class="card-desc" id="homeCount">Loading records…</div>
       </div>
     </button>
+
+    <button class="action-card card-blue" onclick="showPage('pageNotch')">
+      <div class="card-icon icon-green" style="background:#e0e8ff">🐽</div>
+      <div>
+        <div class="card-title" style="color:#1a3a8a">Ear Notching Tool</div>
+        <div class="card-desc">Encode & decode pig IDs</div>
+      </div>
+    </button>
   </div>
 
   <!-- NEW PIG FORM -->
@@ -406,6 +462,189 @@
     </div>
     <input type="text" class="list-search" id="listSearch" placeholder="Search records…" oninput="renderList()" />
     <div id="listContainer"></div>
+  </div>
+
+
+  <!-- NOTCHING TOOL -->
+  <div id="pageNotch" style="display:none">
+    <div class="section-title" style="color:#1a3a8a">🐽 Ear Notching</div>
+    <div class="section-sub" style="color:#333;margin-bottom:16px">Encode or decode pig IDs using the notching system</div>
+
+    <div class="notch-mode-tabs">
+      <button class="notch-tab active" id="tabCalc" onclick="setNotchMode('calc')">📟 Calculator<br><span style="font-size:10px;font-weight:400">Enter ID → See notches</span></button>
+      <button class="notch-tab" id="tabDecode" onclick="setNotchMode('decode')">🔍 Decoder<br><span style="font-size:10px;font-weight:400">Tap notches → Get ID</span></button>
+    </div>
+
+    <div id="notchCalcInputs">
+      <div class="notch-inputs">
+        <div class="notch-input-group">
+          <label>Boar ID</label>
+          <input type="number" id="inputBoar" min="1" max="8" placeholder="1–8" oninput="calcToNotches()">
+          <div class="notch-max">Max: 8</div>
+          <div class="notch-error" id="errBoar"></div>
+        </div>
+        <div class="notch-input-group">
+          <label>Litter ID</label>
+          <input type="number" id="inputLitter" min="1" max="17" placeholder="1–17" oninput="calcToNotches()">
+          <div class="notch-max">Max: 17</div>
+          <div class="notch-error" id="errLitter"></div>
+        </div>
+        <div class="notch-input-group">
+          <label>Sow ID</label>
+          <input type="number" id="inputSow" min="1" max="161" placeholder="1–161" oninput="calcToNotches()">
+          <div class="notch-max">Max: 161</div>
+          <div class="notch-error" id="errSow"></div>
+        </div>
+      </div>
+    </div>
+    <div class="notch-hint" id="notchDecodeHint" style="display:none">Tap the circles on the ears below to toggle notches, then read the decoded IDs</div>
+
+    <div class="ears-container">
+
+      <!-- LEFT EAR — horizontal, tip points LEFT, head attachment on RIGHT -->
+      <div class="ear-panel" style="max-width:100%">
+        <div class="ear-panel-title">Left Ear <span style="font-weight:400;font-size:10px">(facing pig)</span></div>
+        <div class="ear-panel-sub">Upper edge = Litter · Lower edge = Boar · Tip = left</div>
+        <div class="ear-svg-wrap">
+          <!--
+            Horizontal ear: wide ellipse, tip on LEFT, base (head) on RIGHT
+            Total viewBox: 280 wide x 160 tall
+            Ear ellipse centred at (130, 80), rx=120, ry=65
+            Upper half = litter notches (above centre line)
+            Lower half = boar notches (below centre line)
+            Tip-side (left) = highest value notches
+          -->
+          <svg id="svgLeft" viewBox="0 0 280 160" width="100%" style="max-width:340px">
+            <!-- Ear shape: tip on LEFT, base on RIGHT -->
+            <path d="M 260,80 C 260,30 200,15 130,15 C 70,15 18,35 10,80 C 18,125 70,145 130,145 C 200,145 260,130 260,80 Z"
+                  fill="#f5deb3" stroke="#8B6914" stroke-width="2.5"/>
+            <path d="M 240,80 C 240,42 188,28 130,28 C 80,28 30,46 24,80 C 30,114 80,132 130,132 C 188,132 240,118 240,80 Z"
+                  fill="#e8c99a" stroke="none" opacity="0.4"/>
+
+            <!-- Centre divider -->
+            <line x1="12" y1="80" x2="258" y2="80" stroke="#8B6914" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+
+            <!-- Labels -->
+            <text x="145" y="50" text-anchor="middle" font-size="9" fill="#2d6a2d" font-weight="bold" font-family="serif">LITTER</text>
+            <text x="145" y="114" text-anchor="middle" font-size="9" fill="#e07b00" font-weight="bold" font-family="serif">BOAR</text>
+            <text x="20" y="76" text-anchor="middle" font-size="8" fill="#666" font-family="serif">tip</text>
+            <text x="255" y="76" text-anchor="middle" font-size="8" fill="#666" font-family="serif">head</text>
+
+            <!-- ── LITTER (upper half) ── -->
+            <!-- 9 at the tip (single notch) -->
+            <circle id="L_L9" class="notch-circle" cx="22" cy="80" r="12" fill="#e8f5e8" stroke="#2d6a2d" stroke-width="2"/>
+            <text x="22" y="84" text-anchor="middle" font-size="9" fill="#0d3a0d" font-weight="bold" style="pointer-events:none">9</text>
+
+            <!-- 3,3 pair — close together, mid-upper -->
+            <circle id="L_L3a" class="notch-circle" cx="95" cy="44" r="12" fill="#e8f5e8" stroke="#2d6a2d" stroke-width="2"/>
+            <text x="95" y="48" text-anchor="middle" font-size="9" fill="#0d3a0d" font-weight="bold" style="pointer-events:none">3</text>
+            <circle id="L_L3b" class="notch-circle" cx="121" cy="40" r="12" fill="#e8f5e8" stroke="#2d6a2d" stroke-width="2"/>
+            <text x="121" y="44" text-anchor="middle" font-size="9" fill="#0d3a0d" font-weight="bold" style="pointer-events:none">3</text>
+
+            <!-- 1,1 pair — close together, near base -->
+            <circle id="L_L1a" class="notch-circle" cx="185" cy="43" r="12" fill="#e8f5e8" stroke="#2d6a2d" stroke-width="2"/>
+            <text x="185" y="47" text-anchor="middle" font-size="9" fill="#0d3a0d" font-weight="bold" style="pointer-events:none">1</text>
+            <circle id="L_L1b" class="notch-circle" cx="211" cy="46" r="12" fill="#e8f5e8" stroke="#2d6a2d" stroke-width="2"/>
+            <text x="211" y="50" text-anchor="middle" font-size="9" fill="#0d3a0d" font-weight="bold" style="pointer-events:none">1</text>
+
+            <!-- ── BOAR (lower half) ── -->
+            <!-- 3,3 pair — close together, mid-lower -->
+            <circle id="L_B3a" class="notch-circle" cx="95" cy="116" r="12" fill="#fff3e0" stroke="#e07b00" stroke-width="2"/>
+            <text x="95" y="120" text-anchor="middle" font-size="9" fill="#7a3000" font-weight="bold" style="pointer-events:none">3</text>
+            <circle id="L_B3b" class="notch-circle" cx="121" cy="120" r="12" fill="#fff3e0" stroke="#e07b00" stroke-width="2"/>
+            <text x="121" y="124" text-anchor="middle" font-size="9" fill="#7a3000" font-weight="bold" style="pointer-events:none">3</text>
+
+            <!-- 1,1 pair — close together, near base -->
+            <circle id="L_B1a" class="notch-circle" cx="185" cy="117" r="12" fill="#fff3e0" stroke="#e07b00" stroke-width="2"/>
+            <text x="185" y="121" text-anchor="middle" font-size="9" fill="#7a3000" font-weight="bold" style="pointer-events:none">1</text>
+            <circle id="L_B1b" class="notch-circle" cx="211" cy="114" r="12" fill="#fff3e0" stroke="#e07b00" stroke-width="2"/>
+            <text x="211" y="118" text-anchor="middle" font-size="9" fill="#7a3000" font-weight="bold" style="pointer-events:none">1</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- RIGHT EAR — horizontal, tip points RIGHT, head attachment on LEFT -->
+      <div class="ear-panel" style="max-width:100%;margin-top:12px">
+        <div class="ear-panel-title">Right Ear <span style="font-weight:400;font-size:10px">(facing pig)</span></div>
+        <div class="ear-panel-sub">Lower zone: 1, 3 · Upper zone: 9, 27 · Tip: 81</div>
+        <div class="ear-svg-wrap">
+          <!--
+            Horizontal ear tip points RIGHT
+            Lower half (below centre) = positions 1, 3
+            Upper half (above centre) = positions 9, 27
+            Tip = 81
+          -->
+          <svg id="svgRight" viewBox="0 0 280 160" width="100%" style="max-width:340px">
+            <!-- Ear shape: tip on RIGHT, base on LEFT -->
+            <path d="M 20,80 C 20,30 80,15 150,15 C 210,15 262,35 270,80 C 262,125 210,145 150,145 C 80,145 20,130 20,80 Z"
+                  fill="#f5deb3" stroke="#8B6914" stroke-width="2.5"/>
+            <path d="M 40,80 C 40,42 92,28 150,28 C 200,28 250,46 256,80 C 250,114 200,132 150,132 C 92,132 40,118 40,80 Z"
+                  fill="#e8c99a" stroke="none" opacity="0.4"/>
+
+            <!-- Centre divider -->
+            <line x1="22" y1="80" x2="268" y2="80" stroke="#8B6914" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+
+            <!-- Labels -->
+            <text x="135" y="50" text-anchor="middle" font-size="9" fill="#4a1a9a" font-weight="bold" font-family="serif">UPPER</text>
+            <text x="135" y="114" text-anchor="middle" font-size="9" fill="#4a1a9a" font-weight="bold" font-family="serif">LOWER</text>
+            <text x="25" y="76" text-anchor="middle" font-size="8" fill="#666" font-family="serif">head</text>
+            <text x="258" y="76" text-anchor="middle" font-size="8" fill="#666" font-family="serif">tip</text>
+
+            <!-- ── UPPER ZONE: 27,27 pair then 9,9 pair ── -->
+            <!-- 27,27 pair — near head -->
+            <circle id="R_S27a" class="notch-circle" cx="55" cy="44" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="55" y="48" text-anchor="middle" font-size="8" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">27</text>
+            <circle id="R_S27b" class="notch-circle" cx="81" cy="40" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="81" y="44" text-anchor="middle" font-size="8" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">27</text>
+
+            <!-- 9,9 pair — towards tip -->
+            <circle id="R_S9a" class="notch-circle" cx="148" cy="37" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="148" y="41" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">9</text>
+            <circle id="R_S9b" class="notch-circle" cx="174" cy="39" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="174" y="43" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">9</text>
+
+            <!-- ── TIP: 81 single notch ── -->
+            <circle id="R_S81" class="notch-circle" cx="258" cy="80" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="258" y="84" text-anchor="middle" font-size="8" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">81</text>
+
+            <!-- ── LOWER ZONE: 3,3 pair then 1,1 pair ── -->
+            <!-- 3,3 pair — towards tip -->
+            <circle id="R_S3a" class="notch-circle" cx="148" cy="121" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="148" y="125" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">3</text>
+            <circle id="R_S3b" class="notch-circle" cx="174" cy="119" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="174" y="123" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">3</text>
+
+            <!-- 1,1 pair — near head -->
+            <circle id="R_S1a" class="notch-circle" cx="55" cy="116" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="55" y="120" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">1</text>
+            <circle id="R_S1b" class="notch-circle" cx="81" cy="120" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="81" y="124" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">1</text>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RESULTS -->
+    <div class="notch-results">
+      <div class="notch-results-title">Decoded IDs</div>
+      <div class="notch-result-row">
+        <div><div class="notch-result-label">🐗 Boar ID</div><div class="notch-result-desc">Left ear · lower · max 8</div></div>
+        <div class="notch-result-val" id="resultBoar">—</div>
+      </div>
+      <div class="notch-result-row">
+        <div><div class="notch-result-label">🐣 Litter ID</div><div class="notch-result-desc">Left ear · upper · max 17</div></div>
+        <div class="notch-result-val" id="resultLitter">—</div>
+      </div>
+      <div class="notch-result-row">
+        <div><div class="notch-result-label">🐷 Sow ID</div><div class="notch-result-desc">Right ear · max 161</div></div>
+        <div class="notch-result-val" id="resultSow">—</div>
+      </div>
+      <div class="notch-result-row">
+        <div><div class="notch-result-label">🏷️ Pig ID</div><div class="notch-result-desc">Boar–Sow–Litter format</div></div>
+        <div class="notch-result-val" id="resultPigId" style="font-size:15px">—</div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -500,6 +739,7 @@ window.addEventListener("DOMContentLoaded", () => {
   buildForm("editFormGrid", "edit");
   updateAdminBadge();
   loadRecords();
+  initNotchClickHandlers();
 });
 
 async function saveScriptUrl() {
@@ -809,6 +1049,124 @@ function showToast(msg, isError = false) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.className = "toast hidden", 3000);
 }
+
+// ── Notching ──────────────────────────────────────
+
+const notchState = {
+  L_L1a:false,L_L1b:false,L_L3a:false,L_L3b:false,L_L9:false,
+  L_B1a:false,L_B1b:false,L_B3a:false,L_B3b:false,
+  R_S1a:false,R_S1b:false,R_S3a:false,R_S3b:false,
+  R_S9a:false,R_S9b:false,R_S27a:false,R_S27b:false,R_S81:false
+};
+
+function getOrigColor(id) {
+  if (id.startsWith('L_L')) return '#e8f5e8';
+  if (id.startsWith('L_B')) return '#fff3e0';
+  return '#f0f0ff';
+}
+
+let notchMode = 'calc';
+
+function setNotchMode(mode) {
+  notchMode = mode;
+  document.getElementById('tabCalc').className   = 'notch-tab' + (mode==='calc'   ? ' active' : '');
+  document.getElementById('tabDecode').className = 'notch-tab' + (mode==='decode' ? ' active' : '');
+  document.getElementById('notchCalcInputs').style.display = mode==='calc'   ? 'block' : 'none';
+  document.getElementById('notchDecodeHint').style.display = mode==='decode' ? 'block' : 'none';
+  if (mode === 'decode') { resetNotches(); } else { calcToNotches(); }
+}
+
+function resetNotches() {
+  Object.keys(notchState).forEach(id => {
+    notchState[id] = false;
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('active'); el.setAttribute('fill', getOrigColor(id)); }
+  });
+  updateResults();
+}
+
+function toggleNotch(id) {
+  if (notchMode !== 'decode') return;
+  notchState[id] = !notchState[id];
+  const el = document.getElementById(id);
+  if (notchState[id]) { el.classList.add('active'); el.setAttribute('fill', '#c0392b'); }
+  else { el.classList.remove('active'); el.setAttribute('fill', getOrigColor(id)); }
+  updateResults();
+}
+
+function decodeNotches() {
+  const boar   = (notchState.L_B1a?1:0)+(notchState.L_B1b?1:0)+(notchState.L_B3a?3:0)+(notchState.L_B3b?3:0);
+  const litter = (notchState.L_L1a?1:0)+(notchState.L_L1b?1:0)+(notchState.L_L3a?3:0)+(notchState.L_L3b?3:0)+(notchState.L_L9?9:0);
+  const sow    = (notchState.R_S1a?1:0)+(notchState.R_S1b?1:0)+(notchState.R_S3a?3:0)+(notchState.R_S3b?3:0)
+               +(notchState.R_S9a?9:0)+(notchState.R_S9b?9:0)+(notchState.R_S27a?27:0)+(notchState.R_S27b?27:0)+(notchState.R_S81?81:0);
+  return { boar, litter, sow };
+}
+
+function encodeToNotches(boar, litter, sow) {
+  Object.keys(notchState).forEach(id => { notchState[id] = false; });
+  let b = boar;
+  if (b >= 3) { notchState.L_B3a = true; b -= 3; }
+  if (b >= 3) { notchState.L_B3b = true; b -= 3; }
+  if (b >= 1) { notchState.L_B1a = true; b -= 1; }
+  if (b >= 1) { notchState.L_B1b = true; b -= 1; }
+  let l = litter;
+  if (l >= 9) { notchState.L_L9  = true; l -= 9; }
+  if (l >= 3) { notchState.L_L3a = true; l -= 3; }
+  if (l >= 3) { notchState.L_L3b = true; l -= 3; }
+  if (l >= 1) { notchState.L_L1a = true; l -= 1; }
+  if (l >= 1) { notchState.L_L1b = true; l -= 1; }
+  let s = sow;
+  if (s >= 81) { notchState.R_S81  = true; s -= 81; }
+  if (s >= 27) { notchState.R_S27a = true; s -= 27; }
+  if (s >= 27) { notchState.R_S27b = true; s -= 27; }
+  if (s >= 9)  { notchState.R_S9a  = true; s -= 9;  }
+  if (s >= 9)  { notchState.R_S9b  = true; s -= 9;  }
+  if (s >= 3)  { notchState.R_S3a  = true; s -= 3;  }
+  if (s >= 3)  { notchState.R_S3b  = true; s -= 3;  }
+  if (s >= 1)  { notchState.R_S1a  = true; s -= 1;  }
+  if (s >= 1)  { notchState.R_S1b  = true; s -= 1;  }
+}
+
+function applyNotchStateToSVG() {
+  Object.keys(notchState).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (notchState[id]) { el.classList.add('active'); el.setAttribute('fill','#c0392b'); }
+    else { el.classList.remove('active'); el.setAttribute('fill', getOrigColor(id)); }
+  });
+}
+
+function updateResults() {
+  const { boar, litter, sow } = decodeNotches();
+  document.getElementById('resultBoar').textContent   = boar   > 0 ? boar   : '—';
+  document.getElementById('resultLitter').textContent = litter > 0 ? litter : '—';
+  document.getElementById('resultSow').textContent    = sow    > 0 ? sow    : '—';
+  document.getElementById('resultPigId').textContent  = (boar>0&&sow>0&&litter>0) ? 'B'+boar+'-S'+sow+'-L'+litter : '—';
+}
+
+function calcToNotches() {
+  const boar   = parseInt(document.getElementById('inputBoar')?.value)   || 0;
+  const litter = parseInt(document.getElementById('inputLitter')?.value) || 0;
+  const sow    = parseInt(document.getElementById('inputSow')?.value)    || 0;
+  const eb = document.getElementById('errBoar');
+  const el = document.getElementById('errLitter');
+  const es = document.getElementById('errSow');
+  if(eb) eb.textContent = boar   > 8   ? 'Max is 8'   : '';
+  if(el) el.textContent = litter > 17  ? 'Max is 17'  : '';
+  if(es) es.textContent = sow    > 161 ? 'Max is 161' : '';
+  if (boar > 8 || litter > 17 || sow > 161) return;
+  encodeToNotches(boar, litter, sow);
+  applyNotchStateToSVG();
+  updateResults();
+}
+
+function initNotchClickHandlers() {
+  Object.keys(notchState).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => toggleNotch(id));
+  });
+}
+
 </script>
 
 <!-- BOTTOM NAV -->
@@ -828,6 +1186,10 @@ function showToast(msg, isError = false) {
   <button class="nav-btn" onclick="showPageList()">
     <span class="nav-icon">📋</span>
     <span class="nav-label nav-inactive">Records</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('pageNotch')">
+    <span class="nav-icon">🐽</span>
+    <span class="nav-label nav-inactive">Notch</span>
   </button>
 </nav>
 
