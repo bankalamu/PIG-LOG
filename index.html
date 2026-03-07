@@ -299,6 +299,226 @@
     .notch-result-desc { font-size: 11px; color: #555; }
     .notch-hint { text-align:center; font-size:12px; color:#444; margin-bottom:16px; font-style:italic; }
 
+
+    /* ── Checklist ── */
+    .checklist-date-bar {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+      box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .checklist-date-bar label { font-size: 11px; font-weight: 800; color: #000; text-transform: uppercase; letter-spacing: 0.1em; }
+    .checklist-date-bar input {
+      background: var(--surface2); border: 1.5px solid var(--border-dark);
+      border-radius: 8px; padding: 8px 12px; font-size: 14px; font-weight: 600;
+      color: #000; font-family: 'Source Serif 4', serif; flex: 1; min-width: 140px;
+    }
+    .checklist-date-bar input:focus { outline: none; border-color: var(--brand); background: #fff; }
+    .checklist-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .checklist-meta input {
+      background: var(--surface2); border: 1.5px solid var(--border-dark);
+      border-radius: 8px; padding: 9px 12px; font-size: 14px; font-weight: 600;
+      color: #000; font-family: 'Source Serif 4', serif; width: 100%;
+    }
+    .checklist-meta input:focus { outline: none; border-color: var(--brand); background: #fff; }
+    .checklist-meta label { font-size: 11px; font-weight: 800; color: #000; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 4px; }
+
+    .check-section {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; margin-bottom: 12px; overflow: hidden; box-shadow: var(--shadow);
+    }
+    .check-section-title {
+      background: var(--brand); color: #fff; padding: 10px 16px;
+      font-size: 13px; font-weight: 800; letter-spacing: 0.05em;
+    }
+    .check-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    .check-item:last-child { border-bottom: none; }
+    .check-item-text { flex: 1; }
+    .check-item-label { font-size: 14px; font-weight: 700; color: #000; display: block; }
+    .check-item-healthy { font-size: 12px; color: #1a6a1a; margin-top: 2px; display: block; }
+    .check-item-concern { font-size: 12px; color: #8b0000; margin-top: 1px; display: block; }
+    .check-toggle {
+      display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; padding-top: 2px;
+    }
+    .toggle-btn {
+      width: 36px; height: 36px; border-radius: 8px; border: 2px solid;
+      font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.1s; font-family: sans-serif;
+    }
+    .toggle-btn:active { transform: scale(0.93); }
+    .toggle-ok  { border-color: #2d6a2d; background: var(--surface2); color: #2d6a2d; }
+    .toggle-ok.selected  { background: #2d6a2d; color: #fff; }
+    .toggle-bad { border-color: #c0392b; background: var(--surface2); color: #c0392b; }
+    .toggle-bad.selected { background: #c0392b; color: #fff; }
+    .toggle-label { font-size: 9px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .scours-box {
+      background: #fff5f5; border: 2px solid #c0392b;
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+    }
+    .scours-box-title { font-size: 13px; font-weight: 800; color: #8b0000; margin-bottom: 10px; }
+    .scours-step { font-size: 13px; color: #5a0000; padding: 4px 0; display: flex; gap: 8px; }
+    .scours-step span:first-child { font-weight: 800; flex-shrink: 0; }
+
+    .checklist-notes {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow);
+    }
+    .checklist-notes label { font-size: 11px; font-weight: 800; color: #000; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 8px; }
+    .checklist-notes textarea {
+      width: 100%; background: var(--surface2); border: 1.5px solid var(--border-dark);
+      border-radius: 8px; padding: 10px 12px; font-size: 14px; color: #000;
+      font-family: 'Source Serif 4', serif; resize: vertical; min-height: 80px;
+    }
+    .checklist-notes textarea:focus { outline: none; border-color: var(--brand); background: #fff; }
+
+    .checklist-reminder {
+      background: #fffbe6; border: 1.5px solid #f59e0b;
+      border-radius: 10px; padding: 12px 14px; margin-bottom: 16px;
+      font-size: 13px; font-weight: 700; color: #78350f;
+    }
+
+    /* Checklist history list */
+    .cl-record-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow);
+    }
+    .cl-record-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .cl-record-date { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 900; color: #000; }
+    .cl-record-pen { font-size: 12px; color: #444; }
+    .cl-record-by { font-size: 11px; color: #666; margin-bottom: 8px; }
+    .cl-concern-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+      background: #fdecea; border: 1.5px solid #c0392b; color: #8b0000;
+    }
+    .cl-ok-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+      background: var(--brand-light); border: 1.5px solid var(--brand); color: var(--brand-dark);
+    }
+    .cl-record-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+    /* History tab toggle */
+    .cl-view-tabs { display: flex; gap: 0; margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 1.5px solid var(--brand); }
+    .cl-tab {
+      flex: 1; padding: 10px; text-align: center; font-size: 13px; font-weight: 700;
+      cursor: pointer; border: none; font-family: 'Source Serif 4', serif; transition: background 0.2s;
+    }
+    .cl-tab.active { background: var(--brand); color: #fff; }
+    .cl-tab:not(.active) { background: var(--surface); color: var(--brand); }
+
+    /* ── Sow & Litter Form ── */
+    .sl-section {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; margin-bottom: 14px; overflow: hidden; box-shadow: var(--shadow);
+    }
+    .sl-section-title {
+      padding: 10px 16px; font-size: 13px; font-weight: 800; letter-spacing: 0.04em;
+    }
+    .sl-section-title.pink   { background: #fce4ec; color: #880e4f; border-bottom: 1.5px solid #f8bbd0; }
+    .sl-section-title.blue   { background: #e3f2fd; color: #0d47a1; border-bottom: 1.5px solid #bbdefb; }
+    .sl-section-title.green  { background: #e8f5e9; color: #1b5e20; border-bottom: 1.5px solid #c8e6c9; }
+    .sl-section-title.orange { background: #fff3e0; color: #e65100; border-bottom: 1.5px solid #ffe0b2; }
+    .sl-section-title.purple { background: #f3e5f5; color: #4a148c; border-bottom: 1.5px solid #e1bee7; }
+    .sl-section-title.red    { background: #ffebee; color: #b71c1c; border-bottom: 1.5px solid #ffcdd2; }
+    .sl-section-title.teal   { background: #e0f2f1; color: #004d40; border-bottom: 1.5px solid #b2dfdb; }
+
+    .sl-milestone {
+      border-bottom: 1px solid var(--border); padding: 0;
+    }
+    .sl-milestone:last-child { border-bottom: none; }
+    .sl-milestone-header {
+      background: #f8f9f8; padding: 8px 16px;
+      font-size: 12px; font-weight: 800; color: #333;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border);
+    }
+    .sl-milestone-header.due-today {
+      background: #fff9c4; color: #5a4000;
+      border-left: 4px solid #f59e0b;
+    }
+    .sl-milestone-header.past-done { background: #f0f0f0; color: #888; }
+    .sl-milestone-header.past-overdue {
+      background: #ffebee; color: #b71c1c;
+      border-left: 4px solid #c0392b;
+    }
+    .sl-milestone-header.future { background: #f8f9f8; color: #555; }
+
+    .sl-task {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-bottom: 1px solid #f0f0f0;
+    }
+    .sl-task:last-child { border-bottom: none; }
+    .sl-task-check {
+      width: 26px; height: 26px; border-radius: 6px;
+      border: 2px solid var(--brand); background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; font-size: 15px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .sl-task-check:active { transform: scale(0.9); }
+    .sl-task-check.checked { background: var(--brand); color: #fff; }
+    .sl-task-check.locked  { border-color: #aaa; cursor: default; background: #eee; color: #aaa; }
+    .sl-task-label { flex: 1; font-size: 14px; font-weight: 600; color: #000; }
+    .sl-task-label.locked-text { color: #888; }
+    .sl-task-note { font-size: 11px; color: #555; display: block; margin-top: 2px; font-weight: 400; }
+
+    .sl-num-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 16px; }
+    .sl-num-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    .sl-num-field { display: flex; flex-direction: column; }
+    .sl-num-field label { font-size: 10px; font-weight: 800; color: #000; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .sl-num-field input {
+      background: var(--surface2); border: 1.5px solid var(--border-dark);
+      border-radius: 8px; padding: 8px 10px; font-size: 15px; font-weight: 700;
+      color: #000; font-family: 'Source Serif 4', serif; text-align: center; width: 100%;
+    }
+    .sl-num-field input:focus { outline: none; border-color: var(--brand); background: #fff; }
+    .sl-num-field input:disabled { background: #eee; color: #888; cursor: not-allowed; }
+
+    .sl-mma-box {
+      background: #fff3e0; border: 2px solid #e65100;
+      border-radius: 10px; padding: 12px 16px; margin: 0 16px 12px;
+    }
+    .sl-mma-title { font-size: 12px; font-weight: 800; color: #bf360c; margin-bottom: 8px; }
+
+    .sl-today-banner {
+      background: #fff9c4; border: 2px solid #f59e0b;
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;
+      font-size: 13px; font-weight: 700; color: #78350f;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .sl-locked-notice {
+      font-size: 11px; color: #888; font-style: italic;
+      padding: 6px 16px 10px; display: block;
+    }
+
+    /* Weekly / Monthly checklist styles */
+    .wm-section {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; margin-bottom: 12px; overflow: hidden; box-shadow: var(--shadow);
+    }
+    .wm-section-title {
+      background: var(--brand); color: #fff;
+      padding: 10px 16px; font-size: 13px; font-weight: 800;
+    }
+    .wm-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 11px 16px; border-bottom: 1px solid var(--border);
+    }
+    .wm-item:last-child { border-bottom: none; }
+    .wm-item-text { flex: 1; }
+    .wm-item-label { font-size: 14px; font-weight: 700; color: #000; display: block; }
+    .wm-item-sub { font-size: 12px; color: #444; margin-top: 2px; display: block; }
+    .wm-num-inline {
+      background: var(--surface2); border: 1.5px solid var(--border-dark);
+      border-radius: 6px; padding: 5px 8px; font-size: 14px; font-weight: 700;
+      color: #000; font-family: 'Source Serif 4', serif; width: 80px; text-align: center;
+      margin-top: 6px;
+    }
+    .wm-num-inline:focus { outline: none; border-color: var(--brand); background: #fff; }
+
     @media (max-width: 400px) {
       .form-grid { grid-template-columns: 1fr; }
       .form-group.full { grid-column: 1; }
@@ -386,7 +606,39 @@
       <div class="card-icon icon-green" style="background:#e0e8ff">🐽</div>
       <div>
         <div class="card-title" style="color:#1a3a8a">Ear Notching Tool</div>
-        <div class="card-desc">Encode & decode pig IDs</div>
+        <div class="card-desc">Encode &amp; decode pig IDs</div>
+      </div>
+    </button>
+
+    <button class="action-card" style="border-color:#16a34a;background:#fff" onclick="showPage('pageChecklist')">
+      <div class="card-icon" style="background:#dcfce7">✅</div>
+      <div>
+        <div class="card-title" style="color:#14532d">Daily Health Checklist</div>
+        <div class="card-desc">Morning, feeding &amp; afternoon checks</div>
+      </div>
+    </button>
+
+    <button class="action-card" style="border-color:#880e4f;background:#fff" onclick="showPage('pageSowLitter')">
+      <div class="card-icon" style="background:#fce4ec">🤱</div>
+      <div>
+        <div class="card-title" style="color:#880e4f">Sow &amp; Litter</div>
+        <div class="card-desc">Farrowing checklist &amp; piglet milestones</div>
+      </div>
+    </button>
+
+    <button class="action-card" style="border-color:#1a3a8a;background:#fff" onclick="showPage('pageWeekly')">
+      <div class="card-icon" style="background:#e3f2fd">📅</div>
+      <div>
+        <div class="card-title" style="color:#1a3a8a">Weekly Checklist</div>
+        <div class="card-desc">Condition, health &amp; farm activities</div>
+      </div>
+    </button>
+
+    <button class="action-card" style="border-color:#4a148c;background:#fff" onclick="showPage('pageMonthly')">
+      <div class="card-icon" style="background:#f3e5f5">📆</div>
+      <div>
+        <div class="card-title" style="color:#4a148c">Monthly Checklist</div>
+        <div class="card-desc">Growth review, health programme &amp; farm management</div>
       </div>
     </button>
   </div>
@@ -464,6 +716,795 @@
     <div id="listContainer"></div>
   </div>
 
+
+
+  <!-- DAILY CHECKLIST -->
+  <div id="pageChecklist" style="display:none">
+    <div class="section-title" style="color:#1a3a8a">🐷 Daily Health Checklist</div>
+    <div class="section-sub" style="color:#333;margin-bottom:16px">Grower Pigs · 2 Months Old · Target: 20–25 kg</div>
+
+    <!-- View tabs -->
+    <div class="cl-view-tabs">
+      <button class="cl-tab active" id="clTabForm" onclick="setClView('form')">📋 Today's Check</button>
+      <button class="cl-tab" id="clTabHistory" onclick="setClView('history')">📅 History</button>
+    </div>
+
+    <!-- ── FORM VIEW ── -->
+    <div id="clFormView">
+
+      <!-- Date / Pen / Checked by -->
+      <div class="checklist-date-bar">
+        <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
+          <label>Date</label>
+          <input type="date" id="clDate">
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
+          <label>Pen No.</label>
+          <input type="text" id="clPen" placeholder="e.g. Pen 3">
+        </div>
+      </div>
+      <div class="checklist-meta" style="grid-template-columns:1fr">
+        <div>
+          <label>Checked by</label>
+          <input type="text" id="clCheckedBy" placeholder="Your name">
+        </div>
+      </div>
+
+      <!-- SECTION 1: Morning -->
+      <div class="check-section">
+        <div class="check-section-title">1️⃣ Morning Check — Before Feeding</div>
+        <div class="check-item" data-key="tail">
+          <div class="check-item-text">
+            <span class="check-item-label">Tail &amp; Hindquarters</span>
+            <span class="check-item-healthy">✅ Clean and dry</span>
+            <span class="check-item-concern">⚠️ Wet, stained or soiled</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'tail','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'tail','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="eyes">
+          <div class="check-item-text">
+            <span class="check-item-label">Eyes</span>
+            <span class="check-item-healthy">✅ Bright, full, alert</span>
+            <span class="check-item-concern">⚠️ Sunken, dull or crusty</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'eyes','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'eyes','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="stool">
+          <div class="check-item-text">
+            <span class="check-item-label">Stool in Pen</span>
+            <span class="check-item-healthy">✅ Firm, slightly moist</span>
+            <span class="check-item-concern">⚠️ Watery puddles or liquid</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'stool','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'stool','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="posture">
+          <div class="check-item-text">
+            <span class="check-item-label">Posture &amp; Movement</span>
+            <span class="check-item-healthy">✅ Active, upright, eager</span>
+            <span class="check-item-concern">⚠️ Hunched, reluctant to move</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'posture','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'posture','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="skin">
+          <div class="check-item-text">
+            <span class="check-item-label">Skin Colour</span>
+            <span class="check-item-healthy">✅ Pink, smooth coat</span>
+            <span class="check-item-concern">⚠️ Pale, bluish or rough coat</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'skin','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'skin','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="breathing">
+          <div class="check-item-text">
+            <span class="check-item-label">Breathing</span>
+            <span class="check-item-healthy">✅ Quiet and regular</span>
+            <span class="check-item-concern">⚠️ Laboured, coughing, wheezing</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'breathing','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'breathing','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: Feeding -->
+      <div class="check-section">
+        <div class="check-section-title">2️⃣ Feeding Check — At Each Meal</div>
+        <div class="check-item" data-key="appetite">
+          <div class="check-item-text">
+            <span class="check-item-label">Appetite</span>
+            <span class="check-item-healthy">✅ Rushes to feed eagerly</span>
+            <span class="check-item-concern">⚠️ Slow, disinterested or off feed</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'appetite','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'appetite','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="water">
+          <div class="check-item-text">
+            <span class="check-item-label">Water Intake</span>
+            <span class="check-item-healthy">✅ Drinking freely</span>
+            <span class="check-item-concern">⚠️ Not drinking or very little</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'water','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'water','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="feed">
+          <div class="check-item-text">
+            <span class="check-item-label">Feed Consistency</span>
+            <span class="check-item-healthy">✅ Mash accepted well</span>
+            <span class="check-item-concern">⚠️ Rejected or vomited</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'feed','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'feed','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="smell">
+          <div class="check-item-text">
+            <span class="check-item-label">Pen Smell</span>
+            <span class="check-item-healthy">✅ Normal farm smell</span>
+            <span class="check-item-concern">⚠️ Strong sour/rotten odour</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'smell','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'smell','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Afternoon -->
+      <div class="check-section">
+        <div class="check-section-title">3️⃣ Afternoon Check — End of Day</div>
+        <div class="check-item" data-key="pinch">
+          <div class="check-item-text">
+            <span class="check-item-label">Skin Pinch Test</span>
+            <span class="check-item-healthy">✅ Springs back instantly</span>
+            <span class="check-item-concern">⚠️ Slow return = dehydrated</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'pinch','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'pinch','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="belly">
+          <div class="check-item-text">
+            <span class="check-item-label">Belly Shape</span>
+            <span class="check-item-healthy">✅ Rounded and full</span>
+            <span class="check-item-concern">⚠️ Hollow flanks or pot belly</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'belly','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'belly','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="limbs">
+          <div class="check-item-text">
+            <span class="check-item-label">Limbs &amp; Joints</span>
+            <span class="check-item-healthy">✅ Walking normally</span>
+            <span class="check-item-concern">⚠️ Lameness or swollen joints</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'limbs','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'limbs','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="injuries">
+          <div class="check-item-text">
+            <span class="check-item-label">Any New Injuries</span>
+            <span class="check-item-healthy">✅ No visible wounds</span>
+            <span class="check-item-concern">⚠️ Bites, cuts or abscesses</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'injuries','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'injuries','bad')">!</button>
+          </div>
+        </div>
+        <div class="check-item" data-key="temp">
+          <div class="check-item-text">
+            <span class="check-item-label">Temperature (if ill)</span>
+            <span class="check-item-healthy">✅ 38.5–39.5°C normal</span>
+            <span class="check-item-concern">⚠️ Above 40°C = fever</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'temp','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'temp','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scours action box -->
+      <div class="scours-box">
+        <div class="scours-box-title">🚨 If Scours Detected — Immediate Actions</div>
+        <div class="scours-step"><span>1.</span><span>Isolate pig immediately</span></div>
+        <div class="scours-step"><span>2.</span><span>Stop brewer's mash — dry feed only</span></div>
+        <div class="scours-step"><span>3.</span><span>Give oral electrolytes in water</span></div>
+        <div class="scours-step"><span>4.</span><span>Reduce feed by half for 24 hrs</span></div>
+        <div class="scours-step"><span>5.</span><span>Monitor every 2 hours</span></div>
+        <div class="scours-step" style="font-weight:800;color:#8b0000"><span>6.</span><span>No improvement in 12–24 hrs? CALL VET</span></div>
+      </div>
+
+      <!-- Notes -->
+      <div class="checklist-notes">
+        <label>📝 Notes / Observations Today</label>
+        <textarea id="clNotes" placeholder="Record anything unusual observed today…"></textarea>
+      </div>
+
+      <!-- Reminder -->
+      <div class="checklist-reminder">⚠️ Key Reminder: A WET TAIL = Investigate Immediately. Early action saves pigs.</div>
+
+      <!-- Save button -->
+      <div class="btn-row">
+        <button class="btn-primary btn-green" id="btnSaveChecklist" onclick="saveChecklist()">SAVE CHECKLIST</button>
+        <button class="btn-cancel" onclick="resetChecklist()">Reset</button>
+      </div>
+
+    </div><!-- end clFormView -->
+
+    <!-- ── HISTORY VIEW ── -->
+    <div id="clHistoryView" style="display:none">
+      <input type="text" class="list-search" id="clHistorySearch" placeholder="Search by date or pen…" oninput="renderChecklistHistory()"/>
+      <div id="clHistoryContainer"><div class="empty-state">Loading…</div></div>
+    </div>
+
+  </div>
+
+
+  <!-- SOW & LITTER FORM -->
+  <div id="pageSowLitter" style="display:none">
+    <div class="section-title" style="color:#880e4f">🐷 Sow &amp; Litter Record</div>
+    <div class="section-sub" style="color:#333;margin-bottom:16px">Farrowing checklist — one form per sow per litter</div>
+
+    <div class="cl-view-tabs">
+      <button class="cl-tab active" id="slTabForm" onclick="setSlView('form')">📋 Active Litter</button>
+      <button class="cl-tab" id="slTabHistory" onclick="setSlView('history')">📅 History</button>
+    </div>
+
+    <!-- ── FORM VIEW ── -->
+    <div id="slFormView">
+
+      <!-- Sow ID + Farrow Date header -->
+      <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
+        <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
+          <label class="form-label">Sow ID</label>
+          <input type="text" id="slSowId" placeholder="e.g. S12" class="form-input" oninput="slUpdateDayInfo()">
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
+          <label class="form-label">Farrow Date</label>
+          <input type="date" id="slFarrowDate" class="form-input" oninput="slUpdateDayInfo()">
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
+          <label class="form-label">Pen No.</label>
+          <input type="text" id="slPen" placeholder="Pen" class="form-input">
+        </div>
+      </div>
+      <div id="slDayBanner" style="display:none" class="sl-today-banner">📅 <span id="slDayText">Day 0</span></div>
+
+      <!-- ── SOW WELFARE — numeric fields ── -->
+      <div class="sl-section">
+        <div class="sl-section-title pink">🐷 Litter Summary — At Farrowing</div>
+        <div class="sl-num-grid">
+          <div class="sl-num-field"><label>Born Alive</label><input type="number" id="sl_born_alive" min="0" placeholder="0"></div>
+          <div class="sl-num-field"><label>Stillborn</label><input type="number" id="sl_stillborn" min="0" placeholder="0"></div>
+          <div class="sl-num-field"><label>Mummified</label><input type="number" id="sl_mummified" min="0" placeholder="0"></div>
+          <div class="sl-num-field"><label>Total Birth Wt (kg)</label><input type="number" id="sl_total_birth_wt" min="0" step="0.1" placeholder="0.0"></div>
+          <div class="sl-num-field"><label>Lightest Piglet (kg)</label><input type="number" id="sl_lightest" min="0" step="0.01" placeholder="0.00"></div>
+          <div class="sl-num-field"><label>Heaviest Piglet (kg)</label><input type="number" id="sl_heaviest" min="0" step="0.01" placeholder="0.00"></div>
+        </div>
+      </div>
+
+      <!-- Daily nursing check -->
+      <div class="sl-section">
+        <div class="sl-section-title blue">📊 Daily Nursing Status (update each day)</div>
+        <div class="sl-num-grid">
+          <div class="sl-num-field"><label>Actively Nursing</label><input type="number" id="sl_nursing" min="0" placeholder="0"></div>
+          <div class="sl-num-field"><label>Weaklings / Runts</label><input type="number" id="sl_weaklings" min="0" placeholder="0"></div>
+          <div class="sl-num-field"><label>Lightest Today (kg)</label><input type="number" id="sl_lightest_today" min="0" step="0.01" placeholder="0.00"></div>
+          <div class="sl-num-field"><label>Heaviest Today (kg)</label><input type="number" id="sl_heaviest_today" min="0" step="0.01" placeholder="0.00"></div>
+        </div>
+      </div>
+
+      <!-- ── SOW TREATMENTS ── -->
+      <div class="sl-section">
+        <div class="sl-section-title pink">💊 Sow Treatments — Days 0–5</div>
+        <div class="sl-task" data-day="0">
+          <div class="sl-task-check" id="chk_sow_antiinflam" onclick="slToggleTask('sow_antiinflam',0)"></div>
+          <div class="sl-task-label">Anti-inflammatory given (if needed)<span class="sl-task-note">Pain relief &amp; mastitis prevention — Days 0–5</span></div>
+        </div>
+        <div class="sl-task" data-day="0">
+          <div class="sl-task-check" id="chk_sow_mma_ab" onclick="slToggleTask('sow_mma_ab',0)"></div>
+          <div class="sl-task-label">Antibiotic given (if MMA)<span class="sl-task-note">Mastitis-Metritis-Agalactia — restore milk</span></div>
+        </div>
+        <div class="sl-task" data-day="0">
+          <div class="sl-task-check" id="chk_sow_oxytocin" onclick="slToggleTask('sow_oxytocin',0)"></div>
+          <div class="sl-task-label">Oxytocin given (if MMA)<span class="sl-task-note">Given alongside antibiotic to restore milk letdown</span></div>
+        </div>
+      </div>
+
+      <!-- ── PIGLET MILESTONES ── -->
+      <div class="sl-section">
+        <div class="sl-section-title green">🐽 Piglet Milestones &amp; Activities</div>
+
+        <!-- Day 0–1 -->
+        <div class="sl-milestone">
+          <div class="sl-milestone-header" id="mhdr_d01">📅 Days 0–1 — Birth &amp; First Hours</div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_iodine" onclick="slToggleTask('iodine',1)"></div>
+            <div class="sl-task-label">Iodine applied to navel<span class="sl-task-note">Prevent navel infection — apply immediately after birth</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_colostrum" onclick="slToggleTask('colostrum',1)"></div>
+            <div class="sl-task-label">Colostrum intake confirmed for all piglets<span class="sl-task-note">Critical — all piglets must feed within 6 hours of birth</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_teat_order" onclick="slToggleTask('teat_order',1)"></div>
+            <div class="sl-task-label">Teat order established<span class="sl-task-note">Ensure each piglet has access to a teat</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_heat_lamp" onclick="slToggleTask('heat_lamp',1)"></div>
+            <div class="sl-task-label">Heat lamp checked &amp; positioned correctly<span class="sl-task-note">Target 30–32°C in piglet area</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_litter_weigh" onclick="slToggleTask('litter_weigh',1)"></div>
+            <div class="sl-task-label">Litter counted &amp; weighed<span class="sl-task-note">Record figures in Litter Summary above</span></div>
+          </div>
+        </div>
+
+        <!-- Day 2–3 -->
+        <div class="sl-milestone">
+          <div class="sl-milestone-header" id="mhdr_d23">📅 Days 2–3 — Early Treatments</div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_iron" onclick="slToggleTask('iron',2)"></div>
+            <div class="sl-task-label">Iron dextran injection given<span class="sl-task-note">Prevent anaemia — 200mg iron dextran IM</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_tail_dock" onclick="slToggleTask('tail_dock',2)"></div>
+            <div class="sl-task-label">Tail docking done<span class="sl-task-note">Reduce tail-biting risk in grower stage</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_teeth" onclick="slToggleTask('teeth',2)"></div>
+            <div class="sl-task-label">Teeth clipping done<span class="sl-task-note">Clip needle teeth to protect sow's teats</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_navel_check" onclick="slToggleTask('navel_check',2)"></div>
+            <div class="sl-task-label">Navel healing checked<span class="sl-task-note">Inspect all navels — no swelling or discharge</span></div>
+          </div>
+        </div>
+
+        <!-- Day 5–7 -->
+        <div class="sl-milestone">
+          <div class="sl-milestone-header" id="mhdr_d57">📅 Days 5–7 — Supplements &amp; Feed</div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_multivit" onclick="slToggleTask('multivit',5)"></div>
+            <div class="sl-task-label">Multivitamin given (optional)<span class="sl-task-note">Boost growth and immunity</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_creep" onclick="slToggleTask('creep',5)"></div>
+            <div class="sl-task-label">Creep feed introduced<span class="sl-task-note">Place small amount in creep area daily</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_navel_healed" onclick="slToggleTask('navel_healed',5)"></div>
+            <div class="sl-task-label">Navel fully healed — confirmed<span class="sl-task-note">All navels dry and closed</span></div>
+          </div>
+        </div>
+
+        <!-- Day 7–10 -->
+        <div class="sl-milestone">
+          <div class="sl-milestone-header" id="mhdr_d710">📅 Days 7–10 — Castration &amp; Notching</div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_castration" onclick="slToggleTask('castration',7)"></div>
+            <div class="sl-task-label">Castration done (males only)<span class="sl-task-note">Prevent boar taint — record number below</span></div>
+          </div>
+          <div class="sl-num-grid" style="padding:4px 16px 12px">
+            <div class="sl-num-field"><label>Number Castrated</label><input type="number" id="sl_castrated" min="0" placeholder="0"></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_ear_notch" onclick="slToggleTask('ear_notch',7)"></div>
+            <div class="sl-task-label">Ear notching done<span class="sl-task-note">Use Notching Tool tab for correct pattern</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_coccidiostat" onclick="slToggleTask('coccidiostat',7)"></div>
+            <div class="sl-task-label">Coccidiostat given (if scours risk)<span class="sl-task-note">Optional — Days 7–14 if scours history in pen</span></div>
+          </div>
+        </div>
+
+        <!-- Day 14 -->
+        <div class="sl-milestone">
+          <div class="sl-milestone-header" id="mhdr_d14">📅 Day 14 — Health Check &amp; Weights</div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_indiv_weigh" onclick="slToggleTask('indiv_weigh',14)"></div>
+            <div class="sl-task-label">Individual weights recorded<span class="sl-task-note">Weigh each piglet and record</span></div>
+          </div>
+          <div class="sl-num-grid">
+            <div class="sl-num-field"><label>Avg Weight Day 14 (kg)</label><input type="number" id="sl_wt_d14" min="0" step="0.01" placeholder="0.00"></div>
+            <div class="sl-num-field"><label>Number Still Alive</label><input type="number" id="sl_alive_d14" min="0" placeholder="0"></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_health_d14" onclick="slToggleTask('health_d14',14)"></div>
+            <div class="sl-task-label">Health check completed<span class="sl-task-note">Check all piglets — eyes, breathing, movement</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_mma_d14" onclick="slToggleTask('mma_d14',14)"></div>
+            <div class="sl-task-label">Sow MMA check done<span class="sl-task-note">If signs present: antibiotic + oxytocin above</span></div>
+          </div>
+        </div>
+
+        <!-- Day 21–28 -->
+        <div class="sl-milestone">
+          <div class="sl-milestone-header" id="mhdr_d2128">📅 Days 21–28 — Weaning</div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_vax" onclick="slToggleTask('vax',21)"></div>
+            <div class="sl-task-label">Vaccination given<span class="sl-task-note">Per farm vaccination schedule</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_weaner_feed" onclick="slToggleTask('weaner_feed',21)"></div>
+            <div class="sl-task-label">Weaner feed verified &amp; ready<span class="sl-task-note">Confirm correct feed type and sufficient stock</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_weaner_pen" onclick="slToggleTask('weaner_pen',21)"></div>
+            <div class="sl-task-label">Weaner pen cleaned &amp; prepared<span class="sl-task-note">Clean, disinfect and bed pen before transfer</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_prev_meds" onclick="slToggleTask('prev_meds',21)"></div>
+            <div class="sl-task-label">Preventive medications started<span class="sl-task-note">As per weaning protocol — record in notes</span></div>
+          </div>
+          <div class="sl-task">
+            <div class="sl-task-check" id="chk_weaned" onclick="slToggleTask('weaned',28)"></div>
+            <div class="sl-task-label">Weaned — piglets moved to weaner pen<span class="sl-task-note">Record number weaned and date below</span></div>
+          </div>
+          <div class="sl-num-grid">
+            <div class="sl-num-field"><label>Number Weaned</label><input type="number" id="sl_num_weaned" min="0" placeholder="0"></div>
+            <div class="sl-num-field"><label>Date Weaned</label><input type="date" id="sl_date_weaned"></div>
+            <div class="sl-num-field"><label>Avg Wean Weight (kg)</label><input type="number" id="sl_wean_wt" min="0" step="0.01" placeholder="0.00"></div>
+          </div>
+        </div>
+
+      </div><!-- end piglet milestones -->
+
+      <!-- Notes -->
+      <div class="checklist-notes">
+        <label>📝 Notes / Observations</label>
+        <textarea id="slNotes" placeholder="Record treatments, concerns, deaths, or anything unusual…"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary btn-green" id="btnSaveSl" onclick="saveSowLitter()">SAVE RECORD</button>
+        <button class="btn-cancel" onclick="resetSowLitter()">Reset</button>
+      </div>
+    </div><!-- end slFormView -->
+
+    <!-- ── HISTORY VIEW ── -->
+    <div id="slHistoryView" style="display:none">
+      <input type="text" class="list-search" id="slHistorySearch" placeholder="Search by sow ID or date…" oninput="renderSlHistory()"/>
+      <div id="slHistoryContainer"><div class="empty-state">Loading…</div></div>
+    </div>
+
+  </div><!-- end pageSowLitter -->
+
+
+  <!-- WEEKLY CHECKLIST -->
+  <div id="pageWeekly" style="display:none">
+    <div class="section-title" style="color:#1a3a8a">📅 Weekly Checklist</div>
+    <div class="section-sub" style="color:#333;margin-bottom:16px">Complete once per week — covers pig condition, health and farm activities</div>
+
+    <div class="cl-view-tabs">
+      <button class="cl-tab active" id="wkTabForm" onclick="setWkView('form')">📋 This Week</button>
+      <button class="cl-tab" id="wkTabHistory" onclick="setWkView('history')">📅 History</button>
+    </div>
+
+    <div id="wkFormView">
+      <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
+        <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
+          <label class="form-label">Week Starting</label>
+          <input type="date" id="wkDate" class="form-input">
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
+          <label class="form-label">Pen / Farm</label>
+          <input type="text" id="wkPen" placeholder="All pens" class="form-input">
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
+          <label class="form-label">Checked by</label>
+          <input type="text" id="wkCheckedBy" class="form-input" placeholder="Your name">
+        </div>
+      </div>
+
+      <!-- Pig Condition -->
+      <div class="wm-section">
+        <div class="wm-section-title">🐷 Pig Condition</div>
+        <div class="wm-item" data-key="wk_weight_spot">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Weight Spot-Check</span>
+            <span class="wm-item-sub">Weigh 2–3 pigs per pen — record average below</span>
+            <input type="number" class="wm-num-inline" id="wk_avg_weight" placeholder="avg kg" step="0.1">
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_weight_spot','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_weight_spot','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="wk_body_condition">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Body Condition Score</span>
+            <span class="wm-item-sub">✅ Score 3–3.5 · ⚠️ Too thin (&lt;2.5) or too fat (&gt;4)</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_body_condition','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_body_condition','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="wk_behaviour">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Behaviour &amp; Social Issues</span>
+            <span class="wm-item-sub">✅ No fighting or bullying · ⚠️ Aggression or isolation</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_behaviour','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_behaviour','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health & Husbandry -->
+      <div class="wm-section">
+        <div class="wm-section-title">💊 Health &amp; Husbandry Activities</div>
+        <div class="wm-item" data-key="wk_deworm">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Deworming — Due This Week?</span>
+            <span class="wm-item-sub">✅ Done or not due · ⚠️ Overdue</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_deworm','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_deworm','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="wk_vitamins">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Vitamin / Mineral Supplement Given</span>
+            <span class="wm-item-sub">✅ Administered · ⚠️ Missed or stock out</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_vitamins','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_vitamins','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="wk_wounds">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Chronic Wounds / Ongoing Issues</span>
+            <span class="wm-item-sub">✅ None present · ⚠️ Untreated wound or abscess</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_wounds','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_wounds','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Farm & Feed -->
+      <div class="wm-section">
+        <div class="wm-section-title">🏚️ Farm &amp; Feed Activities</div>
+        <div class="wm-item" data-key="wk_feeder_clean">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Feeders &amp; Drinkers Deep Cleaned</span>
+            <span class="wm-item-sub">✅ Scrubbed and rinsed · ⚠️ Not done</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_feeder_clean','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_feeder_clean','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="wk_pen_repair">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Pen Repair Walkthrough</span>
+            <span class="wm-item-sub">✅ No damage found · ⚠️ Repairs needed</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_pen_repair','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_pen_repair','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="wk_feed_consumption">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Feed Consumption vs Expected</span>
+            <span class="wm-item-sub">✅ On track · ⚠️ Significantly under or over</span>
+            <input type="number" class="wm-num-inline" id="wk_feed_kg" placeholder="kg used" step="0.5">
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_feed_consumption','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_feed_consumption','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="wk_boar_condition">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Boar Condition Check</span>
+            <span class="wm-item-sub">✅ Active, good condition · ⚠️ Lame, thin or off feed</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'wk_boar_condition','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'wk_boar_condition','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="checklist-notes">
+        <label>📝 Notes</label>
+        <textarea id="wkNotes" placeholder="Any observations, actions taken, or follow-ups needed…"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary btn-green" id="btnSaveWk" onclick="saveWeekly()">SAVE WEEKLY CHECK</button>
+        <button class="btn-cancel" onclick="resetWeekly()">Reset</button>
+      </div>
+    </div>
+
+    <div id="wkHistoryView" style="display:none">
+      <input type="text" class="list-search" id="wkHistorySearch" placeholder="Search by date or pen…" oninput="renderWkHistory()"/>
+      <div id="wkHistoryContainer"><div class="empty-state">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- MONTHLY CHECKLIST -->
+  <div id="pageMonthly" style="display:none">
+    <div class="section-title" style="color:#4a148c">📆 Monthly Checklist</div>
+    <div class="section-sub" style="color:#333;margin-bottom:16px">Complete once per month — growth review, health programme &amp; farm management</div>
+
+    <div class="cl-view-tabs">
+      <button class="cl-tab active" id="moTabForm" onclick="setMoView('form')">📋 This Month</button>
+      <button class="cl-tab" id="moTabHistory" onclick="setMoView('history')">📅 History</button>
+    </div>
+
+    <div id="moFormView">
+      <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
+        <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
+          <label class="form-label">Month</label>
+          <input type="month" id="moMonth" class="form-input">
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
+          <label class="form-label">Checked by</label>
+          <input type="text" id="moCheckedBy" class="form-input" placeholder="Your name">
+        </div>
+      </div>
+
+      <!-- Growth & Records -->
+      <div class="wm-section">
+        <div class="wm-section-title">📈 Growth &amp; Records</div>
+        <div class="wm-item" data-key="mo_full_weigh">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Full Weight Recording — All Pigs</span>
+            <span class="wm-item-sub">Weigh every pig and update Pig Log records</span>
+            <input type="number" class="wm-num-inline" id="mo_pigs_weighed" placeholder="# weighed">
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_full_weigh','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_full_weigh','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="mo_growth_rate">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Growth Rate Review</span>
+            <span class="wm-item-sub">✅ On target · ⚠️ Below expected ADG</span>
+            <input type="number" class="wm-num-inline" id="mo_avg_adg" placeholder="avg ADG g/day" step="1">
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_growth_rate','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_growth_rate','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="mo_mortality">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Mortality Review</span>
+            <span class="wm-item-sub">Record deaths this month and cause if known</span>
+            <input type="number" class="wm-num-inline" id="mo_deaths" placeholder="# deaths">
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_mortality','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_mortality','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health Programme -->
+      <div class="wm-section">
+        <div class="wm-section-title">💉 Health Programme</div>
+        <div class="wm-item" data-key="mo_vaccination">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Vaccination Round</span>
+            <span class="wm-item-sub">✅ Completed or not due · ⚠️ Overdue</span>
+            <input type="number" class="wm-num-inline" id="mo_vax_count" placeholder="# vaccinated">
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_vaccination','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_vaccination','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="mo_breeding">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Breeding Records Updated</span>
+            <span class="wm-item-sub">Sows cycling, services recorded, expected farrow dates</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_breeding','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_breeding','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="mo_boar_perf">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Boar Performance Review</span>
+            <span class="wm-item-sub">✅ Active, good libido · ⚠️ Low performance or health issue</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_boar_perf','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_boar_perf','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Farm Management -->
+      <div class="wm-section">
+        <div class="wm-section-title">🏚️ Farm Management</div>
+        <div class="wm-item" data-key="mo_feed_inventory">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Feed Stock Inventory &amp; Reorder</span>
+            <span class="wm-item-sub">✅ Sufficient stock · ⚠️ Order needed</span>
+            <input type="number" class="wm-num-inline" id="mo_feed_stock" placeholder="bags on hand">
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_feed_inventory','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_feed_inventory','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="mo_equipment">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Equipment Maintenance</span>
+            <span class="wm-item-sub">Pumps, feeders, scales, heat lamps — all functional</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_equipment','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_equipment','bad')">!</button>
+          </div>
+        </div>
+        <div class="wm-item" data-key="mo_biosecurity">
+          <div class="wm-item-text">
+            <span class="wm-item-label">Biosecurity Check</span>
+            <span class="wm-item-sub">Visitor log, entry protocols, disinfectant footbath active</span>
+          </div>
+          <div class="check-toggle">
+            <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'mo_biosecurity','ok')">✓</button>
+            <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'mo_biosecurity','bad')">!</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="checklist-notes">
+        <label>📝 Notes</label>
+        <textarea id="moNotes" placeholder="Key observations, actions, plans for next month…"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary btn-green" id="btnSaveMo" onclick="saveMonthly()">SAVE MONTHLY CHECK</button>
+        <button class="btn-cancel" onclick="resetMonthly()">Reset</button>
+      </div>
+    </div>
+
+    <div id="moHistoryView" style="display:none">
+      <input type="text" class="list-search" id="moHistorySearch" placeholder="Search by month…" oninput="renderMoHistory()"/>
+      <div id="moHistoryContainer"><div class="empty-state">Loading…</div></div>
+    </div>
+  </div>
 
   <!-- NOTCHING TOOL -->
   <div id="pageNotch" style="display:none">
@@ -740,6 +1781,10 @@ window.addEventListener("DOMContentLoaded", () => {
   updateAdminBadge();
   loadRecords();
   initNotchClickHandlers();
+  initChecklist();
+  initSowLitter();
+  initWeekly();
+  initMonthly();
 });
 
 async function saveScriptUrl() {
@@ -1050,6 +2095,840 @@ function showToast(msg, isError = false) {
   toastTimer = setTimeout(() => t.className = "toast hidden", 3000);
 }
 
+
+// ══════════════════════════════════════════════════
+//  CHECKLIST
+// ══════════════════════════════════════════════════
+
+const CL_KEYS = ['tail','eyes','stool','posture','skin','breathing',
+                 'appetite','water','feed','smell',
+                 'pinch','belly','limbs','injuries','temp'];
+
+let clState = {};  // key -> 'ok' | 'bad' | null
+let clView = 'form';
+let allChecklists = [];
+let clEditId = null;  // null = new entry, string = editing existing
+
+function initChecklist() {
+  CL_KEYS.forEach(k => { clState[k] = null; });
+  // Set today's date
+  const today = new Date().toISOString().split('T')[0];
+  const dateEl = document.getElementById('clDate');
+  if (dateEl && !dateEl.value) dateEl.value = today;
+}
+
+function setClView(view) {
+  clView = view;
+  document.getElementById('clTabForm').className    = 'cl-tab' + (view==='form'    ? ' active' : '');
+  document.getElementById('clTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
+  document.getElementById('clFormView').style.display    = view==='form'    ? 'block' : 'none';
+  document.getElementById('clHistoryView').style.display = view==='history' ? 'block' : 'none';
+  if (view === 'history') { loadChecklists(); }
+}
+
+// toggleCheck defined in new_js section below
+
+function resetChecklist() {
+  CL_KEYS.forEach(k => {
+    clState[k] = null;
+    document.querySelectorAll(`.check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+  });
+  document.getElementById('clNotes').value = '';
+  document.getElementById('clPen').value = '';
+  document.getElementById('clCheckedBy').value = '';
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('clDate').value = today;
+  clEditId = null;
+  document.getElementById('btnSaveChecklist').textContent = 'SAVE CHECKLIST';
+}
+
+async function saveChecklist() {
+  const date      = document.getElementById('clDate').value;
+  const pen       = document.getElementById('clPen').value.trim();
+  const checkedBy = document.getElementById('clCheckedBy').value.trim();
+  const notes     = document.getElementById('clNotes').value.trim();
+
+  if (!date) { showToast('Please select a date', true); return; }
+
+  const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
+  const data = {
+    Date: date, Pen: pen, CheckedBy: checkedBy,
+    Notes: notes, Concerns: concerns.join(','),
+    Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK'
+  };
+  CL_KEYS.forEach(k => { data[k] = clState[k] || ''; });
+
+  const btn = document.getElementById('btnSaveChecklist');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  let result;
+  if (clEditId) {
+    result = await apiPost({ action: 'clUpdate', id: clEditId, data });
+  } else {
+    result = await apiPost({ action: 'clAdd', data });
+  }
+
+  btn.disabled = false;
+  btn.textContent = clEditId ? 'SAVE CHANGES' : 'SAVE CHECKLIST';
+
+  if (result && result.success) {
+    showToast(clEditId ? '✓ Checklist updated!' : '✓ Checklist saved!');
+    clEditId = null;
+    btn.textContent = 'SAVE CHECKLIST';
+    resetChecklist();
+    allChecklists = [];
+  } else {
+    showToast(result?.error || 'Save failed', true);
+  }
+}
+
+async function loadChecklists() {
+  if (allChecklists.length > 0) { renderChecklistHistory(); return; }
+  document.getElementById('clHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  const result = await apiGet({ action: 'clGetAll' });
+  if (result && result.success) {
+    allChecklists = result.records || [];
+    renderChecklistHistory();
+  } else {
+    document.getElementById('clHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+  }
+}
+
+function renderChecklistHistory() {
+  const filter = (document.getElementById('clHistorySearch')?.value || '').toLowerCase();
+  const container = document.getElementById('clHistoryContainer');
+  let list = allChecklists.filter(r =>
+    (r.Date||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter) ||
+    (r.CheckedBy||'').toLowerCase().includes(filter)
+  );
+  list = list.slice().reverse(); // most recent first
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state">No checklist records found.</div>';
+    return;
+  }
+
+  container.innerHTML = list.map(rec => {
+    const hasConcerns = rec.Status === 'CONCERNS';
+    const badge = hasConcerns
+      ? `<span class="cl-concern-badge">⚠️ ${(rec.Concerns||'').split(',').length} concern(s)</span>`
+      : `<span class="cl-ok-badge">✅ All OK</span>`;
+    const adminActions = isAdminEnabled()
+      ? `<button class="btn-edit" onclick="clEditRecord('${rec.CL_ID}')">Edit</button>
+         <button class="btn-delete" onclick="clDeleteRecord('${rec.CL_ID}')">Delete</button>`
+      : '';
+    return `
+      <div class="cl-record-card">
+        <div class="cl-record-header">
+          <div class="cl-record-date">${rec.Date || '—'}</div>
+          ${badge}
+        </div>
+        <div class="cl-record-by">Pen: ${rec.Pen||'—'} &nbsp;·&nbsp; By: ${rec.CheckedBy||'—'}</div>
+        ${rec.Notes ? `<div style="font-size:12px;color:#333;font-style:italic;margin-bottom:6px">"${rec.Notes}"</div>` : ''}
+        ${adminActions ? `<div class="cl-record-actions">${adminActions}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function clEditRecord(clId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const rec = allChecklists.find(r => String(r.CL_ID) === String(clId));
+  if (!rec) return;
+  clEditId = clId;
+  // Populate form
+  document.getElementById('clDate').value = rec.Date || '';
+  document.getElementById('clPen').value = rec.Pen || '';
+  document.getElementById('clCheckedBy').value = rec.CheckedBy || '';
+  document.getElementById('clNotes').value = rec.Notes || '';
+  // Restore check states
+  CL_KEYS.forEach(k => {
+    clState[k] = rec[k] || null;
+    document.querySelectorAll(`.check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    if (rec[k]) {
+      const cls = rec[k] === 'ok' ? '.toggle-ok' : '.toggle-bad';
+      const item = document.querySelector(`.check-item[data-key="${k}"]`);
+      if (item) item.querySelector(cls)?.classList.add('selected');
+    }
+  });
+  document.getElementById('btnSaveChecklist').textContent = 'SAVE CHANGES';
+  setClView('form');
+  showToast('Record loaded for editing');
+}
+
+async function clDeleteRecord(clId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!confirm('Delete this checklist entry? This cannot be undone.')) return;
+  const result = await apiPost({ action: 'clDelete', id: clId });
+  if (result && result.success) {
+    showToast('Checklist entry deleted');
+    allChecklists = allChecklists.filter(r => String(r.CL_ID) !== String(clId));
+    renderChecklistHistory();
+  } else {
+    showToast(result?.error || 'Delete failed', true);
+  }
+}
+
+
+
+// ══════════════════════════════════════════════════
+//  SOW & LITTER
+// ══════════════════════════════════════════════════
+
+const SL_TASKS = [
+  'sow_antiinflam','sow_mma_ab','sow_oxytocin',
+  'iodine','colostrum','teat_order','heat_lamp','litter_weigh',
+  'iron','tail_dock','teeth','navel_check',
+  'multivit','creep','navel_healed',
+  'castration','ear_notch','coccidiostat',
+  'indiv_weigh','health_d14','mma_d14',
+  'vax','weaner_feed','weaner_pen','prev_meds','weaned'
+];
+
+// task -> day it becomes due
+const SL_TASK_DAY = {
+  sow_antiinflam:0, sow_mma_ab:0, sow_oxytocin:0,
+  iodine:0, colostrum:0, teat_order:0, heat_lamp:0, litter_weigh:0,
+  iron:2, tail_dock:2, teeth:2, navel_check:2,
+  multivit:5, creep:5, navel_healed:5,
+  castration:7, ear_notch:7, coccidiostat:7,
+  indiv_weigh:14, health_d14:14, mma_d14:14,
+  vax:21, weaner_feed:21, weaner_pen:21, prev_meds:21, weaned:28
+};
+
+let slTaskState = {};   // task -> true/false
+let slEditId = null;
+let allSlRecords = [];
+let slView = 'form';
+
+function initSowLitter() {
+  SL_TASKS.forEach(t => { slTaskState[t] = false; });
+  const today = new Date().toISOString().split('T')[0];
+  const fd = document.getElementById('slFarrowDate');
+  if (fd && !fd.value) fd.value = today;
+  slUpdateDayInfo();
+}
+
+function slDaysSinceFarrow() {
+  const fd = document.getElementById('slFarrowDate')?.value;
+  if (!fd) return null;
+  const farrow = new Date(fd);
+  const today = new Date();
+  farrow.setHours(0,0,0,0); today.setHours(0,0,0,0);
+  return Math.floor((today - farrow) / 86400000);
+}
+
+function slUpdateDayInfo() {
+  const days = slDaysSinceFarrow();
+  const banner = document.getElementById('slDayBanner');
+  const txt = document.getElementById('slDayText');
+  if (days === null || days < 0) { if(banner) banner.style.display='none'; return; }
+  if(banner) banner.style.display='flex';
+  if(txt) txt.textContent = `Day ${days} since farrowing`;
+
+  // Colour milestone headers
+  const milestones = [
+    {id:'mhdr_d01',   from:0,  to:1},
+    {id:'mhdr_d23',   from:2,  to:3},
+    {id:'mhdr_d57',   from:5,  to:7},
+    {id:'mhdr_d710',  from:7,  to:10},
+    {id:'mhdr_d14',   from:14, to:14},
+    {id:'mhdr_d2128', from:21, to:28}
+  ];
+  // Map each milestone group to its tasks so we can check completion
+  const milestoneTaskMap = [
+    {id:'mhdr_d01',   from:0,  to:1,  tasks:['iodine','colostrum','teat_order','heat_lamp','litter_weigh','sow_antiinflam','sow_mma_ab','sow_oxytocin']},
+    {id:'mhdr_d23',   from:2,  to:3,  tasks:['iron','tail_dock','teeth','navel_check']},
+    {id:'mhdr_d57',   from:5,  to:7,  tasks:['multivit','creep','navel_healed']},
+    {id:'mhdr_d710',  from:7,  to:10, tasks:['castration','ear_notch','coccidiostat']},
+    {id:'mhdr_d14',   from:14, to:14, tasks:['indiv_weigh','health_d14','mma_d14']},
+    {id:'mhdr_d2128', from:21, to:28, tasks:['vax','weaner_feed','weaner_pen','prev_meds','weaned']}
+  ];
+  milestoneTaskMap.forEach(m => {
+    const el = document.getElementById(m.id);
+    if (!el) return;
+    el.className = 'sl-milestone-header';
+    if (days >= m.from && days <= m.to) {
+      el.classList.add('due-today');
+    } else if (days > m.to) {
+      // Past due — check if all tasks in this group are done
+      const allDone = m.tasks.every(t => slTaskState[t] === true);
+      el.classList.add(allDone ? 'past-done' : 'past-overdue');
+    } else {
+      el.classList.add('future');
+    }
+  });
+
+  // Lock/unlock tasks based on day and admin
+  slRefreshTaskLocks(days);
+}
+
+function slRefreshTaskLocks(days) {
+  if (days === null) return;
+  SL_TASKS.forEach(task => {
+    const dueDay = SL_TASK_DAY[task];
+    const isPast = days > dueDay + 1;
+    // Only lock if past-due AND already checked/done AND not admin
+    const isLocked = isPast && slTaskState[task] === true && !isAdminEnabled();
+    const el = document.getElementById('chk_' + task);
+    if (!el) return;
+    if (isLocked) {
+      el.className = 'sl-task-check locked';
+      el.onclick = null;
+      const lbl = el.nextElementSibling;
+      if (lbl) lbl.className = 'sl-task-label locked-text';
+    } else {
+      el.className = 'sl-task-check' + (slTaskState[task] ? ' checked' : '');
+      el.onclick = () => slToggleTask(task, dueDay);
+      const lbl = el.nextElementSibling;
+      if (lbl) lbl.className = 'sl-task-label';
+    }
+  });
+  // Lock numeric inputs only if their milestone group is fully done and past
+  const numLocks = [
+    {id:'sl_born_alive', day:0, tasks:['litter_weigh']},
+    {id:'sl_stillborn',  day:0, tasks:['litter_weigh']},
+    {id:'sl_mummified',  day:0, tasks:['litter_weigh']},
+    {id:'sl_total_birth_wt', day:0, tasks:['litter_weigh']},
+    {id:'sl_lightest',   day:0, tasks:['litter_weigh']},
+    {id:'sl_heaviest',   day:0, tasks:['litter_weigh']},
+    {id:'sl_castrated',  day:7, tasks:['castration']},
+    {id:'sl_wt_d14',     day:14, tasks:['indiv_weigh']},
+    {id:'sl_alive_d14',  day:14, tasks:['indiv_weigh']},
+    {id:'sl_num_weaned', day:28, tasks:['weaned']},
+    {id:'sl_date_weaned',day:28, tasks:['weaned']},
+    {id:'sl_wean_wt',    day:28, tasks:['weaned']}
+  ];
+  numLocks.forEach(({id, day, tasks}) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const tasksDone = tasks.every(t => slTaskState[t] === true);
+    el.disabled = (days > day + 1) && tasksDone && !isAdminEnabled();
+  });
+}
+
+function slToggleTask(task, dueDay) {
+  const days = slDaysSinceFarrow();
+  // Allow editing past-due tasks only if they are NOT yet done (or admin)
+  if (days !== null && days > dueDay + 1 && slTaskState[task] === true && !isAdminEnabled()) {
+    showToast('Completed past entries locked — admin required to undo', true); return;
+  }
+  slTaskState[task] = !slTaskState[task];
+  const el = document.getElementById('chk_' + task);
+  if (el) {
+    el.className = 'sl-task-check' + (slTaskState[task] ? ' checked' : '');
+    el.textContent = slTaskState[task] ? '✓' : '';
+  }
+  // Recolour milestone headers and re-evaluate locks immediately
+  const days = slDaysSinceFarrow();
+  if (days !== null) slUpdateDayInfo();
+}
+
+function setSlView(v) {
+  slView = v;
+  document.getElementById('slTabForm').className    = 'cl-tab' + (v==='form'    ? ' active' : '');
+  document.getElementById('slTabHistory').className = 'cl-tab' + (v==='history' ? ' active' : '');
+  document.getElementById('slFormView').style.display    = v==='form'    ? 'block' : 'none';
+  document.getElementById('slHistoryView').style.display = v==='history' ? 'block' : 'none';
+  if (v === 'history') loadSlHistory();
+}
+
+function resetSowLitter() {
+  SL_TASKS.forEach(t => {
+    slTaskState[t] = false;
+    const el = document.getElementById('chk_' + t);
+    if (el) { el.className = 'sl-task-check'; el.textContent = ''; }
+  });
+  ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest',
+   'sl_heaviest','sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today',
+   'sl_castrated','sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt'].forEach(id => {
+    const el = document.getElementById(id); if(el){el.value=''; el.disabled=false;}
+  });
+  document.getElementById('slSowId').value = '';
+  document.getElementById('slPen').value = '';
+  document.getElementById('slNotes').value = '';
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('slFarrowDate').value = today;
+  document.getElementById('slDateWeaned') && (document.getElementById('slDateWeaned').value = '');
+  slEditId = null;
+  document.getElementById('btnSaveSl').textContent = 'SAVE RECORD';
+  slUpdateDayInfo();
+}
+
+async function saveSowLitter() {
+  const sowId     = document.getElementById('slSowId').value.trim();
+  const farrowDate= document.getElementById('slFarrowDate').value;
+  const pen       = document.getElementById('slPen').value.trim();
+  const notes     = document.getElementById('slNotes').value.trim();
+  if (!sowId)      { showToast('Please enter Sow ID', true); return; }
+  if (!farrowDate) { showToast('Please enter farrow date', true); return; }
+
+  const numFields = ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt',
+    'sl_lightest','sl_heaviest','sl_nursing','sl_weaklings','sl_lightest_today',
+    'sl_heaviest_today','sl_castrated','sl_wt_d14','sl_alive_d14',
+    'sl_num_weaned','sl_wean_wt'];
+  const data = { SowId: sowId, FarrowDate: farrowDate, Pen: pen, Notes: notes };
+  SL_TASKS.forEach(t => { data[t] = slTaskState[t] ? 'done' : ''; });
+  numFields.forEach(id => {
+    const el = document.getElementById(id);
+    data[id] = el ? (el.value || '') : '';
+  });
+  const dwEl = document.getElementById('sl_date_weaned');
+  data['sl_date_weaned'] = dwEl ? dwEl.value : '';
+
+  const btn = document.getElementById('btnSaveSl');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const result = slEditId
+    ? await apiPost({ action: 'slUpdate', id: slEditId, data })
+    : await apiPost({ action: 'slAdd', data });
+
+  btn.disabled = false;
+  if (result && result.success) {
+    showToast(slEditId ? '✓ Record updated!' : '✓ Sow & litter record saved!');
+    slEditId = null;
+    btn.textContent = 'SAVE RECORD';
+    allSlRecords = [];
+    resetSowLitter();
+  } else {
+    showToast(result?.error || 'Save failed', true);
+    btn.textContent = 'SAVE RECORD';
+  }
+}
+
+async function loadSlHistory() {
+  if (allSlRecords.length > 0) { renderSlHistory(); return; }
+  document.getElementById('slHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  const result = await apiGet({ action: 'slGetAll' });
+  if (result && result.success) {
+    allSlRecords = result.records || [];
+    renderSlHistory();
+  } else {
+    document.getElementById('slHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+  }
+}
+
+function renderSlHistory() {
+  const filter = (document.getElementById('slHistorySearch')?.value || '').toLowerCase();
+  const container = document.getElementById('slHistoryContainer');
+  let list = allSlRecords.filter(r =>
+    (r.SowId||'').toLowerCase().includes(filter) ||
+    (r.FarrowDate||'').includes(filter) ||
+    (r.Pen||'').toLowerCase().includes(filter)
+  ).slice().reverse();
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state">No sow & litter records found.</div>'; return;
+  }
+  container.innerHTML = list.map(rec => {
+    const done = SL_TASKS.filter(t => rec[t] === 'done').length;
+    const total = SL_TASKS.length;
+    const pct = Math.round(done/total*100);
+    const adminActs = isAdminEnabled()
+      ? `<button class="btn-edit" onclick="slEditRecord('${rec.SL_ID}')">Edit</button>
+         <button class="btn-delete" onclick="slDeleteRecord('${rec.SL_ID}')">Delete</button>`
+      : '';
+    return `
+      <div class="cl-record-card">
+        <div class="cl-record-header">
+          <div class="cl-record-date">Sow ${rec.SowId||'—'}</div>
+          <span class="cl-ok-badge">${pct}% complete</span>
+        </div>
+        <div class="cl-record-by">Farrowed: ${rec.FarrowDate||'—'} &nbsp;·&nbsp; Pen: ${rec.Pen||'—'}</div>
+        <div style="font-size:12px;color:#444;margin-bottom:4px">Born alive: ${rec.sl_born_alive||'—'} &nbsp;·&nbsp; Weaned: ${rec.sl_num_weaned||'—'}</div>
+        ${rec.Notes ? `<div style="font-size:12px;color:#555;font-style:italic">"${rec.Notes}"</div>` : ''}
+        ${adminActs ? `<div class="cl-record-actions">${adminActs}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function slEditRecord(slId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const rec = allSlRecords.find(r => String(r.SL_ID) === String(slId));
+  if (!rec) return;
+  slEditId = slId;
+  document.getElementById('slSowId').value = rec.SowId || '';
+  document.getElementById('slFarrowDate').value = rec.FarrowDate || '';
+  document.getElementById('slPen').value = rec.Pen || '';
+  document.getElementById('slNotes').value = rec.Notes || '';
+  SL_TASKS.forEach(t => {
+    slTaskState[t] = rec[t] === 'done';
+    const el = document.getElementById('chk_' + t);
+    if (el) { el.className = 'sl-task-check' + (slTaskState[t] ? ' checked' : ''); el.textContent = slTaskState[t] ? '✓' : ''; }
+  });
+  ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest','sl_heaviest',
+   'sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today','sl_castrated',
+   'sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'].forEach(id => {
+    const el = document.getElementById(id); if(el){ el.value = rec[id]||''; el.disabled=false; }
+  });
+  document.getElementById('btnSaveSl').textContent = 'SAVE CHANGES';
+  setSlView('form');
+  slUpdateDayInfo();
+  showToast('Record loaded for editing');
+}
+
+async function slDeleteRecord(slId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!confirm('Delete this sow & litter record?')) return;
+  const result = await apiPost({ action: 'slDelete', id: slId });
+  if (result && result.success) {
+    showToast('Record deleted');
+    allSlRecords = allSlRecords.filter(r => String(r.SL_ID) !== String(slId));
+    renderSlHistory();
+  } else { showToast(result?.error || 'Delete failed', true); }
+}
+
+// ══════════════════════════════════════════════════
+//  WEEKLY CHECKLIST
+// ══════════════════════════════════════════════════
+
+const WK_KEYS = ['wk_weight_spot','wk_body_condition','wk_behaviour',
+                 'wk_deworm','wk_vitamins','wk_wounds',
+                 'wk_feeder_clean','wk_pen_repair','wk_feed_consumption','wk_boar_condition'];
+
+let wkState = {};
+let wkEditId = null;
+let allWkRecords = [];
+let wkView = 'form';
+
+function initWeekly() {
+  WK_KEYS.forEach(k => { wkState[k] = null; });
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - today.getDay() + 1);
+  const el = document.getElementById('wkDate');
+  if (el && !el.value) el.value = monday.toISOString().split('T')[0];
+}
+
+function setWkView(v) {
+  wkView = v;
+  document.getElementById('wkTabForm').className    = 'cl-tab' + (v==='form'    ? ' active' : '');
+  document.getElementById('wkTabHistory').className = 'cl-tab' + (v==='history' ? ' active' : '');
+  document.getElementById('wkFormView').style.display    = v==='form'    ? 'block' : 'none';
+  document.getElementById('wkHistoryView').style.display = v==='history' ? 'block' : 'none';
+  if (v === 'history') loadWkHistory();
+}
+
+function resetWeekly() {
+  WK_KEYS.forEach(k => {
+    wkState[k] = null;
+    document.querySelectorAll(`.wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+  });
+  ['wk_avg_weight','wk_feed_kg'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('wkNotes').value = '';
+  document.getElementById('wkPen').value = '';
+  document.getElementById('wkCheckedBy').value = '';
+  wkEditId = null;
+  document.getElementById('btnSaveWk').textContent = 'SAVE WEEKLY CHECK';
+}
+
+// Reuse toggleCheck() from daily checklist — but wk items use wm-item not check-item
+// Override: wm items also use data-key for toggling
+function toggleWmCheck(btn, key, val) {
+  if (arguments[0] === null) { wkState[key] = val; return; }
+  if (wkState[key] === val) {
+    wkState[key] = null;
+    btn.classList.remove('selected');
+  } else {
+    wkState[key] = val;
+    const item = btn.closest('.wm-item');
+    item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+}
+
+// Patch toggleCheck to also handle wm-item containers
+const _origToggleCheck = toggleCheck;
+function toggleCheck(btn, key, val) {
+  const item = btn.closest('.check-item') || btn.closest('.wm-item');
+  if (!item) return;
+  // determine which state object to use
+  if (WK_KEYS.includes(key)) {
+    toggleWmCheck(btn, key, val);
+  } else if (MO_KEYS.includes(key)) {
+    toggleMoCheck(btn, key, val);
+  } else if (CL_KEYS.includes(key)) {
+    // daily checklist
+    if (clState[key] === val) { clState[key] = null; btn.classList.remove('selected'); }
+    else {
+      clState[key] = val;
+      item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+  }
+}
+
+function isEntryLocked(dateStr) {
+  if (isAdminEnabled()) return false;
+  if (!dateStr) return false;
+  const entryDate = new Date(dateStr);
+  const today = new Date(); today.setHours(0,0,0,0); entryDate.setHours(0,0,0,0);
+  return entryDate < today;
+}
+
+async function saveWeekly() {
+  const date = document.getElementById('wkDate').value;
+  const pen  = document.getElementById('wkPen').value.trim();
+  const by   = document.getElementById('wkCheckedBy').value.trim();
+  const notes= document.getElementById('wkNotes').value.trim();
+  if (!date) { showToast('Please select a week date', true); return; }
+  if (isEntryLocked(date)) { showToast('Past entries locked — admin required', true); return; }
+
+  const concerns = WK_KEYS.filter(k => wkState[k] === 'bad');
+  const data = { Date: date, Pen: pen, CheckedBy: by, Notes: notes,
+    Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK', Concerns: concerns.join(','),
+    AvgWeight: document.getElementById('wk_avg_weight')?.value || '',
+    FeedKg: document.getElementById('wk_feed_kg')?.value || ''
+  };
+  WK_KEYS.forEach(k => { data[k] = wkState[k] || ''; });
+
+  const btn = document.getElementById('btnSaveWk');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const result = wkEditId
+    ? await apiPost({ action: 'wkUpdate', id: wkEditId, data })
+    : await apiPost({ action: 'wkAdd', data });
+  btn.disabled = false;
+  if (result && result.success) {
+    showToast(wkEditId ? '✓ Weekly check updated!' : '✓ Weekly check saved!');
+    wkEditId = null; allWkRecords = []; resetWeekly();
+    btn.textContent = 'SAVE WEEKLY CHECK';
+  } else {
+    showToast(result?.error || 'Save failed', true);
+    btn.textContent = 'SAVE WEEKLY CHECK';
+  }
+}
+
+async function loadWkHistory() {
+  if (allWkRecords.length > 0) { renderWkHistory(); return; }
+  document.getElementById('wkHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  const result = await apiGet({ action: 'wkGetAll' });
+  if (result && result.success) { allWkRecords = result.records || []; renderWkHistory(); }
+  else document.getElementById('wkHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+}
+
+function renderWkHistory() {
+  const filter = (document.getElementById('wkHistorySearch')?.value || '').toLowerCase();
+  const container = document.getElementById('wkHistoryContainer');
+  let list = allWkRecords.filter(r =>
+    (r.Date||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter)
+  ).slice().reverse();
+  if (list.length === 0) { container.innerHTML = '<div class="empty-state">No weekly records found.</div>'; return; }
+  container.innerHTML = list.map(rec => {
+    const locked = isEntryLocked(rec.Date) && !isAdminEnabled();
+    const badge = rec.Status === 'CONCERNS'
+      ? `<span class="cl-concern-badge">⚠️ Concerns</span>`
+      : `<span class="cl-ok-badge">✅ All OK</span>`;
+    const adminActs = isAdminEnabled()
+      ? `<button class="btn-edit" onclick="wkEditRecord('${rec.WK_ID}')">Edit</button>
+         <button class="btn-delete" onclick="wkDeleteRecord('${rec.WK_ID}')">Delete</button>`
+      : (!locked ? `<button class="btn-edit" onclick="wkEditRecord('${rec.WK_ID}')">Edit</button>` : '<span class="sl-locked-notice">🔒 Locked</span>');
+    return `
+      <div class="cl-record-card">
+        <div class="cl-record-header"><div class="cl-record-date">Week of ${rec.Date||'—'}</div>${badge}</div>
+        <div class="cl-record-by">Pen: ${rec.Pen||'—'} · By: ${rec.CheckedBy||'—'}</div>
+        ${rec.Notes ? `<div style="font-size:12px;color:#555;font-style:italic">"${rec.Notes}"</div>` : ''}
+        <div class="cl-record-actions">${adminActs}</div>
+      </div>`;
+  }).join('');
+}
+
+async function wkEditRecord(wkId) {
+  const rec = allWkRecords.find(r => String(r.WK_ID) === String(wkId));
+  if (!rec) return;
+  if (isEntryLocked(rec.Date) && !isAdminEnabled()) { showToast('Past entries locked — admin required', true); return; }
+  wkEditId = wkId;
+  document.getElementById('wkDate').value = rec.Date || '';
+  document.getElementById('wkPen').value = rec.Pen || '';
+  document.getElementById('wkCheckedBy').value = rec.CheckedBy || '';
+  document.getElementById('wkNotes').value = rec.Notes || '';
+  const waw = document.getElementById('wk_avg_weight'); if(waw) waw.value = rec.AvgWeight||'';
+  const wfk = document.getElementById('wk_feed_kg'); if(wfk) wfk.value = rec.FeedKg||'';
+  WK_KEYS.forEach(k => {
+    wkState[k] = rec[k] || null;
+    document.querySelectorAll(`.wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    if (rec[k]) {
+      const cls = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
+      document.querySelector(`.wm-item[data-key="${k}"] ${cls}`)?.classList.add('selected');
+    }
+  });
+  document.getElementById('btnSaveWk').textContent = 'SAVE CHANGES';
+  setWkView('form'); showToast('Record loaded for editing');
+}
+
+async function wkDeleteRecord(wkId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!confirm('Delete this weekly check?')) return;
+  const result = await apiPost({ action: 'wkDelete', id: wkId });
+  if (result && result.success) {
+    showToast('Weekly check deleted');
+    allWkRecords = allWkRecords.filter(r => String(r.WK_ID) !== String(wkId));
+    renderWkHistory();
+  } else { showToast(result?.error || 'Delete failed', true); }
+}
+
+// ══════════════════════════════════════════════════
+//  MONTHLY CHECKLIST
+// ══════════════════════════════════════════════════
+
+const MO_KEYS = ['mo_full_weigh','mo_growth_rate','mo_mortality',
+                 'mo_vaccination','mo_breeding','mo_boar_perf',
+                 'mo_feed_inventory','mo_equipment','mo_biosecurity'];
+
+let moState = {};
+let moEditId = null;
+let allMoRecords = [];
+let moView = 'form';
+
+function initMonthly() {
+  MO_KEYS.forEach(k => { moState[k] = null; });
+  const today = new Date();
+  const el = document.getElementById('moMonth');
+  if (el && !el.value) el.value = today.toISOString().slice(0,7);
+}
+
+function setMoView(v) {
+  moView = v;
+  document.getElementById('moTabForm').className    = 'cl-tab' + (v==='form'    ? ' active' : '');
+  document.getElementById('moTabHistory').className = 'cl-tab' + (v==='history' ? ' active' : '');
+  document.getElementById('moFormView').style.display    = v==='form'    ? 'block' : 'none';
+  document.getElementById('moHistoryView').style.display = v==='history' ? 'block' : 'none';
+  if (v === 'history') loadMoHistory();
+}
+
+function toggleMoCheck(btn, key, val) {
+  if (moState[key] === val) {
+    moState[key] = null; btn.classList.remove('selected');
+  } else {
+    moState[key] = val;
+    const item = btn.closest('.wm-item');
+    item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+}
+
+function resetMonthly() {
+  MO_KEYS.forEach(k => {
+    moState[k] = null;
+    document.querySelectorAll(`.wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+  });
+  ['mo_pigs_weighed','mo_avg_adg','mo_deaths','mo_vax_count','mo_feed_stock'].forEach(id => {
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('moNotes').value = '';
+  document.getElementById('moCheckedBy').value = '';
+  moEditId = null;
+  document.getElementById('btnSaveMo').textContent = 'SAVE MONTHLY CHECK';
+}
+
+function isMoLocked(monthStr) {
+  if (isAdminEnabled()) return false;
+  if (!monthStr) return false;
+  const entry = new Date(monthStr + '-01');
+  const thisMonth = new Date();
+  thisMonth.setDate(1); thisMonth.setHours(0,0,0,0); entry.setHours(0,0,0,0);
+  return entry < thisMonth;
+}
+
+async function saveMonthly() {
+  const month = document.getElementById('moMonth').value;
+  const by    = document.getElementById('moCheckedBy').value.trim();
+  const notes = document.getElementById('moNotes').value.trim();
+  if (!month) { showToast('Please select a month', true); return; }
+  if (isMoLocked(month)) { showToast('Past months locked — admin required', true); return; }
+
+  const concerns = MO_KEYS.filter(k => moState[k] === 'bad');
+  const data = { Month: month, CheckedBy: by, Notes: notes,
+    Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK', Concerns: concerns.join(','),
+    PigsWeighed: document.getElementById('mo_pigs_weighed')?.value || '',
+    AvgADG:      document.getElementById('mo_avg_adg')?.value || '',
+    Deaths:      document.getElementById('mo_deaths')?.value || '',
+    VaxCount:    document.getElementById('mo_vax_count')?.value || '',
+    FeedStock:   document.getElementById('mo_feed_stock')?.value || ''
+  };
+  MO_KEYS.forEach(k => { data[k] = moState[k] || ''; });
+
+  const btn = document.getElementById('btnSaveMo');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const result = moEditId
+    ? await apiPost({ action: 'moUpdate', id: moEditId, data })
+    : await apiPost({ action: 'moAdd', data });
+  btn.disabled = false;
+  if (result && result.success) {
+    showToast(moEditId ? '✓ Monthly check updated!' : '✓ Monthly check saved!');
+    moEditId = null; allMoRecords = []; resetMonthly();
+    btn.textContent = 'SAVE MONTHLY CHECK';
+  } else {
+    showToast(result?.error || 'Save failed', true);
+    btn.textContent = 'SAVE MONTHLY CHECK';
+  }
+}
+
+async function loadMoHistory() {
+  if (allMoRecords.length > 0) { renderMoHistory(); return; }
+  document.getElementById('moHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  const result = await apiGet({ action: 'moGetAll' });
+  if (result && result.success) { allMoRecords = result.records || []; renderMoHistory(); }
+  else document.getElementById('moHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+}
+
+function renderMoHistory() {
+  const filter = (document.getElementById('moHistorySearch')?.value || '').toLowerCase();
+  const container = document.getElementById('moHistoryContainer');
+  let list = allMoRecords.filter(r => (r.Month||'').includes(filter)).slice().reverse();
+  if (list.length === 0) { container.innerHTML = '<div class="empty-state">No monthly records found.</div>'; return; }
+  container.innerHTML = list.map(rec => {
+    const locked = isMoLocked(rec.Month) && !isAdminEnabled();
+    const badge = rec.Status === 'CONCERNS'
+      ? `<span class="cl-concern-badge">⚠️ Concerns</span>`
+      : `<span class="cl-ok-badge">✅ All OK</span>`;
+    const adminActs = isAdminEnabled()
+      ? `<button class="btn-edit" onclick="moEditRecord('${rec.MO_ID}')">Edit</button>
+         <button class="btn-delete" onclick="moDeleteRecord('${rec.MO_ID}')">Delete</button>`
+      : (!locked ? `<button class="btn-edit" onclick="moEditRecord('${rec.MO_ID}')">Edit</button>` : '<span class="sl-locked-notice">🔒 Locked</span>');
+    return `
+      <div class="cl-record-card">
+        <div class="cl-record-header"><div class="cl-record-date">${rec.Month||'—'}</div>${badge}</div>
+        <div class="cl-record-by">By: ${rec.CheckedBy||'—'} · Deaths: ${rec.Deaths||'0'} · ADG: ${rec.AvgADG||'—'} g/day</div>
+        ${rec.Notes ? `<div style="font-size:12px;color:#555;font-style:italic">"${rec.Notes}"</div>` : ''}
+        <div class="cl-record-actions">${adminActs}</div>
+      </div>`;
+  }).join('');
+}
+
+async function moEditRecord(moId) {
+  const rec = allMoRecords.find(r => String(r.MO_ID) === String(moId));
+  if (!rec) return;
+  if (isMoLocked(rec.Month) && !isAdminEnabled()) { showToast('Past entries locked — admin required', true); return; }
+  moEditId = moId;
+  document.getElementById('moMonth').value = rec.Month || '';
+  document.getElementById('moCheckedBy').value = rec.CheckedBy || '';
+  document.getElementById('moNotes').value = rec.Notes || '';
+  ['mo_pigs_weighed','mo_avg_adg','mo_deaths','mo_vax_count','mo_feed_stock'].forEach(id => {
+    const map = {mo_pigs_weighed:'PigsWeighed',mo_avg_adg:'AvgADG',mo_deaths:'Deaths',mo_vax_count:'VaxCount',mo_feed_stock:'FeedStock'};
+    const el = document.getElementById(id); if(el) el.value = rec[map[id]]||'';
+  });
+  MO_KEYS.forEach(k => {
+    moState[k] = rec[k] || null;
+    document.querySelectorAll(`.wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    if (rec[k]) {
+      const cls = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
+      document.querySelector(`.wm-item[data-key="${k}"] ${cls}`)?.classList.add('selected');
+    }
+  });
+  document.getElementById('btnSaveMo').textContent = 'SAVE CHANGES';
+  setMoView('form'); showToast('Record loaded for editing');
+}
+
+async function moDeleteRecord(moId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!confirm('Delete this monthly check?')) return;
+  const result = await apiPost({ action: 'moDelete', id: moId });
+  if (result && result.success) {
+    showToast('Monthly check deleted');
+    allMoRecords = allMoRecords.filter(r => String(r.MO_ID) !== String(moId));
+    renderMoHistory();
+  } else { showToast(result?.error || 'Delete failed', true); }
+}
+
 // ── Notching ──────────────────────────────────────
 
 const notchState = {
@@ -1190,6 +3069,22 @@ function initNotchClickHandlers() {
   <button class="nav-btn" onclick="showPage('pageNotch')">
     <span class="nav-icon">🐽</span>
     <span class="nav-label nav-inactive">Notch</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('pageChecklist')">
+    <span class="nav-icon">✅</span>
+    <span class="nav-label nav-inactive">Daily</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('pageSowLitter')">
+    <span class="nav-icon">🤱</span>
+    <span class="nav-label nav-inactive">Sow</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('pageWeekly')">
+    <span class="nav-icon">📅</span>
+    <span class="nav-label nav-inactive">Weekly</span>
+  </button>
+  <button class="nav-btn" onclick="showPage('pageMonthly')">
+    <span class="nav-icon">📆</span>
+    <span class="nav-label nav-inactive">Monthly</span>
   </button>
 </nav>
 
