@@ -1904,6 +1904,7 @@ function showPage(id) {
   if (id === "pageNew") prepNewForm();
   if (id === "pageSearch") prepSearchPage();
   if (id === "pageSowLitter") { allSlRecords = []; setSlView('active'); }
+  if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
 }
 
 function goHome() { showPage("pageHome"); }
@@ -2209,8 +2210,7 @@ function initChecklist() {
   const today = new Date().toISOString().split('T')[0];
   const dateEl = document.getElementById('clDate');
   if (dateEl) { dateEl.value = today; }
-  // Auto-load today's record if it exists
-  clDateChanged();
+  // Note: clDateChanged() is called by showPage('pageChecklist') each time user navigates here
 }
 
 function clIsLocked(dateStr) {
@@ -2220,24 +2220,22 @@ function clIsLocked(dateStr) {
 }
 
 async function clDateChanged() {
-  // Re-run whenever date OR pen changes
   const date = document.getElementById('clDate')?.value;
   const pen  = (document.getElementById('clPen')?.value || '').trim();
   if (!date) return;
-  const today = new Date().toISOString().split('T')[0];
   const locked = clIsLocked(date) && !isAdminEnabled();
   const lockedBanner = document.getElementById('clLockedBanner');
   const existBanner  = document.getElementById('clExistingBanner');
   const saveBtn      = document.getElementById('btnSaveChecklist');
 
-  // Load all records if needed
+  // Load records from server (always fresh on page open)
   if (allChecklists.length === 0) {
     const result = await apiGet({ action: 'clGetAll' });
     if (result && result.success) allChecklists = result.records || [];
   }
 
-  // Unique key = Date + Pen
-  const existing = pen
+  // Look up existing record by date+pen (only if both are filled)
+  const existing = (date && pen)
     ? allChecklists.find(r =>
         String(r.Date||'').trim() === date &&
         String(r.Pen||'').trim().toLowerCase() === pen.toLowerCase())
@@ -2246,33 +2244,27 @@ async function clDateChanged() {
   if (existing) {
     clEditId = existing.CL_ID;
     _populateClForm(existing);
-    if(existBanner) existBanner.style.display = 'block';
-    if(lockedBanner) lockedBanner.style.display = 'none';
+    if(existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
+    if(lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
   } else {
-    if (clEditId) {
-      // Switched to a different date/pen — clear form
-      clEditId = null;
-      CL_KEYS.forEach(k => {
-        clState[k] = null;
-        document.querySelectorAll(`#clFormView .check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-      });
-      document.getElementById('clNotes').value     = '';
-      document.getElementById('clCheckedBy').value = '';
-    }
-    if(existBanner) existBanner.style.display = 'none';
+    // Clear checkboxes and text fields (keep date/pen so user can keep typing)
+    clEditId = null;
+    CL_KEYS.forEach(k => {
+      clState[k] = null;
+      document.querySelectorAll(`#clFormView .check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    });
+    document.getElementById('clNotes').value     = '';
+    document.getElementById('clCheckedBy').value = '';
+    if(existBanner)  existBanner.style.display  = 'none';
+    if(lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
   }
 
-  // Apply lock state
-  if (locked) {
-    if(lockedBanner) lockedBanner.style.display = 'block';
-    if(existBanner)  existBanner.style.display  = 'none';
-    clLockForm(true);
-    if(saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; }
-  } else {
-    if(lockedBanner) lockedBanner.style.display = 'none';
-    clLockForm(false);
-    if(saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1';
-      saveBtn.textContent = existing ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST'; }
+  // Always apply lock/unlock last
+  clLockForm(locked);
+  if(saveBtn) {
+    saveBtn.disabled    = locked;
+    saveBtn.style.opacity = locked ? '0.4' : '1';
+    if (!locked) saveBtn.textContent = existing ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST';
   }
 }
 
