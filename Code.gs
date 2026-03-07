@@ -289,6 +289,8 @@ const SL_TASK_COLS = ['sow_antiinflam','sow_mma_ab','sow_oxytocin',
   'indiv_weigh','health_d14','mma_d14',
   'vax','weaner_feed','weaner_pen','prev_meds','weaned'];
 const SL_HEADERS_GS = ["SL_ID","SowId","FarrowDate","Pen","Notes",
+  "ByLitter","ByNursing","BySowTreat","ByMilestones",
+  "ByD01","ByD23","ByD57","ByD710","ByD14","ByD2128",
   "sl_born_alive","sl_stillborn","sl_mummified","sl_total_birth_wt",
   "sl_lightest","sl_heaviest","sl_nursing","sl_weaklings",
   "sl_lightest_today","sl_heaviest_today","sl_castrated",
@@ -368,7 +370,7 @@ const WK_KEYS_GS = ['wk_weight_spot','wk_body_condition','wk_behaviour',
   'wk_deworm','wk_vitamins','wk_wounds',
   'wk_feeder_clean','wk_pen_repair','wk_feed_consumption','wk_boar_condition'];
 const WK_HEADERS_GS = ["WK_ID","Date","Pen","CheckedBy","Status","Concerns","Notes",
-  "AvgWeight","FeedKg",...WK_KEYS_GS];
+  "AvgWeight","FeedKg","ByCondition","ByHealth","ByFarm",...WK_KEYS_GS];
 
 function getWkSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -431,7 +433,8 @@ const MO_KEYS_GS = ['mo_full_weigh','mo_growth_rate','mo_mortality',
   'mo_vaccination','mo_breeding','mo_boar_perf',
   'mo_feed_inventory','mo_equipment','mo_biosecurity'];
 const MO_HEADERS_GS = ["MO_ID","Month","CheckedBy","Status","Concerns","Notes",
-  "PigsWeighed","AvgADG","Deaths","VaxCount","FeedStock",...MO_KEYS_GS];
+  "PigsWeighed","AvgADG","Deaths","VaxCount","FeedStock",
+  "ByGrowth","ByHealth","ByFarm",...MO_KEYS_GS];
 
 function getMoSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();

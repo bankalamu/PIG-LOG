@@ -1000,6 +1000,10 @@
       <!-- ── SOW WELFARE — numeric fields ── -->
       <div class="sl-section">
         <div class="sl-section-title pink">🐷 Litter Summary — At Farrowing</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_litter" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="sl-num-grid">
           <div class="sl-num-field"><label>Born Alive</label><input type="number" id="sl_born_alive" min="0" placeholder="0"></div>
           <div class="sl-num-field"><label>Stillborn</label><input type="number" id="sl_stillborn" min="0" placeholder="0"></div>
@@ -1013,6 +1017,10 @@
       <!-- Daily nursing check -->
       <div class="sl-section">
         <div class="sl-section-title blue">📊 Daily Nursing Status (update each day)</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_nursing" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="sl-num-grid">
           <div class="sl-num-field"><label>Actively Nursing</label><input type="number" id="sl_nursing" min="0" placeholder="0"></div>
           <div class="sl-num-field"><label>Weaklings / Runts</label><input type="number" id="sl_weaklings" min="0" placeholder="0"></div>
@@ -1024,6 +1032,10 @@
       <!-- ── SOW TREATMENTS ── -->
       <div class="sl-section">
         <div class="sl-section-title pink">💊 Sow Treatments — Days 0–5</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_sowtreat" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="sl-task" data-day="0">
           <div class="sl-task-check" id="chk_sow_antiinflam" onclick="slToggleTask('sow_antiinflam',0)"></div>
           <div class="sl-task-label">Anti-inflammatory given (if needed)<span class="sl-task-note">Pain relief &amp; mastitis prevention — Days 0–5</span></div>
@@ -1041,10 +1053,18 @@
       <!-- ── PIGLET MILESTONES ── -->
       <div class="sl-section">
         <div class="sl-section-title green">🐽 Piglet Milestones &amp; Activities</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_milestones" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
 
         <!-- Day 0–1 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d01">📅 Days 0–1 — Birth &amp; First Hours</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_d01" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
           <div class="sl-task">
             <div class="sl-task-check" id="chk_iodine" onclick="slToggleTask('iodine',1)"></div>
             <div class="sl-task-label">Iodine applied to navel<span class="sl-task-note">Prevent navel infection — apply immediately after birth</span></div>
@@ -1070,6 +1090,10 @@
         <!-- Day 2–3 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d23">📅 Days 2–3 — Early Treatments</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_d23" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
           <div class="sl-task">
             <div class="sl-task-check" id="chk_iron" onclick="slToggleTask('iron',2)"></div>
             <div class="sl-task-label">Iron dextran injection given<span class="sl-task-note">Prevent anaemia — 200mg iron dextran IM</span></div>
@@ -1091,6 +1115,10 @@
         <!-- Day 5–7 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d57">📅 Days 5–7 — Supplements &amp; Feed</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_d57" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
           <div class="sl-task">
             <div class="sl-task-check" id="chk_multivit" onclick="slToggleTask('multivit',5)"></div>
             <div class="sl-task-label">Multivitamin given (optional)<span class="sl-task-note">Boost growth and immunity</span></div>
@@ -1108,6 +1136,10 @@
         <!-- Day 7–10 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d710">📅 Days 7–10 — Castration &amp; Notching</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_d710" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
           <div class="sl-task">
             <div class="sl-task-check" id="chk_castration" onclick="slToggleTask('castration',7)"></div>
             <div class="sl-task-label">Castration done (males only)<span class="sl-task-note">Prevent boar taint — record number below</span></div>
@@ -1128,6 +1160,10 @@
         <!-- Day 14 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d14">📅 Day 14 — Health Check &amp; Weights</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_d14" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
           <div class="sl-task">
             <div class="sl-task-check" id="chk_indiv_weigh" onclick="slToggleTask('indiv_weigh',14)"></div>
             <div class="sl-task-label">Individual weights recorded<span class="sl-task-note">Weigh each piglet and record</span></div>
@@ -1149,6 +1185,10 @@
         <!-- Day 21–28 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d2128">📅 Days 21–28 — Weaning</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="slBy_d2128" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
           <div class="sl-task">
             <div class="sl-task-check" id="chk_vax" onclick="slToggleTask('vax',21)"></div>
             <div class="sl-task-label">Vaccination given<span class="sl-task-note">Per farm vaccination schedule</span></div>
@@ -1228,6 +1268,10 @@
       <!-- Pig Condition -->
       <div class="wm-section">
         <div class="wm-section-title">🐷 Pig Condition</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="wkBy_condition" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="wm-item" data-key="wk_weight_spot">
           <div class="wm-item-text">
             <span class="wm-item-label">Weight Spot-Check</span>
@@ -1264,6 +1308,10 @@
       <!-- Health & Husbandry -->
       <div class="wm-section">
         <div class="wm-section-title">💊 Health &amp; Husbandry Activities</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="wkBy_health" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="wm-item" data-key="wk_deworm">
           <div class="wm-item-text">
             <span class="wm-item-label">Deworming — Due This Week?</span>
@@ -1299,6 +1347,10 @@
       <!-- Farm & Feed -->
       <div class="wm-section">
         <div class="wm-section-title">🏚️ Farm &amp; Feed Activities</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="wkBy_farm" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="wm-item" data-key="wk_feeder_clean">
           <div class="wm-item-text">
             <span class="wm-item-label">Feeders &amp; Drinkers Deep Cleaned</span>
@@ -1383,6 +1435,10 @@
       <!-- Growth & Records -->
       <div class="wm-section">
         <div class="wm-section-title">📈 Growth &amp; Records</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="moBy_growth" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="wm-item" data-key="mo_full_weigh">
           <div class="wm-item-text">
             <span class="wm-item-label">Full Weight Recording — All Pigs</span>
@@ -1421,6 +1477,10 @@
       <!-- Health Programme -->
       <div class="wm-section">
         <div class="wm-section-title">💉 Health Programme</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="moBy_health" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="wm-item" data-key="mo_vaccination">
           <div class="wm-item-text">
             <span class="wm-item-label">Vaccination Round</span>
@@ -1457,6 +1517,10 @@
       <!-- Farm Management -->
       <div class="wm-section">
         <div class="wm-section-title">🏚️ Farm Management</div>
+        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
+          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
+          <input type="text" id="moBy_farm" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+        </div>
         <div class="wm-item" data-key="mo_feed_inventory">
           <div class="wm-item-text">
             <span class="wm-item-label">Feed Stock Inventory &amp; Reorder</span>
@@ -2456,7 +2520,12 @@ async function saveSowLitter() {
     'sl_lightest','sl_heaviest','sl_nursing','sl_weaklings','sl_lightest_today',
     'sl_heaviest_today','sl_castrated','sl_wt_d14','sl_alive_d14',
     'sl_num_weaned','sl_wean_wt'];
-  const data = { SowId: sowId, FarrowDate: farrowDate, Pen: pen, Notes: notes };
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  const data = { SowId: sowId, FarrowDate: farrowDate, Pen: pen, Notes: notes,
+    ByLitter: g('slBy_litter'), ByNursing: g('slBy_nursing'),
+    BySowTreat: g('slBy_sowtreat'), ByMilestones: g('slBy_milestones'),
+    ByD01: g('slBy_d01'), ByD23: g('slBy_d23'), ByD57: g('slBy_d57'),
+    ByD710: g('slBy_d710'), ByD14: g('slBy_d14'), ByD2128: g('slBy_d2128') };
   SL_TASKS.forEach(t => { data[t] = slTaskState[t] ? 'done' : ''; });
   numFields.forEach(id => {
     const el = document.getElementById(id);
@@ -2670,7 +2739,10 @@ async function saveWeekly() {
   const data = { Date: date, Pen: pen, CheckedBy: by, Notes: notes,
     Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK', Concerns: concerns.join(','),
     AvgWeight: document.getElementById('wk_avg_weight')?.value || '',
-    FeedKg: document.getElementById('wk_feed_kg')?.value || ''
+    FeedKg: document.getElementById('wk_feed_kg')?.value || '',
+    ByCondition: document.getElementById('wkBy_condition')?.value?.trim() || '',
+    ByHealth: document.getElementById('wkBy_health')?.value?.trim() || '',
+    ByFarm: document.getElementById('wkBy_farm')?.value?.trim() || ''
   };
   WK_KEYS.forEach(k => { data[k] = wkState[k] || ''; });
 
@@ -2833,7 +2905,10 @@ async function saveMonthly() {
     AvgADG:      document.getElementById('mo_avg_adg')?.value || '',
     Deaths:      document.getElementById('mo_deaths')?.value || '',
     VaxCount:    document.getElementById('mo_vax_count')?.value || '',
-    FeedStock:   document.getElementById('mo_feed_stock')?.value || ''
+    FeedStock:   document.getElementById('mo_feed_stock')?.value || '',
+    ByGrowth:    document.getElementById('moBy_growth')?.value?.trim() || '',
+    ByHealth:    document.getElementById('moBy_health')?.value?.trim() || '',
+    ByFarm:      document.getElementById('moBy_farm')?.value?.trim() || ''
   };
   MO_KEYS.forEach(k => { data[k] = moState[k] || ''; });
 
