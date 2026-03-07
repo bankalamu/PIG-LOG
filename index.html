@@ -2325,15 +2325,6 @@ function slUpdateDayInfo() {
   if(banner) banner.style.display='flex';
   if(txt) txt.textContent = `Day ${days} since farrowing`;
 
-  // Colour milestone headers
-  const milestones = [
-    {id:'mhdr_d01',   from:0,  to:1},
-    {id:'mhdr_d23',   from:2,  to:3},
-    {id:'mhdr_d57',   from:5,  to:7},
-    {id:'mhdr_d710',  from:7,  to:10},
-    {id:'mhdr_d14',   from:14, to:14},
-    {id:'mhdr_d2128', from:21, to:28}
-  ];
   // Map each milestone group to its tasks so we can check completion
   const milestoneTaskMap = [
     {id:'mhdr_d01',   from:0,  to:1,  tasks:['iodine','colostrum','teat_order','heat_lamp','litter_weigh','sow_antiinflam','sow_mma_ab','sow_oxytocin']},
@@ -2419,7 +2410,6 @@ function slToggleTask(task, dueDay) {
     el.textContent = slTaskState[task] ? '✓' : '';
   }
   // Recolour milestone headers and re-evaluate locks immediately
-  const days = slDaysSinceFarrow();
   if (days !== null) slUpdateDayInfo();
 }
 
