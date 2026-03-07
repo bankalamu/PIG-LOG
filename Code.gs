@@ -248,12 +248,15 @@ function clUpsert(data) {
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) {
     const dateIdx = CL_HEADERS.indexOf("Date");
+    const penIdx  = CL_HEADERS.indexOf("Pen");
     const allData = sheet.getRange(2, 1, lastRow - 1, CL_HEADERS.length).getValues();
     for (let i = 0; i < allData.length; i++) {
       const rowDate = allData[i][dateIdx] instanceof Date
         ? Utilities.formatDate(allData[i][dateIdx], Session.getScriptTimeZone(), "yyyy-MM-dd")
         : String(allData[i][dateIdx] || '').trim();
-      if (rowDate === String(data.Date || '').trim()) {
+      const rowPen = String(allData[i][penIdx] || '').trim().toLowerCase();
+      const inPen  = String(data.Pen || '').trim().toLowerCase();
+      if (rowDate === String(data.Date || '').trim() && rowPen === inPen) {
         const existingId = allData[i][0];
         clUpdate(existingId, data);
         return { success: true, cl_id: existingId, updated: true };
