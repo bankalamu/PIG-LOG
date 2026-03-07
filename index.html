@@ -2638,10 +2638,11 @@ function setSlView(v, forceNew) {
   if (v === 'active')  { allSlRecords=[]; loadAllSlRecords().then(renderSlActive); }
   if (v === 'history') { allSlRecords=[]; loadAllSlRecords().then(renderSlHistory); }
   if (v === 'form') {
-    if (forceNew || !slEditId) {
+    if (forceNew) {
+      // Always fully clear when user explicitly clicks New
+      slEditId = null;
       resetSowLitter();
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('slFarrowDate').value = today;
+      document.getElementById('slFarrowDate').value = new Date().toISOString().split('T')[0];
       populateSlSowDropdown();
     }
     slUpdateDayInfo();
@@ -2746,25 +2747,38 @@ async function slOpenRecord(slId) {
 }
 
 function resetSowLitter() {
+  // Clear all task checkboxes
   SL_TASKS.forEach(t => {
     slTaskState[t] = false;
     const el = document.getElementById('chk_' + t);
-    if (el) { el.className = 'sl-task-check'; el.textContent = ''; }
+    if (el) { el.className = 'sl-task-check'; el.textContent = ''; el.onclick = () => slToggleTask(t, SL_TASK_DAY[t]); }
   });
-  ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest',
-   'sl_heaviest','sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today',
-   'sl_castrated','sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'].forEach(id => {
-    const el = document.getElementById(id); if(el){el.value=''; el.disabled=false;}
-  });
+  // Clear all numeric / date fields
+  ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest','sl_heaviest',
+   'sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today',
+   'sl_castrated','sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'
+  ].forEach(id => { const el=document.getElementById(id); if(el){el.value=''; el.disabled=false;} });
+  // Clear "Completed by" fields
+  ['slBy_litter','slBy_nursing','slBy_sowtreat','slBy_milestones',
+   'slBy_d01','slBy_d23','slBy_d57','slBy_d710','slBy_d14','slBy_d2128'
+  ].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  // Clear header fields
   const sel = document.getElementById('slSowId'); if(sel) sel.value='';
-  document.getElementById('slPen').value = '';
+  document.getElementById('slPen').value   = '';
   document.getElementById('slNotes').value = '';
   document.getElementById('slFarrowDate').value = '';
+  // Reset milestone headers to plain style
+  ['mhdr_d01','mhdr_d23','mhdr_d57','mhdr_d710','mhdr_d14','mhdr_d2128'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.className = 'sl-milestone-header future';
+  });
   slEditId = null;
   document.getElementById('btnSaveSl').textContent = 'SAVE RECORD';
-  const b1 = document.getElementById('slExistingBanner'); if(b1) b1.style.display='none';
+  const b1 = document.getElementById('slExistingBanner');  if(b1){ b1.innerHTML='✅ Existing record loaded — your changes will update it, not create a new one.'; b1.style.display='none'; }
   const b2 = document.getElementById('slValidationError'); if(b2) b2.style.display='none';
-  const b3 = document.getElementById('slDayBanner'); if(b3) b3.style.display='none';
+  const b3 = document.getElementById('slDayBanner');       if(b3) b3.style.display='none';
+  const b4 = document.getElementById('slAdminSettings');   if(b4) b4.style.display='none';
+  const b5 = document.getElementById('slWeanByDate');      if(b5) b5.textContent='—';
   // NOTE: does NOT call setSlView — callers handle navigation
 }
 
