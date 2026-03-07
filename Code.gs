@@ -68,6 +68,7 @@ function doPost(e) {
     if (action === "update")   return corsRespond(updateRecord(payload.id, payload.data));
     if (action === "delete")   return corsRespond(deleteRecord(payload.id));
     if (action === "clAdd")    return corsRespond(clAdd(payload.data));
+    if (action === "clUpsert") return corsRespond(clUpsert(payload.data));
     if (action === "clUpdate") return corsRespond(clUpdate(payload.id, payload.data));
     if (action === "clDelete") return corsRespond(clDelete(payload.id));
     if (action === "slAdd")    return corsRespond(slAdd(payload.data));
@@ -240,6 +241,26 @@ function clGetAll() {
   const data = sheet.getRange(2,1,lastRow-1,CL_HEADERS.length).getValues();
   const records = data.filter(r => r[0] !== "").map(rowToClRecord);
   return { success: true, records };
+}
+
+function clUpsert(data) {
+  const sheet = getClSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const dateIdx = CL_HEADERS.indexOf("Date");
+    const allData = sheet.getRange(2, 1, lastRow - 1, CL_HEADERS.length).getValues();
+    for (let i = 0; i < allData.length; i++) {
+      const rowDate = allData[i][dateIdx] instanceof Date
+        ? Utilities.formatDate(allData[i][dateIdx], Session.getScriptTimeZone(), "yyyy-MM-dd")
+        : String(allData[i][dateIdx] || '').trim();
+      if (rowDate === String(data.Date || '').trim()) {
+        const existingId = allData[i][0];
+        clUpdate(existingId, data);
+        return { success: true, cl_id: existingId, updated: true };
+      }
+    }
+  }
+  return clAdd(data);
 }
 
 function clAdd(data) {

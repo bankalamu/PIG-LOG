@@ -736,12 +736,18 @@
       <div class="checklist-date-bar">
         <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
           <label>Date</label>
-          <input type="date" id="clDate">
+          <input type="date" id="clDate" onchange="clDateChanged()">
         </div>
         <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
           <label>Pen No.</label>
           <input type="text" id="clPen" placeholder="e.g. Pen 3">
         </div>
+      </div>
+      <div id="clLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">
+        🔒 Past date — this record is locked. Admin access required to edit.
+      </div>
+      <div id="clExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">
+        ✅ Existing record loaded for today — saving will update it.
       </div>
       <div class="checklist-meta" style="grid-template-columns:1fr">
         <div>
@@ -2196,14 +2202,99 @@ const CL_KEYS = ['tail','eyes','stool','posture','skin','breathing',
 let clState = {};  // key -> 'ok' | 'bad' | null
 let clView = 'form';
 let allChecklists = [];
-let clEditId = null;  // null = new entry, string = editing existing
+let clEditId = null;
 
 function initChecklist() {
   CL_KEYS.forEach(k => { clState[k] = null; });
-  // Set today's date
   const today = new Date().toISOString().split('T')[0];
   const dateEl = document.getElementById('clDate');
-  if (dateEl && !dateEl.value) dateEl.value = today;
+  if (dateEl) { dateEl.value = today; }
+  // Auto-load today's record if it exists
+  clDateChanged();
+}
+
+function clIsLocked(dateStr) {
+  if (!dateStr) return false;
+  const today = new Date().toISOString().split('T')[0];
+  return dateStr < today;
+}
+
+async function clDateChanged() {
+  const date = document.getElementById('clDate')?.value;
+  if (!date) return;
+  const today = new Date().toISOString().split('T')[0];
+  const locked = clIsLocked(date) && !isAdminEnabled();
+  const lockedBanner  = document.getElementById('clLockedBanner');
+  const existBanner   = document.getElementById('clExistingBanner');
+  const saveBtn       = document.getElementById('btnSaveChecklist');
+
+  // Load all records if needed for lookup
+  if (allChecklists.length === 0) {
+    const result = await apiGet({ action: 'clGetAll' });
+    if (result && result.success) allChecklists = result.records || [];
+  }
+
+  const existing = allChecklists.find(r => String(r.Date||'').trim() === date);
+
+  if (existing) {
+    // Load it into the form
+    clEditId = existing.CL_ID;
+    _populateClForm(existing);
+    if (date === today) {
+      if(lockedBanner) lockedBanner.style.display = 'none';
+      if(existBanner)  existBanner.style.display  = 'block';
+    }
+  } else {
+    clEditId = null;
+    // Clear form for new date (keep date)
+    CL_KEYS.forEach(k => {
+      clState[k] = null;
+      document.querySelectorAll(`.check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    });
+    document.getElementById('clNotes').value = '';
+    document.getElementById('clPen').value   = '';
+    document.getElementById('clCheckedBy').value = '';
+    if(existBanner) existBanner.style.display = 'none';
+  }
+
+  // Apply lock state
+  if (locked) {
+    if(lockedBanner) lockedBanner.style.display = 'block';
+    if(existBanner)  existBanner.style.display  = 'none';
+    clLockForm(true);
+    if(saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; }
+  } else {
+    if(lockedBanner) lockedBanner.style.display = 'none';
+    clLockForm(false);
+    if(saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+    if(saveBtn) saveBtn.textContent = existing ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST';
+  }
+}
+
+function clLockForm(lock) {
+  // Lock/unlock all toggle buttons
+  document.querySelectorAll('.toggle-btn').forEach(b => {
+    b.style.pointerEvents = lock ? 'none' : '';
+    b.style.opacity = lock ? '0.5' : '';
+  });
+  ['clPen','clCheckedBy','clNotes'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.disabled = lock;
+  });
+}
+
+function _populateClForm(rec) {
+  document.getElementById('clPen').value       = rec.Pen       || '';
+  document.getElementById('clCheckedBy').value = rec.CheckedBy || '';
+  document.getElementById('clNotes').value     = rec.Notes     || '';
+  CL_KEYS.forEach(k => {
+    clState[k] = rec[k] || null;
+    document.querySelectorAll(`.check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    if (rec[k]) {
+      const cls = rec[k] === 'ok' ? '.toggle-ok' : '.toggle-bad';
+      const item = document.querySelector(`.check-item[data-key="${k}"]`);
+      if (item) item.querySelector(cls)?.classList.add('selected');
+    }
+  });
 }
 
 function setClView(view) {
@@ -2212,23 +2303,25 @@ function setClView(view) {
   document.getElementById('clTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
   document.getElementById('clFormView').style.display    = view==='form'    ? 'block' : 'none';
   document.getElementById('clHistoryView').style.display = view==='history' ? 'block' : 'none';
-  if (view === 'history') { loadChecklists(); }
+  if (view === 'history') { allChecklists = []; loadChecklists(); }
+  if (view === 'form')    { clDateChanged(); }
 }
-
-
 
 function resetChecklist() {
   CL_KEYS.forEach(k => {
     clState[k] = null;
     document.querySelectorAll(`.check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
   });
-  document.getElementById('clNotes').value = '';
-  document.getElementById('clPen').value = '';
+  document.getElementById('clNotes').value     = '';
+  document.getElementById('clPen').value       = '';
   document.getElementById('clCheckedBy').value = '';
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('clDate').value = today;
   clEditId = null;
+  clLockForm(false);
   document.getElementById('btnSaveChecklist').textContent = 'SAVE CHECKLIST';
+  const b1 = document.getElementById('clLockedBanner');  if(b1) b1.style.display='none';
+  const b2 = document.getElementById('clExistingBanner'); if(b2) b2.style.display='none';
 }
 
 async function saveChecklist() {
@@ -2238,6 +2331,11 @@ async function saveChecklist() {
   const notes     = document.getElementById('clNotes').value.trim();
 
   if (!date) { showToast('Please select a date', true); return; }
+
+  // Block past-date saves for non-admins
+  if (clIsLocked(date) && !isAdminEnabled()) {
+    showToast('🔒 Past records are locked — admin access required', true); return;
+  }
 
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
   const data = {
@@ -2250,29 +2348,26 @@ async function saveChecklist() {
   const btn = document.getElementById('btnSaveChecklist');
   btn.disabled = true; btn.textContent = 'Saving…';
 
-  let result;
-  if (clEditId) {
-    result = await apiPost({ action: 'clUpdate', id: clEditId, data });
-  } else {
-    result = await apiPost({ action: 'clAdd', data });
-  }
+  // Always upsert — update if record for this date exists, otherwise insert
+  const result = clEditId
+    ? await apiPost({ action: 'clUpdate', id: clEditId, data })
+    : await apiPost({ action: 'clUpsert', data });
 
   btn.disabled = false;
-  btn.textContent = clEditId ? 'SAVE CHANGES' : 'SAVE CHECKLIST';
-
   if (result && result.success) {
-    showToast(clEditId ? '✓ Checklist updated!' : '✓ Checklist saved!');
-    clEditId = null;
-    btn.textContent = 'SAVE CHECKLIST';
-    resetChecklist();
+    if (result.cl_id) clEditId = result.cl_id;
+    showToast('✓ Checklist saved!');
+    btn.textContent = 'UPDATE CHECKLIST';
     allChecklists = [];
+    const b = document.getElementById('clExistingBanner');
+    if(b) { b.innerHTML = '✅ Saved — updating this record throughout the day is fine.'; b.style.display='block'; }
   } else {
     showToast(result?.error || 'Save failed', true);
+    btn.textContent = clEditId ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST';
   }
 }
 
 async function loadChecklists() {
-  if (allChecklists.length > 0) { renderChecklistHistory(); return; }
   document.getElementById('clHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
   const result = await apiGet({ action: 'clGetAll' });
   if (result && result.success) {
@@ -2286,22 +2381,20 @@ async function loadChecklists() {
 function renderChecklistHistory() {
   const filter = (document.getElementById('clHistorySearch')?.value || '').toLowerCase();
   const container = document.getElementById('clHistoryContainer');
-  let list = allChecklists.filter(r =>
-    (r.Date||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter) ||
-    (r.CheckedBy||'').toLowerCase().includes(filter)
-  );
-  list = list.slice().reverse(); // most recent first
+  const today = new Date().toISOString().split('T')[0];
+  let list = allChecklists
+    .filter(r => (r.Date||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter) || (r.CheckedBy||'').toLowerCase().includes(filter))
+    .slice().reverse();
 
-  if (list.length === 0) {
-    container.innerHTML = '<div class="empty-state">No checklist records found.</div>';
-    return;
-  }
+  if (list.length === 0) { container.innerHTML = '<div class="empty-state">No checklist records found.</div>'; return; }
 
   container.innerHTML = list.map(rec => {
     const hasConcerns = rec.Status === 'CONCERNS';
+    const isPast = String(rec.Date||'') < today;
     const badge = hasConcerns
-      ? `<span class="cl-concern-badge">⚠️ ${(rec.Concerns||'').split(',').length} concern(s)</span>`
+      ? `<span class="cl-concern-badge">⚠️ ${(rec.Concerns||'').split(',').filter(Boolean).length} concern(s)</span>`
       : `<span class="cl-ok-badge">✅ All OK</span>`;
+    const lockTag = isPast && !isAdminEnabled() ? `<span style="font-size:11px;color:#888;font-style:italic">🔒 Locked</span>` : '';
     const adminActions = isAdminEnabled()
       ? `<button class="btn-edit" onclick="clEditRecord('${rec.CL_ID}')">Edit</button>
          <button class="btn-delete" onclick="clDeleteRecord('${rec.CL_ID}')">Delete</button>`
@@ -2309,10 +2402,10 @@ function renderChecklistHistory() {
     return `
       <div class="cl-record-card">
         <div class="cl-record-header">
-          <div class="cl-record-date">${rec.Date || '—'}</div>
+          <div class="cl-record-date">${rec.Date||'—'}</div>
           ${badge}
         </div>
-        <div class="cl-record-by">Pen: ${rec.Pen||'—'} &nbsp;·&nbsp; By: ${rec.CheckedBy||'—'}</div>
+        <div class="cl-record-by">Pen: ${rec.Pen||'—'} · By: ${rec.CheckedBy||'—'} ${lockTag}</div>
         ${rec.Notes ? `<div style="font-size:12px;color:#333;font-style:italic;margin-bottom:6px">"${rec.Notes}"</div>` : ''}
         ${adminActions ? `<div class="cl-record-actions">${adminActions}</div>` : ''}
       </div>`;
@@ -2324,22 +2417,12 @@ function clEditRecord(clId) {
   const rec = allChecklists.find(r => String(r.CL_ID) === String(clId));
   if (!rec) return;
   clEditId = clId;
-  // Populate form
   document.getElementById('clDate').value = rec.Date || '';
-  document.getElementById('clPen').value = rec.Pen || '';
-  document.getElementById('clCheckedBy').value = rec.CheckedBy || '';
-  document.getElementById('clNotes').value = rec.Notes || '';
-  // Restore check states
-  CL_KEYS.forEach(k => {
-    clState[k] = rec[k] || null;
-    document.querySelectorAll(`.check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-    if (rec[k]) {
-      const cls = rec[k] === 'ok' ? '.toggle-ok' : '.toggle-bad';
-      const item = document.querySelector(`.check-item[data-key="${k}"]`);
-      if (item) item.querySelector(cls)?.classList.add('selected');
-    }
-  });
-  document.getElementById('btnSaveChecklist').textContent = 'SAVE CHANGES';
+  _populateClForm(rec);
+  clLockForm(false);  // admin always gets unlocked form
+  document.getElementById('btnSaveChecklist').textContent = 'UPDATE CHECKLIST';
+  const b1 = document.getElementById('clLockedBanner');  if(b1) b1.style.display='none';
+  const b2 = document.getElementById('clExistingBanner'); if(b2) b2.style.display='block';
   setClView('form');
   showToast('Record loaded for editing');
 }
