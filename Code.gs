@@ -53,6 +53,7 @@ function doGet(e) {
     if (action === "slGetAll")   return respond(slGetAll());
     if (action === "wkGetAll")   return respond(wkGetAll());
     if (action === "moGetAll")   return respond(moGetAll());
+    if (action === "getSetting") return respond(getSetting(e.parameter.key));
     return respond({ error: "Unknown action" });
   } catch (err) {
     return respond({ error: err.message });
@@ -79,6 +80,7 @@ function doPost(e) {
     if (action === "moAdd")    return corsRespond(moAdd(payload.data));
     if (action === "moUpdate") return corsRespond(moUpdate(payload.id, payload.data));
     if (action === "moDelete") return corsRespond(moDelete(payload.id));
+    if (action === "saveSetting") return corsRespond(saveSetting(payload.key, payload.value));
     return corsRespond({ error: "Unknown action" });
   } catch (err) {
     return corsRespond({ error: err.message });
@@ -508,5 +510,48 @@ function moDelete(moId) {
   const rowIndex = ids.findIndex(id => Number(id) === Number(moId));
   if (rowIndex === -1) return { success: false, error: "Not found" };
   sheet.deleteRow(rowIndex + 2);
+  return { success: true };
+}
+
+// ============================================================
+//  SETTINGS — Sheet: Settings
+// ============================================================
+
+function getSettingsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName("Settings");
+  if (!sheet) {
+    sheet = ss.insertSheet("Settings");
+    sheet.appendRow(["Key", "Value", "UpdatedBy", "UpdatedAt"]);
+    sheet.getRange(1,1,1,4).setFontWeight("bold").setBackground("#555555").setFontColor("#ffffff");
+    sheet.setFrozenRows(1);
+    // seed default
+    sheet.appendRow(["weaningWeeks", "5", "system", new Date()]);
+  }
+  return sheet;
+}
+
+function getSetting(key) {
+  const sheet = getSettingsSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, value: null };
+  const data = sheet.getRange(2, 1, lastRow-1, 2).getValues();
+  const row = data.find(r => String(r[0]) === String(key));
+  return { success: true, value: row ? String(row[1]) : null };
+}
+
+function saveSetting(key, value) {
+  const sheet = getSettingsSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const keys = sheet.getRange(2, 1, lastRow-1, 1).getValues().flat();
+    const idx = keys.findIndex(k => String(k) === String(key));
+    if (idx !== -1) {
+      sheet.getRange(idx+2, 2).setValue(value);
+      sheet.getRange(idx+2, 4).setValue(new Date());
+      return { success: true };
+    }
+  }
+  sheet.appendRow([key, value, "admin", new Date()]);
   return { success: true };
 }

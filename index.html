@@ -972,13 +972,23 @@
     <div class="section-title" style="color:#880e4f">🐷 Sow &amp; Litter Record</div>
     <div class="section-sub" style="color:#333;margin-bottom:16px">Farrowing checklist — one form per sow per litter</div>
 
-    <div class="cl-view-tabs">
-      <button class="cl-tab active" id="slTabForm" onclick="setSlView('form')">📋 Active Litter</button>
-      <button class="cl-tab" id="slTabHistory" onclick="setSlView('history')">📅 History</button>
+    <div class="cl-view-tabs" style="border-color:#880e4f">
+      <button class="cl-tab active" id="slTabActive"  onclick="setSlView('active')"  style="color:#880e4f">🐷 Active</button>
+      <button class="cl-tab"        id="slTabForm"    onclick="setSlView('form')"                        >➕ New</button>
+      <button class="cl-tab"        id="slTabHistory" onclick="setSlView('history')"                     >📅 History</button>
     </div>
 
-    <!-- ── FORM VIEW ── -->
-    <div id="slFormView">
+    <!-- ── ACTIVE LIST VIEW ── -->
+    <div id="slActiveView">
+      <input type="text" class="list-search" id="slActiveSearch" placeholder="Search by sow ID or pen…" oninput="renderSlActive()"/>
+      <div id="slActiveContainer"><div class="loading-state"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ── FORM VIEW (New / Edit) ── -->
+    <div id="slFormView" style="display:none">
+
+      <!-- Validation error banner -->
+      <div id="slValidationError" style="display:none;padding:10px 14px;background:#ffebee;border:2px solid #c0392b;border-radius:10px;font-size:13px;font-weight:700;color:#8b0000;margin-bottom:12px"></div>
 
       <!-- Sow ID + Farrow Date header -->
       <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
@@ -1001,7 +1011,14 @@
           <input type="text" id="slPen" placeholder="Pen" class="form-input">
         </div>
       </div>
-      <div id="slDayBanner" style="display:none" class="sl-today-banner">📅 <span id="slDayText">Day 0</span></div>
+      <div id="slDayBanner" style="display:none" class="sl-today-banner">📅 <span id="slDayText">Day 0</span> &nbsp;·&nbsp; 🗓️ Wean by: <strong id="slWeanByDate">—</strong></div>
+      <!-- Admin: weaning period setting -->
+      <div id="slAdminSettings" style="display:none;background:#fff9c4;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px">
+        <span style="font-weight:800;color:#78350f">⚙️ Admin — Weaning Period:</span>
+        <input type="number" id="slWeaningWeeks" min="1" max="12" value="5" style="width:60px;margin:0 8px;padding:4px 8px;border:1.5px solid #f59e0b;border-radius:6px;font-weight:700;font-size:13px">
+        <span style="color:#78350f">weeks</span>
+        <button onclick="saveWeaningPeriod()" style="margin-left:10px;background:#f59e0b;border:none;border-radius:6px;padding:5px 12px;font-weight:800;font-size:12px;cursor:pointer;color:#000">Save Setting</button>
+      </div>
 
       <!-- ── SOW WELFARE — numeric fields ── -->
       <div class="sl-section">
@@ -1238,6 +1255,7 @@
 
     <!-- ── HISTORY VIEW ── -->
     <div id="slHistoryView" style="display:none">
+      <div style="font-size:12px;color:#666;margin-bottom:10px;font-style:italic">Completed litters and those past weaning date</div>
       <input type="text" class="list-search" id="slHistorySearch" placeholder="Search by sow ID or date…" oninput="renderSlHistory()"/>
       <div id="slHistoryContainer"><div class="empty-state">Loading…</div></div>
     </div>
@@ -2454,16 +2472,380 @@ const SL_TASK_DAY = {
 let slTaskState = {};   // task -> true/false
 let slEditId = null;
 let allSlRecords = [];
-let slView = 'form';
+let slView = 'active';
+let weaningWeeks = 5; // default, overridden by Settings sheet
+
+// ── Weaning period setting ──
+async function loadWeaningPeriod() {
+  const result = await apiGet({ action: 'getSetting', key: 'weaningWeeks' });
+  if (result && result.success && result.value) {
+    weaningWeeks = parseInt(result.value) || 5;
+    const el = document.getElementById('slWeaningWeeks');
+    if (el) el.value = weaningWeeks;
+  }
+}
+
+async function saveWeaningPeriod() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const val = parseInt(document.getElementById('slWeaningWeeks').value) || 5;
+  const result = await apiPost({ action: 'saveSetting', key: 'weaningWeeks', value: val });
+  if (result && result.success) {
+    weaningWeeks = val;
+    showToast(`✓ Weaning period set to ${val} weeks`);
+    allSlRecords = []; // refresh
+  } else { showToast('Failed to save setting', true); }
+}
+
+function slWeanByDate(farrowDate) {
+  if (!farrowDate) return null;
+  const d = new Date(farrowDate);
+  d.setDate(d.getDate() + weaningWeeks * 7);
+  return d.toISOString().split('T')[0];
+}
+
+function slIsActive(rec) {
+  // Active = weaned task NOT done AND wean-by date not yet passed
+  const weaned = rec['weaned'] === 'done';
+  const weanBy = slWeanByDate(rec.FarrowDate);
+  const today = new Date().toISOString().split('T')[0];
+  if (weaned) return false;
+  if (weanBy && today > weanBy) return false;
+  return true;
+}
+
+function slIsHistory(rec) { return !slIsActive(rec); }
 
 function initSowLitter() {
   SL_TASKS.forEach(t => { slTaskState[t] = false; });
-  const today = new Date().toISOString().split('T')[0];
-  const fd = document.getElementById('slFarrowDate');
-  if (fd && !fd.value) fd.value = today;
-  populateSlSowDropdown();  // load pig IDs into dropdown
-  slUpdateDayInfo();
+  populateSlSowDropdown();
+  loadWeaningPeriod();
+  setSlView('active');
 }
+
+function slDaysSinceFarrow() {
+  const fd = document.getElementById('slFarrowDate')?.value;
+  if (!fd) return null;
+  const farrow = new Date(fd);
+  const today = new Date();
+  farrow.setHours(0,0,0,0); today.setHours(0,0,0,0);
+  return Math.floor((today - farrow) / 86400000);
+}
+
+function slUpdateDayInfo() {
+  const days = slDaysSinceFarrow();
+  const banner = document.getElementById('slDayBanner');
+  const txt = document.getElementById('slDayText');
+  const wbd = document.getElementById('slWeanByDate');
+  const adminBox = document.getElementById('slAdminSettings');
+  if (adminBox) adminBox.style.display = isAdminEnabled() ? 'block' : 'none';
+  const fd = document.getElementById('slFarrowDate')?.value;
+  if (wbd && fd) wbd.textContent = slWeanByDate(fd) || '—';
+  if (days === null || days < 0) { if(banner) banner.style.display='none'; return; }
+  if(banner) banner.style.display='flex';
+  if(txt) txt.textContent = `Day ${days} since farrowing`;
+
+  const milestoneTaskMap = [
+    {id:'mhdr_d01',   from:0,  to:1,  tasks:['iodine','colostrum','teat_order','heat_lamp','litter_weigh','sow_antiinflam','sow_mma_ab','sow_oxytocin']},
+    {id:'mhdr_d23',   from:2,  to:3,  tasks:['iron','tail_dock','teeth','navel_check']},
+    {id:'mhdr_d57',   from:5,  to:7,  tasks:['multivit','creep','navel_healed']},
+    {id:'mhdr_d710',  from:7,  to:10, tasks:['castration','ear_notch','coccidiostat']},
+    {id:'mhdr_d14',   from:14, to:14, tasks:['indiv_weigh','health_d14','mma_d14']},
+    {id:'mhdr_d2128', from:21, to:28, tasks:['vax','weaner_feed','weaner_pen','prev_meds','weaned']}
+  ];
+  milestoneTaskMap.forEach(m => {
+    const el = document.getElementById(m.id);
+    if (!el) return;
+    el.className = 'sl-milestone-header';
+    if (days >= m.from && days <= m.to) el.classList.add('due-today');
+    else if (days > m.to) {
+      const allDone = m.tasks.every(t => slTaskState[t] === true);
+      el.classList.add(allDone ? 'past-done' : 'past-overdue');
+    } else el.classList.add('future');
+  });
+  slRefreshTaskLocks(days);
+}
+
+function slRefreshTaskLocks(days) {
+  if (days === null) return;
+  SL_TASKS.forEach(task => {
+    const dueDay = SL_TASK_DAY[task];
+    const isPast = days > dueDay + 1;
+    const isLocked = isPast && slTaskState[task] === true && !isAdminEnabled();
+    const el = document.getElementById('chk_' + task);
+    if (!el) return;
+    if (isLocked) {
+      el.className = 'sl-task-check locked'; el.onclick = null;
+      const lbl = el.nextElementSibling;
+      if (lbl) lbl.className = 'sl-task-label locked-text';
+    } else {
+      el.className = 'sl-task-check' + (slTaskState[task] ? ' checked' : '');
+      el.onclick = () => slToggleTask(task, dueDay);
+      const lbl = el.nextElementSibling;
+      if (lbl) lbl.className = 'sl-task-label';
+    }
+  });
+  const numLocks = [
+    {id:'sl_born_alive',day:0,tasks:['litter_weigh']},{id:'sl_stillborn',day:0,tasks:['litter_weigh']},
+    {id:'sl_mummified',day:0,tasks:['litter_weigh']},{id:'sl_total_birth_wt',day:0,tasks:['litter_weigh']},
+    {id:'sl_lightest',day:0,tasks:['litter_weigh']},{id:'sl_heaviest',day:0,tasks:['litter_weigh']},
+    {id:'sl_castrated',day:7,tasks:['castration']},
+    {id:'sl_wt_d14',day:14,tasks:['indiv_weigh']},{id:'sl_alive_d14',day:14,tasks:['indiv_weigh']},
+    {id:'sl_num_weaned',day:28,tasks:['weaned']},{id:'sl_date_weaned',day:28,tasks:['weaned']},{id:'sl_wean_wt',day:28,tasks:['weaned']}
+  ];
+  numLocks.forEach(({id,day,tasks}) => {
+    const el = document.getElementById(id); if(!el) return;
+    const tasksDone = tasks.every(t => slTaskState[t] === true);
+    el.disabled = (days > day + 1) && tasksDone && !isAdminEnabled();
+  });
+}
+
+function slToggleTask(task, dueDay) {
+  const days = slDaysSinceFarrow();
+  if (days !== null && days > dueDay + 1 && slTaskState[task] === true && !isAdminEnabled()) {
+    showToast('Completed past entries locked — admin required to undo', true); return;
+  }
+  slTaskState[task] = !slTaskState[task];
+  const el = document.getElementById('chk_' + task);
+  if (el) {
+    el.className = 'sl-task-check' + (slTaskState[task] ? ' checked' : '');
+    el.textContent = slTaskState[task] ? '✓' : '';
+  }
+  if (days !== null) slUpdateDayInfo();
+}
+
+function setSlView(v) {
+  slView = v;
+  document.getElementById('slTabActive').className  = 'cl-tab' + (v==='active'  ? ' active' : '');
+  document.getElementById('slTabForm').className    = 'cl-tab' + (v==='form'    ? ' active' : '');
+  document.getElementById('slTabHistory').className = 'cl-tab' + (v==='history' ? ' active' : '');
+  document.getElementById('slActiveView').style.display  = v==='active'  ? 'block' : 'none';
+  document.getElementById('slFormView').style.display    = v==='form'    ? 'block' : 'none';
+  document.getElementById('slHistoryView').style.display = v==='history' ? 'block' : 'none';
+  if (v === 'active')  { loadAllSlRecords().then(renderSlActive); }
+  if (v === 'history') { loadAllSlRecords().then(renderSlHistory); }
+  if (v === 'form')    { slUpdateDayInfo(); }
+}
+
+async function loadAllSlRecords() {
+  if (allSlRecords.length > 0) return;
+  const result = await apiGet({ action: 'slGetAll' });
+  if (result && result.success) allSlRecords = result.records || [];
+}
+
+// ── Active list ──
+function renderSlActive() {
+  const filter = (document.getElementById('slActiveSearch')?.value || '').toLowerCase();
+  const container = document.getElementById('slActiveContainer');
+  const list = allSlRecords
+    .filter(r => slIsActive(r))
+    .filter(r => (r.SowId||'').toLowerCase().includes(filter) || (r.Pen||'').toLowerCase().includes(filter))
+    .sort((a,b) => new Date(b.FarrowDate) - new Date(a.FarrowDate));
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state">No active litters found.</div>'; return;
+  }
+  const today = new Date().toISOString().split('T')[0];
+  container.innerHTML = list.map(rec => {
+    const done = SL_TASKS.filter(t => rec[t] === 'done').length;
+    const pct = Math.round(done / SL_TASKS.length * 100);
+    const weanBy = slWeanByDate(rec.FarrowDate) || '—';
+    const daysLeft = weanBy !== '—' ? Math.ceil((new Date(weanBy) - new Date(today)) / 86400000) : null;
+    const urgency = daysLeft !== null && daysLeft <= 3 ? 'style="border-color:#c0392b"' : '';
+    return `
+      <div class="cl-record-card" ${urgency}>
+        <div class="cl-record-header">
+          <div class="cl-record-date">Sow ${rec.SowId||'—'}</div>
+          <span class="cl-ok-badge">${pct}% done</span>
+        </div>
+        <div class="cl-record-by">Farrowed: ${rec.FarrowDate||'—'} · Pen: ${rec.Pen||'—'} · Wean by: ${weanBy}${daysLeft!==null ? ` (${daysLeft}d)` : ''}</div>
+        <div style="font-size:12px;color:#444;margin-bottom:6px">Born alive: ${rec.sl_born_alive||'—'} · Nursing: ${rec.sl_nursing||'—'}</div>
+        <div class="cl-record-actions">
+          <button class="btn-edit" onclick="slOpenRecord('${rec.SL_ID}')">Open &amp; Update</button>
+          ${isAdminEnabled() ? `<button class="btn-delete" onclick="slDeleteRecord('${rec.SL_ID}')">Delete</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── History list ──
+function renderSlHistory() {
+  const filter = (document.getElementById('slHistorySearch')?.value || '').toLowerCase();
+  const container = document.getElementById('slHistoryContainer');
+  const list = allSlRecords
+    .filter(r => slIsHistory(r))
+    .filter(r => (r.SowId||'').toLowerCase().includes(filter) || (r.FarrowDate||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter))
+    .sort((a,b) => new Date(b.FarrowDate) - new Date(a.FarrowDate));
+
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state">No completed litter records.</div>'; return;
+  }
+  container.innerHTML = list.map(rec => {
+    const done = SL_TASKS.filter(t => rec[t] === 'done').length;
+    const pct = Math.round(done / SL_TASKS.length * 100);
+    const weaned = rec['weaned'] === 'done';
+    const badge = weaned
+      ? `<span class="cl-ok-badge">✅ Weaned</span>`
+      : `<span class="cl-concern-badge">⚠️ Past wean date</span>`;
+    const adminActs = isAdminEnabled()
+      ? `<button class="btn-edit" onclick="slOpenRecord('${rec.SL_ID}')">Edit</button>
+         <button class="btn-delete" onclick="slDeleteRecord('${rec.SL_ID}')">Delete</button>` : '';
+    return `
+      <div class="cl-record-card">
+        <div class="cl-record-header"><div class="cl-record-date">Sow ${rec.SowId||'—'}</div>${badge}</div>
+        <div class="cl-record-by">Farrowed: ${rec.FarrowDate||'—'} · Pen: ${rec.Pen||'—'} · ${pct}% complete</div>
+        <div style="font-size:12px;color:#444;margin-bottom:4px">Born alive: ${rec.sl_born_alive||'—'} · Weaned: ${rec.sl_num_weaned||'—'}</div>
+        ${adminActs ? `<div class="cl-record-actions">${adminActs}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// Open a record from active/history list into the form
+async function slOpenRecord(slId) {
+  await loadAllSlRecords();
+  const rec = allSlRecords.find(r => String(r.SL_ID) === String(slId));
+  if (!rec) return;
+  slEditId = slId;
+  // Set sow dropdown
+  await populateSlSowDropdown();
+  const sel = document.getElementById('slSowId');
+  if (sel) sel.value = rec.SowId || '';
+  document.getElementById('slFarrowDate').value = rec.FarrowDate || '';
+  _populateSlForm(rec);
+  document.getElementById('btnSaveSl').textContent = 'UPDATE RECORD';
+  const banner = document.getElementById('slExistingBanner');
+  if(banner) banner.style.display = 'block';
+  const errBanner = document.getElementById('slValidationError');
+  if(errBanner) errBanner.style.display = 'none';
+  setSlView('form');
+}
+
+function resetSowLitter() {
+  SL_TASKS.forEach(t => {
+    slTaskState[t] = false;
+    const el = document.getElementById('chk_' + t);
+    if (el) { el.className = 'sl-task-check'; el.textContent = ''; }
+  });
+  ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest',
+   'sl_heaviest','sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today',
+   'sl_castrated','sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'].forEach(id => {
+    const el = document.getElementById(id); if(el){el.value=''; el.disabled=false;}
+  });
+  const sel = document.getElementById('slSowId'); if(sel) sel.value='';
+  document.getElementById('slPen').value = '';
+  document.getElementById('slNotes').value = '';
+  document.getElementById('slFarrowDate').value = '';
+  slEditId = null;
+  document.getElementById('btnSaveSl').textContent = 'SAVE RECORD';
+  const b1 = document.getElementById('slExistingBanner'); if(b1) b1.style.display='none';
+  const b2 = document.getElementById('slValidationError'); if(b2) b2.style.display='none';
+  const b3 = document.getElementById('slDayBanner'); if(b3) b3.style.display='none';
+}
+
+async function validateNewSowLitter(sowId, farrowDate) {
+  // 1. Valid sow ID from PigLog
+  const ids = await loadPigIds();
+  if (!ids.map(i=>String(i).trim().toLowerCase()).includes(sowId.toLowerCase())) {
+    return `Invalid Sow ID "${sowId}" — not found in Pig Log.`;
+  }
+  // 2. No existing record within 5 months
+  await loadAllSlRecords();
+  const farrow = new Date(farrowDate);
+  const fiveMonthsAgo = new Date(farrowDate);
+  fiveMonthsAgo.setMonth(fiveMonthsAgo.getMonth() - 5);
+  const conflict = allSlRecords.find(r => {
+    if (String(r.SowId||'').trim().toLowerCase() !== sowId.toLowerCase()) return false;
+    if (String(r.SL_ID) === String(slEditId)) return false; // skip current record
+    const existing = new Date(r.FarrowDate);
+    return existing >= fiveMonthsAgo && existing <= farrow;
+  });
+  if (conflict) {
+    return `Invalid SOW ID farrow date combination — Sow ${sowId} already has a litter record with farrow date ${conflict.FarrowDate}, which is within 5 months.`;
+  }
+  return null; // valid
+}
+
+async function saveSowLitter() {
+  const sowId     = document.getElementById('slSowId').value.trim();
+  const farrowDate= document.getElementById('slFarrowDate').value;
+  const pen       = document.getElementById('slPen').value.trim();
+  const notes     = document.getElementById('slNotes').value.trim();
+  const errBanner = document.getElementById('slValidationError');
+
+  if (!sowId)      { showToast('Please select a Sow ID', true); return; }
+  if (!farrowDate) { showToast('Please enter farrow date', true); return; }
+
+  // Validate (skip for existing records being updated)
+  if (!slEditId) {
+    const err = await validateNewSowLitter(sowId, farrowDate);
+    if (err) {
+      if(errBanner){ errBanner.textContent = '⚠️ ' + err; errBanner.style.display='block'; }
+      showToast('Validation failed', true); return;
+    }
+  }
+  if(errBanner) errBanner.style.display='none';
+
+  const numFields = ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt',
+    'sl_lightest','sl_heaviest','sl_nursing','sl_weaklings','sl_lightest_today',
+    'sl_heaviest_today','sl_castrated','sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt'];
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  const data = { SowId: sowId, FarrowDate: farrowDate, Pen: pen, Notes: notes,
+    ByLitter: g('slBy_litter'), ByNursing: g('slBy_nursing'),
+    BySowTreat: g('slBy_sowtreat'), ByMilestones: g('slBy_milestones'),
+    ByD01: g('slBy_d01'), ByD23: g('slBy_d23'), ByD57: g('slBy_d57'),
+    ByD710: g('slBy_d710'), ByD14: g('slBy_d14'), ByD2128: g('slBy_d2128') };
+  SL_TASKS.forEach(t => { data[t] = slTaskState[t] ? 'done' : ''; });
+  numFields.forEach(id => { const el=document.getElementById(id); data[id]=el?(el.value||''):''; });
+  const dwEl = document.getElementById('sl_date_weaned');
+  data['sl_date_weaned'] = dwEl ? dwEl.value : '';
+
+  const btn = document.getElementById('btnSaveSl');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  let result;
+  if (slEditId) {
+    result = await apiPost({ action: 'slUpdate', id: slEditId, data });
+  } else {
+    result = await apiPost({ action: 'slUpsert', data });
+    if (result && result.success && result.sl_id) slEditId = result.sl_id;
+  }
+
+  btn.disabled = false;
+  if (result && result.success) {
+    showToast('✓ Record saved!');
+    if (result.sl_id) slEditId = result.sl_id;
+    btn.textContent = 'UPDATE RECORD';
+    allSlRecords = [];
+    const banner = document.getElementById('slExistingBanner');
+    if(banner) banner.style.display = 'block';
+  } else {
+    showToast(result?.error || 'Save failed', true);
+    btn.textContent = slEditId ? 'UPDATE RECORD' : 'SAVE RECORD';
+  }
+}
+
+async function slDeleteRecord(slId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!confirm('Delete this sow & litter record?')) return;
+  const result = await apiPost({ action: 'slDelete', id: slId });
+  if (result && result.success) {
+    showToast('Record deleted');
+    allSlRecords = allSlRecords.filter(r => String(r.SL_ID) !== String(slId));
+    if (slView === 'active') renderSlActive();
+    else renderSlHistory();
+  } else { showToast(result?.error || 'Delete failed', true); }
+}
+
+// ══════════════════════════════════════════════════
+//  WEEKLY CHECKLIST
+// ══════════════════════════════════════════════════
+
+const WK_KEYS = ['wk_weight_spot','wk_body_condition','wk_behaviour',
+                 'wk_deworm','wk_vitamins','wk_wounds',
+                 'wk_feeder_clean','wk_pen_repair','wk_feed_consumption','wk_boar_condition'];
+
+let wkState = {};
+let wkEditId = null;
+
 
 function slDaysSinceFarrow() {
   const fd = document.getElementById('slFarrowDate')?.value;
@@ -2744,12 +3126,6 @@ async function slDeleteRecord(slId) {
 //  WEEKLY CHECKLIST
 // ══════════════════════════════════════════════════
 
-const WK_KEYS = ['wk_weight_spot','wk_body_condition','wk_behaviour',
-                 'wk_deworm','wk_vitamins','wk_wounds',
-                 'wk_feeder_clean','wk_pen_repair','wk_feed_consumption','wk_boar_condition'];
-
-let wkState = {};
-let wkEditId = null;
 let allWkRecords = [];
 let wkView = 'form';
 
