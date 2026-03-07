@@ -2378,6 +2378,9 @@ async function populateSlSowDropdown() {
   const sel = document.getElementById('slSowId');
   if (!sel) return;
   const current = sel.value;
+  // Detach onchange so rebuilding options doesn't fire slLookupExisting
+  const savedHandler = sel.getAttribute('onchange');
+  sel.removeAttribute('onchange');
   sel.innerHTML = '<option value="">— Select Sow —</option>';
   ids.forEach(id => {
     const opt = document.createElement('option');
@@ -2385,6 +2388,8 @@ async function populateSlSowDropdown() {
     if (id === current) opt.selected = true;
     sel.appendChild(opt);
   });
+  // Restore after a tick so any pending change events are ignored
+  setTimeout(() => { if(savedHandler) sel.setAttribute('onchange', savedHandler); }, 50);
 }
 
 async function slLookupExisting() {
@@ -2423,7 +2428,7 @@ async function slLookupExisting() {
 }
 
 function _populateSlForm(rec) {
-  document.getElementById('slPen').value = rec.Pen || '';
+  document.getElementById('slPen').value   = rec.Pen   || '';
   document.getElementById('slNotes').value = rec.Notes || '';
   const byMap = {slBy_litter:'ByLitter',slBy_nursing:'ByNursing',slBy_sowtreat:'BySowTreat',
     slBy_milestones:'ByMilestones',slBy_d01:'ByD01',slBy_d23:'ByD23',slBy_d57:'ByD57',
@@ -2432,14 +2437,22 @@ function _populateSlForm(rec) {
   SL_TASKS.forEach(t => {
     slTaskState[t] = rec[t] === 'done';
     const el = document.getElementById('chk_' + t);
-    if (el) { el.textContent = slTaskState[t] ? '✓' : ''; }
+    if (el) {
+      // Force-unlock first; slUpdateDayInfo will re-lock for non-admins
+      el.className = 'sl-task-check' + (slTaskState[t] ? ' checked' : '');
+      el.textContent = slTaskState[t] ? '✓' : '';
+      el.onclick = () => slToggleTask(t, SL_TASK_DAY[t]);
+      const lbl = el.nextElementSibling;
+      if (lbl) lbl.className = 'sl-task-label';
+    }
   });
   ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest','sl_heaviest',
    'sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today','sl_castrated',
    'sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'].forEach(id => {
-    const el=document.getElementById(id); if(el){ el.value=rec[id]||''; el.disabled=false; }
+    const el=document.getElementById(id);
+    if(el){ el.value=rec[id]||''; el.disabled=false; }  // force-unlock; slUpdateDayInfo re-locks for non-admins
   });
-  slUpdateDayInfo();
+  slUpdateDayInfo();  // applies correct lock state based on current admin status
 }
 
 function _clearSlTasks() {
