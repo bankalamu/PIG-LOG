@@ -1532,7 +1532,7 @@
         </div>
         <div class="notch-input-group">
           <label>Sow ID</label>
-          <input type="number" id="inputSow" min="9" max="161" placeholder="9–161" oninput="calcToNotches()">
+          <input type="number" id="inputSow" min="1" max="161" placeholder="1–161" oninput="calcToNotches()">
           <div class="notch-max">Max: 161</div>
           <div class="notch-error" id="errSow"></div>
         </div>
@@ -2126,7 +2126,7 @@ function setClView(view) {
   if (view === 'history') { loadChecklists(); }
 }
 
-// toggleCheck defined in new_js section below
+
 
 function resetChecklist() {
   CL_KEYS.forEach(k => {
@@ -2636,8 +2636,11 @@ function toggleWmCheck(btn, key, val) {
   }
 }
 
-// Patch toggleCheck to also handle wm-item containers
-const _origToggleCheck = toggleCheck;
+const MO_KEYS = ['mo_full_weigh','mo_growth_rate','mo_mortality',
+                 'mo_vaccination','mo_breeding','mo_boar_perf',
+                 'mo_feed_inventory','mo_equipment','mo_biosecurity'];
+
+// Unified toggleCheck — handles daily, weekly, monthly
 function toggleCheck(btn, key, val) {
   const item = btn.closest('.check-item') || btn.closest('.wm-item');
   if (!item) return;
@@ -2769,9 +2772,7 @@ async function wkDeleteRecord(wkId) {
 //  MONTHLY CHECKLIST
 // ══════════════════════════════════════════════════
 
-const MO_KEYS = ['mo_full_weigh','mo_growth_rate','mo_mortality',
-                 'mo_vaccination','mo_breeding','mo_boar_perf',
-                 'mo_feed_inventory','mo_equipment','mo_biosecurity'];
+// MO_KEYS moved above toggleCheck
 
 let moState = {};
 let moEditId = null;
