@@ -70,6 +70,7 @@ function doPost(e) {
     if (action === "clUpdate") return corsRespond(clUpdate(payload.id, payload.data));
     if (action === "clDelete") return corsRespond(clDelete(payload.id));
     if (action === "slAdd")    return corsRespond(slAdd(payload.data));
+    if (action === "slUpsert") return corsRespond(slUpsert(payload.data));
     if (action === "slUpdate") return corsRespond(slUpdate(payload.id, payload.data));
     if (action === "slDelete") return corsRespond(slDelete(payload.id));
     if (action === "wkAdd")    return corsRespond(wkAdd(payload.data));
@@ -324,6 +325,29 @@ function slGetAll() {
     return rec;
   });
   return { success: true, records };
+}
+
+// Upsert: update if SowId+FarrowDate exists, otherwise insert
+function slUpsert(data) {
+  const sheet = getSlSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const allData = sheet.getRange(2, 1, lastRow-1, SL_HEADERS_GS.length).getValues();
+    const sowIdIdx  = SL_HEADERS_GS.indexOf("SowId");
+    const farrowIdx = SL_HEADERS_GS.indexOf("FarrowDate");
+    for (let i = 0; i < allData.length; i++) {
+      const rowSow    = String(allData[i][sowIdIdx]||'').trim().toLowerCase();
+      const rowFarrow = allData[i][farrowIdx] instanceof Date
+        ? Utilities.formatDate(allData[i][farrowIdx], Session.getScriptTimeZone(), "yyyy-MM-dd")
+        : String(allData[i][farrowIdx]||'').trim();
+      if (rowSow === String(data.SowId||'').trim().toLowerCase() && rowFarrow === String(data.FarrowDate||'').trim()) {
+        const existingId = allData[i][0];
+        slUpdate(existingId, data);
+        return { success: true, sl_id: existingId, updated: true };
+      }
+    }
+  }
+  return slAdd(data);
 }
 
 function slAdd(data) {
