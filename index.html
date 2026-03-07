@@ -973,7 +973,7 @@
     <div class="section-sub" style="color:#333;margin-bottom:16px">Farrowing checklist — one form per sow per litter</div>
 
     <div class="cl-view-tabs" style="border-color:#880e4f">
-      <button class="cl-tab active" id="slTabActive"  onclick="setSlView('active')"  style="color:#880e4f">🐷 Active</button>
+      <button class="cl-tab active" id="slTabActive"  onclick="setSlView('active')"  >🐷 Active</button>
       <button class="cl-tab"        id="slTabForm"    onclick="setSlView('form', true)"                   >➕ New</button>
       <button class="cl-tab"        id="slTabHistory" onclick="setSlView('history')"                     >📅 History</button>
     </div>
@@ -1249,7 +1249,7 @@
 
       <div class="btn-row">
         <button class="btn-primary btn-green" id="btnSaveSl" onclick="saveSowLitter()">SAVE RECORD</button>
-        <button class="btn-cancel" onclick="resetSowLitter()">Reset</button>
+        <button class="btn-cancel" onclick="cancelSowLitter()">Cancel</button>
       </div>
     </div><!-- end slFormView -->
 
@@ -2765,7 +2765,11 @@ function resetSowLitter() {
   const b1 = document.getElementById('slExistingBanner'); if(b1) b1.style.display='none';
   const b2 = document.getElementById('slValidationError'); if(b2) b2.style.display='none';
   const b3 = document.getElementById('slDayBanner'); if(b3) b3.style.display='none';
-  // Navigate back to Active list
+  // NOTE: does NOT call setSlView — callers handle navigation
+}
+
+function cancelSowLitter() {
+  resetSowLitter();
   setSlView('active');
 }
 
