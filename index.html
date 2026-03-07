@@ -732,29 +732,52 @@
     <!-- ── FORM VIEW ── -->
     <div id="clFormView">
 
-      <!-- Date / Pen / Checked by -->
-      <div class="checklist-date-bar">
-        <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
-          <label>Date</label>
-          <input type="date" id="clDate" onchange="clDateChanged()">
+      <!-- Date / Pen header — locked once record is created -->
+      <div id="clDatePenSetup" style="background:#f0f7f0;border:1.5px solid #2d6a2d;border-radius:10px;padding:12px 14px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#2d6a2d;margin-bottom:8px">📋 Set Date &amp; Pen — required to start checklist</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
+            <label>Date</label>
+            <input type="date" id="clDate" style="font-weight:700">
+          </div>
+          <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
+            <label>Pen No.</label>
+            <input type="text" id="clPen" placeholder="e.g. Pen 3" style="font-weight:700">
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn-primary btn-green" onclick="clStartRecord()" style="white-space:nowrap;padding:8px 18px">Start ▶</button>
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
-          <label>Pen No.</label>
-          <input type="text" id="clPen" placeholder="e.g. Pen 3" onchange="clDateChanged()" onblur="clDateChanged()">
+        <div id="clSetupError" style="display:none;color:#c0392b;font-size:12px;font-weight:700;margin-top:6px"></div>
+      </div>
+
+      <!-- Once started: locked header showing date+pen -->
+      <div id="clDatePenLocked" style="display:none;background:#fff;border:1.5px solid #2d6a2d;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="font-size:13px;font-weight:800;color:#000" id="clLockedLabel">📋 — Pen —</span>
+            <span style="font-size:11px;color:#666;margin-left:8px" id="clLockedSub"></span>
+          </div>
+          <button onclick="resetChecklist()" style="font-size:11px;padding:4px 10px;border:1px solid #aaa;border-radius:6px;background:#f5f5f5;cursor:pointer">✕ New</button>
         </div>
       </div>
+
+      <!-- Banners -->
       <div id="clLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">
         🔒 Past date — this record is locked. Admin access required to edit.
       </div>
       <div id="clExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">
-        ✅ Existing record loaded for today — saving will update it.
+        ✅ Existing record loaded — saving will update it.
       </div>
-      <div class="checklist-meta" style="grid-template-columns:1fr">
-        <div>
-          <label>Checked by</label>
-          <input type="text" id="clCheckedBy" placeholder="Your name">
+
+      <!-- Checklist body — hidden until date+pen confirmed -->
+      <div id="clBody" style="display:none">
+        <div class="checklist-meta" style="grid-template-columns:1fr">
+          <div>
+            <label>Checked by</label>
+            <input type="text" id="clCheckedBy" placeholder="Your name">
+          </div>
         </div>
-      </div>
 
       <!-- SECTION 1: Morning -->
       <div class="check-section">
@@ -959,8 +982,9 @@
       <!-- Save button -->
       <div class="btn-row">
         <button class="btn-primary btn-green" id="btnSaveChecklist" onclick="saveChecklist()">SAVE CHECKLIST</button>
-        <button class="btn-cancel" onclick="resetChecklist()">Reset</button>
       </div>
+
+      </div><!-- end clBody -->
 
     </div><!-- end clFormView -->
 
@@ -1283,17 +1307,20 @@
       <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
         <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
           <label class="form-label">Week Starting</label>
-          <input type="date" id="wkDate" class="form-input">
+          <input type="date" id="wkDate" class="form-input" onchange="wkDateChanged()">
         </div>
         <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
           <label class="form-label">Pen / Farm</label>
-          <input type="text" id="wkPen" placeholder="All pens" class="form-input">
+          <input type="text" id="wkPen" placeholder="All pens" class="form-input" onblur="wkDateChanged()" onchange="wkDateChanged()">
         </div>
         <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
           <label class="form-label">Checked by</label>
           <input type="text" id="wkCheckedBy" class="form-input" placeholder="Your name">
         </div>
       </div>
+
+      <div id="wkLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past date — this record is locked. Admin access required to edit.</div>
+      <div id="wkExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">✅ Existing record loaded — saving will update it.</div>
 
       <!-- Pig Condition -->
       <div class="wm-section">
@@ -1454,13 +1481,16 @@
       <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
         <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
           <label class="form-label">Month</label>
-          <input type="month" id="moMonth" class="form-input">
+          <input type="month" id="moMonth" class="form-input" onchange="moDateChanged()">
         </div>
         <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
           <label class="form-label">Checked by</label>
           <input type="text" id="moCheckedBy" class="form-input" placeholder="Your name">
         </div>
       </div>
+
+      <div id="moLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past month — this record is locked. Admin access required to edit.</div>
+      <div id="moExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">✅ Existing record loaded — saving will update it.</div>
 
       <!-- Growth & Records -->
       <div class="wm-section">
@@ -1905,6 +1935,8 @@ function showPage(id) {
   if (id === "pageSearch") prepSearchPage();
   if (id === "pageSowLitter") { allSlRecords = []; setSlView('active'); }
   if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
+  if (id === "pageWeekly")   { allWeekly = [];     wkDateChanged(); }
+  if (id === "pageMonthly")  { allMonthly = [];    moDateChanged(); }
 }
 
 function goHome() { showPage("pageHome"); }
@@ -2209,86 +2241,95 @@ function initChecklist() {
   CL_KEYS.forEach(k => { clState[k] = null; });
   const today = new Date().toISOString().split('T')[0];
   const dateEl = document.getElementById('clDate');
-  if (dateEl) { dateEl.value = today; }
-  // Note: clDateChanged() is called by showPage('pageChecklist') each time user navigates here
+  if (dateEl) dateEl.value = today;
+  _clShowSetup();
 }
 
-function clIsLocked(dateStr) {
-  if (!dateStr) return false;
-  const today = new Date().toISOString().split('T')[0];
-  return dateStr < today;
+function _clShowSetup() {
+  document.getElementById('clDatePenSetup').style.display   = 'block';
+  document.getElementById('clDatePenLocked').style.display  = 'none';
+  document.getElementById('clBody').style.display           = 'none';
+  document.getElementById('clLockedBanner').style.display   = 'none';
+  document.getElementById('clExistingBanner').style.display = 'none';
+  document.getElementById('clDate').disabled = false;
+  document.getElementById('clPen').disabled  = false;
+  document.getElementById('clSetupError').style.display = 'none';
 }
 
-async function clDateChanged() {
-  const date = document.getElementById('clDate')?.value;
-  const pen  = (document.getElementById('clPen')?.value || '').trim();
-  if (!date) return;
-  const locked = clIsLocked(date) && !isAdminEnabled();
-  const lockedBanner = document.getElementById('clLockedBanner');
-  const existBanner  = document.getElementById('clExistingBanner');
-  const saveBtn      = document.getElementById('btnSaveChecklist');
+async function clStartRecord() {
+  const date = document.getElementById('clDate').value;
+  const pen  = document.getElementById('clPen').value.trim();
+  const errEl = document.getElementById('clSetupError');
+  if (!date && !pen) { errEl.textContent = 'Please fill in Date and Pen No.'; errEl.style.display='block'; return; }
+  if (!date)         { errEl.textContent = 'Please fill in Date.';            errEl.style.display='block'; return; }
+  if (!pen)          { errEl.textContent = 'Please fill in Pen No.';          errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
 
-  // Load records from server (always fresh on page open)
   if (allChecklists.length === 0) {
-    const result = await apiGet({ action: 'clGetAll' });
-    if (result && result.success) allChecklists = result.records || [];
+    const r = await apiGet({ action: 'clGetAll' });
+    if (r && r.success) allChecklists = r.records || [];
   }
 
-  // Look up existing record by date+pen (only if both are filled)
-  const existing = (date && pen)
-    ? allChecklists.find(r =>
-        String(r.Date||'').trim() === date &&
-        String(r.Pen||'').trim().toLowerCase() === pen.toLowerCase())
-    : null;
+  const existing = allChecklists.find(r =>
+    String(r.Date||'').trim() === date &&
+    String(r.Pen||'').trim().toLowerCase() === pen.toLowerCase()
+  );
 
   if (existing) {
     clEditId = existing.CL_ID;
     _populateClForm(existing);
-    if(existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
-    if(lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+    document.getElementById('clExistingBanner').style.display = 'block';
+    document.getElementById('btnSaveChecklist').textContent   = 'UPDATE CHECKLIST';
   } else {
-    // Clear checkboxes and text fields (keep date/pen so user can keep typing)
     clEditId = null;
-    CL_KEYS.forEach(k => {
-      clState[k] = null;
-      document.querySelectorAll(`#clFormView .check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-    });
-    document.getElementById('clNotes').value     = '';
-    document.getElementById('clCheckedBy').value = '';
-    if(existBanner)  existBanner.style.display  = 'none';
-    if(lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+    document.getElementById('clExistingBanner').style.display = 'none';
+    document.getElementById('btnSaveChecklist').textContent   = 'SAVE CHECKLIST';
   }
 
-  // Always apply lock/unlock last
-  clLockForm(locked);
-  if(saveBtn) {
-    saveBtn.disabled    = locked;
-    saveBtn.style.opacity = locked ? '0.4' : '1';
-    if (!locked) saveBtn.textContent = existing ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST';
+  const today  = new Date().toISOString().split('T')[0];
+  const locked = date < today && !isAdminEnabled();
+  if (locked) {
+    document.getElementById('clLockedBanner').style.display   = 'block';
+    document.getElementById('clExistingBanner').style.display = 'none';
   }
+
+  document.getElementById('clDatePenSetup').style.display  = 'none';
+  document.getElementById('clDatePenLocked').style.display = 'block';
+  document.getElementById('clLockedLabel').textContent     = date + '  -- Pen: ' + pen;
+  document.getElementById('clLockedSub').textContent       = existing ? '(existing record)' : '(new record)';
+  document.getElementById('clBody').style.display          = 'block';
+  clLockForm(locked);
 }
 
+function clIsLocked(dateStr) {
+  if (!dateStr) return false;
+  return dateStr < new Date().toISOString().split('T')[0];
+}
+
+async function clDateChanged() {}
+
 function clLockForm(lock) {
-  // Scope strictly to the daily checklist form — never touch wk/mo toggles
-  document.querySelectorAll('#clFormView .toggle-btn').forEach(b => {
+  document.querySelectorAll('#clBody .toggle-btn').forEach(b => {
     b.style.pointerEvents = lock ? 'none' : '';
     b.style.opacity       = lock ? '0.5'  : '';
   });
-  ['clPen','clCheckedBy','clNotes'].forEach(id => {
+  ['clCheckedBy','clNotes'].forEach(id => {
     const el = document.getElementById(id); if(el) el.disabled = lock;
   });
+  const saveBtn = document.getElementById('btnSaveChecklist');
+  if (saveBtn) { saveBtn.disabled = lock; saveBtn.style.opacity = lock ? '0.4' : '1'; }
 }
 
 function _populateClForm(rec) {
-  document.getElementById('clPen').value       = rec.Pen       || '';
   document.getElementById('clCheckedBy').value = rec.CheckedBy || '';
   document.getElementById('clNotes').value     = rec.Notes     || '';
   CL_KEYS.forEach(k => {
     clState[k] = rec[k] || null;
-    document.querySelectorAll(`#clFormView .check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    const items = document.querySelectorAll('#clBody .check-item[data-key="' + k + '"] .toggle-btn');
+    items.forEach(b => b.classList.remove('selected'));
     if (rec[k]) {
       const cls = rec[k] === 'ok' ? '.toggle-ok' : '.toggle-bad';
-      const item = document.querySelector(`#clFormView .check-item[data-key="${k}"]`);
+      const item = document.querySelector('#clBody .check-item[data-key="' + k + '"]');
       if (item) item.querySelector(cls)?.classList.add('selected');
     }
   });
@@ -2301,24 +2342,21 @@ function setClView(view) {
   document.getElementById('clFormView').style.display    = view==='form'    ? 'block' : 'none';
   document.getElementById('clHistoryView').style.display = view==='history' ? 'block' : 'none';
   if (view === 'history') { allChecklists = []; loadChecklists(); }
-  if (view === 'form')    { clDateChanged(); }
 }
 
 function resetChecklist() {
   CL_KEYS.forEach(k => {
     clState[k] = null;
-    document.querySelectorAll(`#clFormView .check-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    const items = document.querySelectorAll('#clBody .check-item[data-key="' + k + '"] .toggle-btn');
+    items.forEach(b => b.classList.remove('selected'));
   });
   document.getElementById('clNotes').value     = '';
-  document.getElementById('clPen').value       = '';
   document.getElementById('clCheckedBy').value = '';
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('clDate').value = today;
+  document.getElementById('clDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('clPen').value  = '';
   clEditId = null;
-  clLockForm(false);
-  document.getElementById('btnSaveChecklist').textContent = 'SAVE CHECKLIST';
-  const b1 = document.getElementById('clLockedBanner');  if(b1) b1.style.display='none';
-  const b2 = document.getElementById('clExistingBanner'); if(b2) b2.style.display='none';
+  allChecklists = [];
+  _clShowSetup();
 }
 
 async function saveChecklist() {
@@ -2326,14 +2364,10 @@ async function saveChecklist() {
   const pen       = document.getElementById('clPen').value.trim();
   const checkedBy = document.getElementById('clCheckedBy').value.trim();
   const notes     = document.getElementById('clNotes').value.trim();
-
-  if (!date) { showToast('Please select a date', true); return; }
-
-  // Block past-date saves for non-admins
+  if (!date || !pen) { showToast('Date and Pen are required', true); return; }
   if (clIsLocked(date) && !isAdminEnabled()) {
-    showToast('🔒 Past records are locked — admin access required', true); return;
+    showToast('Past records are locked -- admin access required', true); return;
   }
-
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
   const data = {
     Date: date, Pen: pen, CheckedBy: checkedBy,
@@ -2341,23 +2375,20 @@ async function saveChecklist() {
     Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK'
   };
   CL_KEYS.forEach(k => { data[k] = clState[k] || ''; });
-
   const btn = document.getElementById('btnSaveChecklist');
-  btn.disabled = true; btn.textContent = 'Saving…';
-
-  // Always upsert — update if record for this date exists, otherwise insert
+  btn.disabled = true; btn.textContent = 'Saving...';
   const result = clEditId
     ? await apiPost({ action: 'clUpdate', id: clEditId, data })
     : await apiPost({ action: 'clUpsert', data });
-
   btn.disabled = false;
   if (result && result.success) {
     if (result.cl_id) clEditId = result.cl_id;
-    showToast('✓ Checklist saved!');
+    showToast('Checklist saved!');
     btn.textContent = 'UPDATE CHECKLIST';
     allChecklists = [];
     const b = document.getElementById('clExistingBanner');
-    if(b) { b.innerHTML = '✅ Saved — updating this record throughout the day is fine.'; b.style.display='block'; }
+    if(b) { b.textContent = 'Saved -- you can keep updating this record today.'; b.style.display='block'; }
+    document.getElementById('clLockedSub').textContent = '(saved)';
   } else {
     showToast(result?.error || 'Save failed', true);
     btn.textContent = clEditId ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST';
@@ -2382,30 +2413,23 @@ function renderChecklistHistory() {
   let list = allChecklists
     .filter(r => (r.Date||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter) || (r.CheckedBy||'').toLowerCase().includes(filter))
     .slice().reverse();
-
   if (list.length === 0) { container.innerHTML = '<div class="empty-state">No checklist records found.</div>'; return; }
-
   container.innerHTML = list.map(rec => {
     const hasConcerns = rec.Status === 'CONCERNS';
     const isPast = String(rec.Date||'') < today;
     const badge = hasConcerns
-      ? `<span class="cl-concern-badge">⚠️ ${(rec.Concerns||'').split(',').filter(Boolean).length} concern(s)</span>`
-      : `<span class="cl-ok-badge">✅ All OK</span>`;
-    const lockTag = isPast && !isAdminEnabled() ? `<span style="font-size:11px;color:#888;font-style:italic">🔒 Locked</span>` : '';
+      ? '<span class="cl-concern-badge">! ' + (rec.Concerns||'').split(',').filter(Boolean).length + ' concern(s)</span>'
+      : '<span class="cl-ok-badge">OK All OK</span>';
+    const lockTag = isPast && !isAdminEnabled() ? '<span style="font-size:11px;color:#888;margin-left:6px">Locked</span>' : '';
     const adminActions = isAdminEnabled()
-      ? `<button class="btn-edit" onclick="clEditRecord('${rec.CL_ID}')">Edit</button>
-         <button class="btn-delete" onclick="clDeleteRecord('${rec.CL_ID}')">Delete</button>`
+      ? '<button class="btn-edit" onclick="clEditRecord(\'' + rec.CL_ID + '\')">Edit</button> <button class="btn-delete" onclick="clDeleteRecord(\'' + rec.CL_ID + '\')">Delete</button>'
       : '';
-    return `
-      <div class="cl-record-card">
-        <div class="cl-record-header">
-          <div class="cl-record-date">${rec.Date||'—'}</div>
-          ${badge}
-        </div>
-        <div class="cl-record-by">Pen: ${rec.Pen||'—'} · By: ${rec.CheckedBy||'—'} ${lockTag}</div>
-        ${rec.Notes ? `<div style="font-size:12px;color:#333;font-style:italic;margin-bottom:6px">"${rec.Notes}"</div>` : ''}
-        ${adminActions ? `<div class="cl-record-actions">${adminActions}</div>` : ''}
-      </div>`;
+    return '<div class="cl-record-card">'
+      + '<div class="cl-record-header"><div class="cl-record-date">' + (rec.Date||'-') + '</div>' + badge + '</div>'
+      + '<div class="cl-record-by">Pen: ' + (rec.Pen||'-') + ' - By: ' + (rec.CheckedBy||'-') + ' ' + lockTag + '</div>'
+      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic;margin-bottom:6px">"' + rec.Notes + '"</div>' : '')
+      + (adminActions ? '<div class="cl-record-actions">' + adminActions + '</div>' : '')
+      + '</div>';
   }).join('');
 }
 
@@ -2413,15 +2437,10 @@ function clEditRecord(clId) {
   if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
   const rec = allChecklists.find(r => String(r.CL_ID) === String(clId));
   if (!rec) return;
-  clEditId = clId;
   document.getElementById('clDate').value = rec.Date || '';
-  _populateClForm(rec);
-  clLockForm(false);  // admin always gets unlocked form
-  document.getElementById('btnSaveChecklist').textContent = 'UPDATE CHECKLIST';
-  const b1 = document.getElementById('clLockedBanner');  if(b1) b1.style.display='none';
-  const b2 = document.getElementById('clExistingBanner'); if(b2) b2.style.display='block';
+  document.getElementById('clPen').value  = rec.Pen  || '';
   setClView('form');
-  showToast('Record loaded for editing');
+  clStartRecord();
 }
 
 async function clDeleteRecord(clId) {
@@ -2437,614 +2456,36 @@ async function clDeleteRecord(clId) {
   }
 }
 
-
-
-// ── Pig ID dropdown population ──
-let pigIdCache = [];
-
-async function loadPigIds() {
-  if (pigIdCache.length > 0) return pigIdCache;
-  const result = await apiGet({ action: 'getAll' });
-  if (result && result.success) {
-    pigIdCache = (result.records || [])
-      .map(r => r['PIG ID'])
-      .filter(id => id && String(id).trim() !== '');
-  }
-  return pigIdCache;
-}
-
-async function populateSlSowDropdown() {
-  const ids = await loadPigIds();
-  const sel = document.getElementById('slSowId');
-  if (!sel) return;
-  const current = sel.value;
-  // Detach onchange so rebuilding options doesn't fire slLookupExisting
-  const savedHandler = sel.getAttribute('onchange');
-  sel.removeAttribute('onchange');
-  sel.innerHTML = '<option value="">— Select Sow —</option>';
-  ids.forEach(id => {
-    const opt = document.createElement('option');
-    opt.value = id; opt.textContent = id;
-    if (id === current) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  // Restore after a tick so any pending change events are ignored
-  setTimeout(() => { if(savedHandler) sel.setAttribute('onchange', savedHandler); }, 50);
-}
-
-async function slLookupExisting() {
-  slUpdateDayInfo();
-  // On the New tab (no slEditId), don't auto-load if we've just been reset
-  const sowId = document.getElementById('slSowId').value.trim();
-  const farrowDate = document.getElementById('slFarrowDate').value;
-  const banner = document.getElementById('slExistingBanner');
-  const errBanner = document.getElementById('slValidationError');
-  if (!sowId || !farrowDate) { if(banner) banner.style.display='none'; return; }
-  if (allSlRecords.length === 0) {
-    const result = await apiGet({ action: 'slGetAll' });
-    if (result && result.success) allSlRecords = result.records || [];
-  }
-  const existing = allSlRecords.find(r =>
-    String(r.SowId||'').trim().toLowerCase() === sowId.toLowerCase() &&
-    String(r.FarrowDate||'').trim() === farrowDate
-  );
-  if (existing) {
-    // Block non-admins from loading closed records via the New tab
-    if (slIsClosed(existing) && !isAdminEnabled()) {
-      if(errBanner){ errBanner.textContent='⚠️ This sow+date combination belongs to a closed record. Admin access required to edit it.'; errBanner.style.display='block'; }
-      if(banner) banner.style.display='none';
-      return;
-    }
-    slEditId = existing.SL_ID;
-    _populateSlForm(existing);
-    if(banner) banner.style.display = 'block';
-    if(errBanner) errBanner.style.display='none';
-    document.getElementById('btnSaveSl').textContent = 'UPDATE RECORD';
-  } else {
-    if (slEditId) { slEditId = null; _clearSlTasks(); document.getElementById('btnSaveSl').textContent = 'SAVE RECORD'; }
-    if(banner) banner.style.display = 'none';
-    if(errBanner) errBanner.style.display='none';
-  }
-}
-
-function _populateSlForm(rec) {
-  document.getElementById('slPen').value   = rec.Pen   || '';
-  document.getElementById('slNotes').value = rec.Notes || '';
-  const byMap = {slBy_litter:'ByLitter',slBy_nursing:'ByNursing',slBy_sowtreat:'BySowTreat',
-    slBy_milestones:'ByMilestones',slBy_d01:'ByD01',slBy_d23:'ByD23',slBy_d57:'ByD57',
-    slBy_d710:'ByD710',slBy_d14:'ByD14',slBy_d2128:'ByD2128'};
-  Object.keys(byMap).forEach(id => { const el=document.getElementById(id); if(el) el.value=rec[byMap[id]]||''; });
-  SL_TASKS.forEach(t => {
-    slTaskState[t] = rec[t] === 'done';
-    const el = document.getElementById('chk_' + t);
-    if (el) {
-      // Force-unlock first; slUpdateDayInfo will re-lock for non-admins
-      el.className = 'sl-task-check' + (slTaskState[t] ? ' checked' : '');
-      el.textContent = slTaskState[t] ? '✓' : '';
-      el.onclick = () => slToggleTask(t, SL_TASK_DAY[t]);
-      const lbl = el.nextElementSibling;
-      if (lbl) lbl.className = 'sl-task-label';
-    }
-  });
-  ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest','sl_heaviest',
-   'sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today','sl_castrated',
-   'sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'].forEach(id => {
-    const el=document.getElementById(id);
-    if(el){ el.value=rec[id]||''; el.disabled=false; }  // force-unlock; slUpdateDayInfo re-locks for non-admins
-  });
-  slUpdateDayInfo();  // applies correct lock state based on current admin status
-}
-
-function _clearSlTasks() {
-  SL_TASKS.forEach(t => {
-    slTaskState[t] = false;
-    const el = document.getElementById('chk_'+t);
-    if(el){el.className='sl-task-check';el.textContent='';}
-  });
-  ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest','sl_heaviest',
-   'sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today','sl_castrated',
-   'sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt'].forEach(id => {
-    const el=document.getElementById(id); if(el){el.value='';el.disabled=false;}
-  });
-}
-
 // ══════════════════════════════════════════════════
-//  SOW & LITTER
+// SHARED TOGGLE HANDLER
 // ══════════════════════════════════════════════════
 
-const SL_TASKS = [
-  'sow_antiinflam','sow_mma_ab','sow_oxytocin',
-  'iodine','colostrum','teat_order','heat_lamp','litter_weigh',
-  'iron','tail_dock','teeth','navel_check',
-  'multivit','creep','navel_healed',
-  'castration','ear_notch','coccidiostat',
-  'indiv_weigh','health_d14','mma_d14',
-  'vax','weaner_feed','weaner_pen','prev_meds','weaned'
-];
-
-// task -> day it becomes due
-const SL_TASK_DAY = {
-  sow_antiinflam:0, sow_mma_ab:0, sow_oxytocin:0,
-  iodine:0, colostrum:0, teat_order:0, heat_lamp:0, litter_weigh:0,
-  iron:2, tail_dock:2, teeth:2, navel_check:2,
-  multivit:5, creep:5, navel_healed:5,
-  castration:7, ear_notch:7, coccidiostat:7,
-  indiv_weigh:14, health_d14:14, mma_d14:14,
-  vax:21, weaner_feed:21, weaner_pen:21, prev_meds:21, weaned:28
-};
-
-let slTaskState = {};   // task -> true/false
-let slEditId = null;
-let allSlRecords = [];
-let slView = 'active';
-let weaningWeeks = 5; // default, overridden by Settings sheet
-
-// ── Weaning period setting ──
-async function loadWeaningPeriod() {
-  const result = await apiGet({ action: 'getSetting', key: 'weaningWeeks' });
-  if (result && result.success && result.value) {
-    weaningWeeks = parseInt(result.value) || 5;
-    const el = document.getElementById('slWeaningWeeks');
-    if (el) el.value = weaningWeeks;
-  }
-}
-
-async function saveWeaningPeriod() {
-  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
-  const val = parseInt(document.getElementById('slWeaningWeeks').value) || 5;
-  const result = await apiPost({ action: 'saveSetting', key: 'weaningWeeks', value: val });
-  if (result && result.success) {
-    weaningWeeks = val;
-    showToast(`✓ Weaning period set to ${val} weeks`);
-    allSlRecords = []; // refresh
-  } else { showToast('Failed to save setting', true); }
-}
-
-function slWeanByDate(farrowDate) {
-  if (!farrowDate) return null;
-  const d = new Date(farrowDate);
-  d.setDate(d.getDate() + weaningWeeks * 7);
-  return d.toISOString().split('T')[0];
-}
-
-function slIsClosed(rec) {
-  // Closed = weaned task ticked OR date_weaned is filled in
-  return rec['weaned'] === 'done' || (rec['sl_date_weaned'] && String(rec['sl_date_weaned']).trim() !== '');
-}
-
-function slIsActive(rec) {
-  if (slIsClosed(rec)) return false;
-  const weanBy = slWeanByDate(rec.FarrowDate);
-  const today = new Date().toISOString().split('T')[0];
-  if (weanBy && today > weanBy) return false;
-  return true;
-}
-
-function slIsHistory(rec) { return !slIsActive(rec); }
-
-function initSowLitter() {
-  SL_TASKS.forEach(t => { slTaskState[t] = false; });
-  populateSlSowDropdown();
-  loadWeaningPeriod();
-  setSlView('active');
-}
-
-function slDaysSinceFarrow() {
-  const fd = document.getElementById('slFarrowDate')?.value;
-  if (!fd) return null;
-  const farrow = new Date(fd);
-  const today = new Date();
-  farrow.setHours(0,0,0,0); today.setHours(0,0,0,0);
-  return Math.floor((today - farrow) / 86400000);
-}
-
-function slUpdateDayInfo() {
-  const days = slDaysSinceFarrow();
-  const banner = document.getElementById('slDayBanner');
-  const txt = document.getElementById('slDayText');
-  const wbd = document.getElementById('slWeanByDate');
-  const adminBox = document.getElementById('slAdminSettings');
-  if (adminBox) adminBox.style.display = isAdminEnabled() ? 'block' : 'none';
-  const fd = document.getElementById('slFarrowDate')?.value;
-  if (wbd && fd) wbd.textContent = slWeanByDate(fd) || '—';
-  if (days === null || days < 0) { if(banner) banner.style.display='none'; return; }
-  if(banner) banner.style.display='flex';
-  if(txt) txt.textContent = `Day ${days} since farrowing`;
-
-  const milestoneTaskMap = [
-    {id:'mhdr_d01',   from:0,  to:1,  tasks:['iodine','colostrum','teat_order','heat_lamp','litter_weigh','sow_antiinflam','sow_mma_ab','sow_oxytocin']},
-    {id:'mhdr_d23',   from:2,  to:3,  tasks:['iron','tail_dock','teeth','navel_check']},
-    {id:'mhdr_d57',   from:5,  to:7,  tasks:['multivit','creep','navel_healed']},
-    {id:'mhdr_d710',  from:7,  to:10, tasks:['castration','ear_notch','coccidiostat']},
-    {id:'mhdr_d14',   from:14, to:14, tasks:['indiv_weigh','health_d14','mma_d14']},
-    {id:'mhdr_d2128', from:21, to:28, tasks:['vax','weaner_feed','weaner_pen','prev_meds','weaned']}
-  ];
-  milestoneTaskMap.forEach(m => {
-    const el = document.getElementById(m.id);
-    if (!el) return;
-    el.className = 'sl-milestone-header';
-    if (days >= m.from && days <= m.to) el.classList.add('due-today');
-    else if (days > m.to) {
-      const allDone = m.tasks.every(t => slTaskState[t] === true);
-      el.classList.add(allDone ? 'past-done' : 'past-overdue');
-    } else el.classList.add('future');
-  });
-  slRefreshTaskLocks(days);
-}
-
-function slRefreshTaskLocks(days) {
-  if (days === null) return;
-  SL_TASKS.forEach(task => {
-    const dueDay = SL_TASK_DAY[task];
-    const isPast = days > dueDay + 1;
-    const isLocked = isPast && slTaskState[task] === true && !isAdminEnabled();
-    const el = document.getElementById('chk_' + task);
-    if (!el) return;
-    if (isLocked) {
-      el.className = 'sl-task-check locked'; el.onclick = null;
-      const lbl = el.nextElementSibling;
-      if (lbl) lbl.className = 'sl-task-label locked-text';
-    } else {
-      el.className = 'sl-task-check' + (slTaskState[task] ? ' checked' : '');
-      el.onclick = () => slToggleTask(task, dueDay);
-      const lbl = el.nextElementSibling;
-      if (lbl) lbl.className = 'sl-task-label';
-    }
-  });
-  const numLocks = [
-    {id:'sl_born_alive',day:0,tasks:['litter_weigh']},{id:'sl_stillborn',day:0,tasks:['litter_weigh']},
-    {id:'sl_mummified',day:0,tasks:['litter_weigh']},{id:'sl_total_birth_wt',day:0,tasks:['litter_weigh']},
-    {id:'sl_lightest',day:0,tasks:['litter_weigh']},{id:'sl_heaviest',day:0,tasks:['litter_weigh']},
-    {id:'sl_castrated',day:7,tasks:['castration']},
-    {id:'sl_wt_d14',day:14,tasks:['indiv_weigh']},{id:'sl_alive_d14',day:14,tasks:['indiv_weigh']},
-    {id:'sl_num_weaned',day:28,tasks:['weaned']},{id:'sl_date_weaned',day:28,tasks:['weaned']},{id:'sl_wean_wt',day:28,tasks:['weaned']}
-  ];
-  numLocks.forEach(({id,day,tasks}) => {
-    const el = document.getElementById(id); if(!el) return;
-    const tasksDone = tasks.every(t => slTaskState[t] === true);
-    el.disabled = (days > day + 1) && tasksDone && !isAdminEnabled();
-  });
-}
-
-function slToggleTask(task, dueDay) {
-  const days = slDaysSinceFarrow();
-  if (days !== null && days > dueDay + 1 && slTaskState[task] === true && !isAdminEnabled()) {
-    showToast('Completed past entries locked — admin required to undo', true); return;
-  }
-  slTaskState[task] = !slTaskState[task];
-  const el = document.getElementById('chk_' + task);
-  if (el) {
-    el.className = 'sl-task-check' + (slTaskState[task] ? ' checked' : '');
-    el.textContent = slTaskState[task] ? '✓' : '';
-  }
-  if (days !== null) slUpdateDayInfo();
-}
-
-function setSlView(v, forceNew) {
-  slView = v;
-  document.getElementById('slTabActive').className  = 'cl-tab' + (v==='active'  ? ' active' : '');
-  document.getElementById('slTabForm').className    = 'cl-tab' + (v==='form'    ? ' active' : '');
-  document.getElementById('slTabHistory').className = 'cl-tab' + (v==='history' ? ' active' : '');
-  document.getElementById('slActiveView').style.display  = v==='active'  ? 'block' : 'none';
-  document.getElementById('slFormView').style.display    = v==='form'    ? 'block' : 'none';
-  document.getElementById('slHistoryView').style.display = v==='history' ? 'block' : 'none';
-  if (v === 'active')  { allSlRecords=[]; loadAllSlRecords().then(renderSlActive); }
-  if (v === 'history') { allSlRecords=[]; loadAllSlRecords().then(renderSlHistory); }
-  if (v === 'form') {
-    if (forceNew) {
-      // Always fully clear when user explicitly clicks New
-      slEditId = null;
-      resetSowLitter();
-      document.getElementById('slFarrowDate').value = new Date().toISOString().split('T')[0];
-      populateSlSowDropdown();
-    }
-    slUpdateDayInfo();
-  }
-}
-
-async function loadAllSlRecords() {
-  if (allSlRecords.length > 0) return;
-  const result = await apiGet({ action: 'slGetAll' });
-  if (result && result.success) allSlRecords = result.records || [];
-}
-
-// ── Active list — slim rows ──
-function renderSlActive() {
-  const filter = (document.getElementById('slActiveSearch')?.value || '').toLowerCase();
-  const container = document.getElementById('slActiveContainer');
-  const list = allSlRecords
-    .filter(r => slIsActive(r))
-    .filter(r => (r.SowId||'').toLowerCase().includes(filter) || (r.Pen||'').toLowerCase().includes(filter))
-    .sort((a,b) => new Date(a.FarrowDate) - new Date(b.FarrowDate));
-
-  if (list.length === 0) {
-    container.innerHTML = '<div class="empty-state">No active litters.</div>'; return;
-  }
-  const today = new Date().toISOString().split('T')[0];
-  container.innerHTML = list.map(rec => {
-    const weanBy = slWeanByDate(rec.FarrowDate) || '—';
-    const daysLeft = weanBy !== '—' ? Math.ceil((new Date(weanBy) - new Date(today)) / 86400000) : null;
-    const urgent = daysLeft !== null && daysLeft <= 3;
-    const pct = Math.round(SL_TASKS.filter(t => rec[t]==='done').length / SL_TASKS.length * 100);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;
-      margin-bottom:7px;background:#fff;border-radius:9px;
-      border:1.5px solid ${urgent?'#c0392b':'var(--border)'};box-shadow:var(--shadow)">
-      <div>
-        <span style="font-weight:800;font-size:14px;color:#880e4f">Sow ${rec.SowId||'—'}</span>
-        <span style="font-size:11px;color:#555;margin-left:8px">${rec.FarrowDate||''} · Pen ${rec.Pen||'—'} · ${pct}%</span>
-        ${urgent?`<span style="font-size:11px;color:#c0392b;font-weight:700;margin-left:6px">⚠ ${daysLeft}d left</span>`:''}
-      </div>
-      <button class="btn-edit" style="padding:5px 14px;font-size:12px" onclick="slOpenRecord('${rec.SL_ID}')">Open</button>
-    </div>`;
-  }).join('');
-}
-
-// ── History list ──
-function renderSlHistory() {
-  const filter = (document.getElementById('slHistorySearch')?.value || '').toLowerCase();
-  const container = document.getElementById('slHistoryContainer');
-  const list = allSlRecords
-    .filter(r => slIsHistory(r))
-    .filter(r => (r.SowId||'').toLowerCase().includes(filter) || (r.FarrowDate||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter))
-    .sort((a,b) => new Date(b.FarrowDate) - new Date(a.FarrowDate));
-
-  if (list.length === 0) {
-    container.innerHTML = '<div class="empty-state">No completed litter records.</div>'; return;
-  }
-  container.innerHTML = list.map(rec => {
-    const done = SL_TASKS.filter(t => rec[t] === 'done').length;
-    const pct = Math.round(done / SL_TASKS.length * 100);
-    const closed = slIsClosed(rec);
-    const badge = closed
-      ? `<span class="cl-ok-badge">✅ Closed</span>`
-      : `<span class="cl-concern-badge">⚠️ Past wean date</span>`;
-    const editBtn = isAdminEnabled()
-      ? `<button class="btn-edit" style="padding:5px 14px;font-size:12px" onclick="slOpenRecord('${rec.SL_ID}')">Edit</button>
-         <button class="btn-delete" style="padding:5px 14px;font-size:12px" onclick="slDeleteRecord('${rec.SL_ID}')">Delete</button>`
-      : `<span style="font-size:11px;color:#888;font-style:italic">🔒 Admin only</span>`;
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;
-      margin-bottom:7px;background:#f9f9f9;border-radius:9px;border:1.5px solid var(--border)">
-      <div>
-        <span style="font-weight:800;font-size:14px;color:#555">Sow ${rec.SowId||'—'}</span>
-        <span style="font-size:11px;color:#777;margin-left:8px">${rec.FarrowDate||''} · Pen ${rec.Pen||'—'} · ${pct}%</span>
-        &nbsp;${badge}
-      </div>
-      <div style="display:flex;gap:6px;align-items:center">${editBtn}</div>
-    </div>`;
-  }).join('');
-}
-
-// Open a record from active/history list into the form
-async function slOpenRecord(slId) {
-  await loadAllSlRecords();
-  const rec = allSlRecords.find(r => String(r.SL_ID) === String(slId));
-  if (!rec) return;
-
-  // Permanently closed — only admin can edit
-  if (slIsClosed(rec) && !isAdminEnabled()) {
-    showToast('🔒 This litter is closed — admin access required to edit', true);
-    return;
-  }
-
-  slEditId = slId;
-  await populateSlSowDropdown();
-  const sel = document.getElementById('slSowId');
-  if (sel) sel.value = rec.SowId || '';
-  document.getElementById('slFarrowDate').value = rec.FarrowDate || '';
-  _populateSlForm(rec);
-  document.getElementById('btnSaveSl').textContent = 'UPDATE RECORD';
-  const b1 = document.getElementById('slExistingBanner'); if(b1) b1.style.display='block';
-  const b2 = document.getElementById('slValidationError'); if(b2) b2.style.display='none';
-  // Go to form without forcing reset (slEditId is set)
-  setSlView('form');
-}
-
-function resetSowLitter() {
-  // Clear all task checkboxes
-  SL_TASKS.forEach(t => {
-    slTaskState[t] = false;
-    const el = document.getElementById('chk_' + t);
-    if (el) { el.className = 'sl-task-check'; el.textContent = ''; el.onclick = () => slToggleTask(t, SL_TASK_DAY[t]); }
-  });
-  // Clear all numeric / date fields
-  ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt','sl_lightest','sl_heaviest',
-   'sl_nursing','sl_weaklings','sl_lightest_today','sl_heaviest_today',
-   'sl_castrated','sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'
-  ].forEach(id => { const el=document.getElementById(id); if(el){el.value=''; el.disabled=false;} });
-  // Clear "Completed by" fields
-  ['slBy_litter','slBy_nursing','slBy_sowtreat','slBy_milestones',
-   'slBy_d01','slBy_d23','slBy_d57','slBy_d710','slBy_d14','slBy_d2128'
-  ].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  // Clear header fields
-  const sel = document.getElementById('slSowId'); if(sel) sel.value='';
-  document.getElementById('slPen').value   = '';
-  document.getElementById('slNotes').value = '';
-  document.getElementById('slFarrowDate').value = '';
-  // Reset milestone headers to plain style
-  ['mhdr_d01','mhdr_d23','mhdr_d57','mhdr_d710','mhdr_d14','mhdr_d2128'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.className = 'sl-milestone-header future';
-  });
-  slEditId = null;
-  document.getElementById('btnSaveSl').textContent = 'SAVE RECORD';
-  const b1 = document.getElementById('slExistingBanner');  if(b1){ b1.innerHTML='✅ Existing record loaded — your changes will update it, not create a new one.'; b1.style.display='none'; }
-  const b2 = document.getElementById('slValidationError'); if(b2) b2.style.display='none';
-  const b3 = document.getElementById('slDayBanner');       if(b3) b3.style.display='none';
-  const b4 = document.getElementById('slAdminSettings');   if(b4) b4.style.display='none';
-  const b5 = document.getElementById('slWeanByDate');      if(b5) b5.textContent='—';
-  // NOTE: does NOT call setSlView — callers handle navigation
-}
-
-function cancelSowLitter() {
-  resetSowLitter();
-  setSlView('active');
-}
-
-async function validateNewSowLitter(sowId, farrowDate) {
-  // 1. Valid sow ID from PigLog
-  const ids = await loadPigIds();
-  if (!ids.map(i=>String(i).trim().toLowerCase()).includes(sowId.toLowerCase())) {
-    return `Invalid Sow ID "${sowId}" — not found in Pig Log.`;
-  }
-  // 2. No existing record within 5 months
-  await loadAllSlRecords();
-  const farrow = new Date(farrowDate);
-  const fiveMonthsAgo = new Date(farrowDate);
-  fiveMonthsAgo.setMonth(fiveMonthsAgo.getMonth() - 5);
-  const conflict = allSlRecords.find(r => {
-    if (String(r.SowId||'').trim().toLowerCase() !== sowId.toLowerCase()) return false;
-    if (String(r.SL_ID) === String(slEditId)) return false; // skip current record
-    const existing = new Date(r.FarrowDate);
-    return existing >= fiveMonthsAgo && existing <= farrow;
-  });
-  if (conflict) {
-    return `Invalid SOW ID farrow date combination — Sow ${sowId} already has a litter record with farrow date ${conflict.FarrowDate}, which is within 5 months.`;
-  }
-  return null; // valid
-}
-
-async function saveSowLitter() {
-  const sowId     = document.getElementById('slSowId').value.trim();
-  const farrowDate= document.getElementById('slFarrowDate').value;
-  const pen       = document.getElementById('slPen').value.trim();
-  const notes     = document.getElementById('slNotes').value.trim();
-  const errBanner = document.getElementById('slValidationError');
-
-  if (!sowId)      { showToast('Please select a Sow ID', true); return; }
-  if (!farrowDate) { showToast('Please enter farrow date', true); return; }
-
-  // Validate (skip for existing records being updated)
-  if (!slEditId) {
-    const err = await validateNewSowLitter(sowId, farrowDate);
-    if (err) {
-      if(errBanner){ errBanner.textContent = '⚠️ ' + err; errBanner.style.display='block'; }
-      showToast('Validation failed', true); return;
-    }
-  }
-  if(errBanner) errBanner.style.display='none';
-
-  const numFields = ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt',
-    'sl_lightest','sl_heaviest','sl_nursing','sl_weaklings','sl_lightest_today',
-    'sl_heaviest_today','sl_castrated','sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt'];
-  const g = id => document.getElementById(id)?.value?.trim() || '';
-  const data = { SowId: sowId, FarrowDate: farrowDate, Pen: pen, Notes: notes,
-    ByLitter: g('slBy_litter'), ByNursing: g('slBy_nursing'),
-    BySowTreat: g('slBy_sowtreat'), ByMilestones: g('slBy_milestones'),
-    ByD01: g('slBy_d01'), ByD23: g('slBy_d23'), ByD57: g('slBy_d57'),
-    ByD710: g('slBy_d710'), ByD14: g('slBy_d14'), ByD2128: g('slBy_d2128') };
-  SL_TASKS.forEach(t => { data[t] = slTaskState[t] ? 'done' : ''; });
-  numFields.forEach(id => { const el=document.getElementById(id); data[id]=el?(el.value||''):''; });
-  const dwEl = document.getElementById('sl_date_weaned');
-  data['sl_date_weaned'] = dwEl ? dwEl.value : '';
-
-  const btn = document.getElementById('btnSaveSl');
-  btn.disabled = true; btn.textContent = 'Saving…';
-
-  let result;
-  if (slEditId) {
-    result = await apiPost({ action: 'slUpdate', id: slEditId, data });
-  } else {
-    result = await apiPost({ action: 'slUpsert', data });
-    if (result && result.success && result.sl_id) slEditId = result.sl_id;
-  }
-
-  btn.disabled = false;
-  if (result && result.success) {
-    showToast('✓ Record saved!');
-    if (result.sl_id) slEditId = result.sl_id;
-    btn.textContent = 'UPDATE RECORD';
-    allSlRecords = [];
-    const banner = document.getElementById('slExistingBanner');
-    if(banner) {
-      banner.innerHTML = '✅ Record saved — <a href="#" onclick="setSlView(\'active\');return false" style="color:#1a4a1a;font-weight:900;text-decoration:underline">← Back to Active list</a>';
-      banner.style.display = 'block';
-    }
-  } else {
-    showToast(result?.error || 'Save failed', true);
-    btn.textContent = slEditId ? 'UPDATE RECORD' : 'SAVE RECORD';
-  }
-}
-
-async function slDeleteRecord(slId) {
-  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
-  if (!confirm('Delete this sow & litter record?')) return;
-  const result = await apiPost({ action: 'slDelete', id: slId });
-  if (result && result.success) {
-    showToast('Record deleted');
-    allSlRecords = allSlRecords.filter(r => String(r.SL_ID) !== String(slId));
-    if (slView === 'active') renderSlActive();
-    else renderSlHistory();
-  } else { showToast(result?.error || 'Delete failed', true); }
-}
-
-// ══════════════════════════════════════════════════
-//  WEEKLY CHECKLIST
-// ══════════════════════════════════════════════════
-
-let allWkRecords = [];
-let wkView = 'form';
-
-function initWeekly() {
-  WK_KEYS.forEach(k => { wkState[k] = null; });
-  const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - today.getDay() + 1);
-  const el = document.getElementById('wkDate');
-  if (el && !el.value) el.value = monday.toISOString().split('T')[0];
-}
-
-function setWkView(v) {
-  wkView = v;
-  document.getElementById('wkTabForm').className    = 'cl-tab' + (v==='form'    ? ' active' : '');
-  document.getElementById('wkTabHistory').className = 'cl-tab' + (v==='history' ? ' active' : '');
-  document.getElementById('wkFormView').style.display    = v==='form'    ? 'block' : 'none';
-  document.getElementById('wkHistoryView').style.display = v==='history' ? 'block' : 'none';
-  if (v === 'history') loadWkHistory();
-}
-
-function resetWeekly() {
-  WK_KEYS.forEach(k => {
-    wkState[k] = null;
-    document.querySelectorAll(`.wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-  });
-  ['wk_avg_weight','wk_feed_kg'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  document.getElementById('wkNotes').value = '';
-  document.getElementById('wkPen').value = '';
-  document.getElementById('wkCheckedBy').value = '';
-  wkEditId = null;
-  document.getElementById('btnSaveWk').textContent = 'SAVE WEEKLY CHECK';
-}
-
-// Reuse toggleCheck() from daily checklist — but wk items use wm-item not check-item
-// Override: wm items also use data-key for toggling
-function toggleWmCheck(btn, key, val) {
-  if (arguments[0] === null) { wkState[key] = val; return; }
-  if (wkState[key] === val) {
-    wkState[key] = null;
-    btn.classList.remove('selected');
-  } else {
-    wkState[key] = val;
-    const item = btn.closest('.wm-item');
-    item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-  }
-}
+const WK_KEYS = ['wk_weight_spot','wk_body_condition','wk_behaviour',
+                 'wk_deworm','wk_vitamins','wk_wounds',
+                 'wk_feeder_clean','wk_pen_repair','wk_feed_consumption','wk_boar_condition'];
 
 const MO_KEYS = ['mo_full_weigh','mo_growth_rate','mo_mortality',
                  'mo_vaccination','mo_breeding','mo_boar_perf',
                  'mo_feed_inventory','mo_equipment','mo_biosecurity'];
 
-// Unified toggleCheck — handles daily, weekly, monthly
 function toggleCheck(btn, key, val) {
   const item = btn.closest('.check-item') || btn.closest('.wm-item');
   if (!item) return;
-  // determine which state object to use
   if (WK_KEYS.includes(key)) {
-    toggleWmCheck(btn, key, val);
+    if (wkState[key] === val) { wkState[key] = null; btn.classList.remove('selected'); }
+    else {
+      wkState[key] = val;
+      item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
   } else if (MO_KEYS.includes(key)) {
-    toggleMoCheck(btn, key, val);
+    if (moState[key] === val) { moState[key] = null; btn.classList.remove('selected'); }
+    else {
+      moState[key] = val;
+      item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
   } else if (CL_KEYS.includes(key)) {
-    // daily checklist
     if (clState[key] === val) { clState[key] = null; btn.classList.remove('selected'); }
     else {
       clState[key] = val;
@@ -3054,440 +2495,293 @@ function toggleCheck(btn, key, val) {
   }
 }
 
-function isEntryLocked(dateStr) {
-  if (isAdminEnabled()) return false;
-  if (!dateStr) return false;
-  const entryDate = new Date(dateStr);
-  const today = new Date(); today.setHours(0,0,0,0); entryDate.setHours(0,0,0,0);
-  return entryDate < today;
+// ══════════════════════════════════════════════════
+// WEEKLY CHECKLIST
+// ══════════════════════════════════════════════════
+
+let wkState = {};
+let wkEditId = null;
+let allWeekly = [];
+
+function setWkView(view) {
+  document.getElementById('wkTabForm').className    = 'cl-tab' + (view==='form'    ? ' active' : '');
+  document.getElementById('wkTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
+  document.getElementById('wkFormView').style.display    = view==='form'    ? 'block' : 'none';
+  document.getElementById('wkHistoryView').style.display = view==='history' ? 'block' : 'none';
+  if (view === 'history') { allWeekly=[]; loadWeeklyHistory(); }
 }
 
-async function saveWeekly() {
-  const date = document.getElementById('wkDate').value;
-  const pen  = document.getElementById('wkPen').value.trim();
-  const by   = document.getElementById('wkCheckedBy').value.trim();
-  const notes= document.getElementById('wkNotes').value.trim();
-  if (!date) { showToast('Please select a week date', true); return; }
-  if (isEntryLocked(date)) { showToast('Past entries locked — admin required', true); return; }
+function setMoView(view) {
+  document.getElementById('moTabForm').className    = 'cl-tab' + (view==='form'    ? ' active' : '');
+  document.getElementById('moTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
+  document.getElementById('moFormView').style.display    = view==='form'    ? 'block' : 'none';
+  document.getElementById('moHistoryView').style.display = view==='history' ? 'block' : 'none';
+  if (view === 'history') { allMonthly=[]; loadMonthlyHistory(); }
+}
 
-  const concerns = WK_KEYS.filter(k => wkState[k] === 'bad');
-  const data = { Date: date, Pen: pen, CheckedBy: by, Notes: notes,
-    Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK', Concerns: concerns.join(','),
-    AvgWeight: document.getElementById('wk_avg_weight')?.value || '',
-    FeedKg: document.getElementById('wk_feed_kg')?.value || '',
-    ByCondition: document.getElementById('wkBy_condition')?.value?.trim() || '',
-    ByHealth: document.getElementById('wkBy_health')?.value?.trim() || '',
-    ByFarm: document.getElementById('wkBy_farm')?.value?.trim() || ''
-  };
-  WK_KEYS.forEach(k => { data[k] = wkState[k] || ''; });
-
-  const btn = document.getElementById('btnSaveWk');
-  btn.disabled = true; btn.textContent = 'Saving…';
-  const result = wkEditId
-    ? await apiPost({ action: 'wkUpdate', id: wkEditId, data })
-    : await apiPost({ action: 'wkAdd', data });
-  btn.disabled = false;
+async function loadWeeklyHistory() {
+  document.getElementById('wkHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  const result = await apiGet({ action: 'wkGetAll' });
   if (result && result.success) {
-    showToast(wkEditId ? '✓ Weekly check updated!' : '✓ Weekly check saved!');
-    wkEditId = null; allWkRecords = []; resetWeekly();
-    btn.textContent = 'SAVE WEEKLY CHECK';
+    allWeekly = result.records || [];
+    renderWeeklyHistory();
   } else {
-    showToast(result?.error || 'Save failed', true);
-    btn.textContent = 'SAVE WEEKLY CHECK';
+    document.getElementById('wkHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
   }
 }
 
-async function loadWkHistory() {
-  if (allWkRecords.length > 0) { renderWkHistory(); return; }
-  document.getElementById('wkHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-  const result = await apiGet({ action: 'wkGetAll' });
-  if (result && result.success) { allWkRecords = result.records || []; renderWkHistory(); }
-  else document.getElementById('wkHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
-}
-
-function renderWkHistory() {
-  const filter = (document.getElementById('wkHistorySearch')?.value || '').toLowerCase();
+function renderWeeklyHistory() {
   const container = document.getElementById('wkHistoryContainer');
-  let list = allWkRecords.filter(r =>
-    (r.Date||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter)
-  ).slice().reverse();
-  if (list.length === 0) { container.innerHTML = '<div class="empty-state">No weekly records found.</div>'; return; }
+  const today = new Date().toISOString().split('T')[0];
+  const list = (allWeekly||[]).slice().reverse();
+  if (!list.length) { container.innerHTML = '<div class="empty-state">No weekly records found.</div>'; return; }
   container.innerHTML = list.map(rec => {
-    const locked = isEntryLocked(rec.Date) && !isAdminEnabled();
-    const badge = rec.Status === 'CONCERNS'
-      ? `<span class="cl-concern-badge">⚠️ Concerns</span>`
-      : `<span class="cl-ok-badge">✅ All OK</span>`;
-    const adminActs = isAdminEnabled()
-      ? `<button class="btn-edit" onclick="wkEditRecord('${rec.WK_ID}')">Edit</button>
-         <button class="btn-delete" onclick="wkDeleteRecord('${rec.WK_ID}')">Delete</button>`
-      : (!locked ? `<button class="btn-edit" onclick="wkEditRecord('${rec.WK_ID}')">Edit</button>` : '<span class="sl-locked-notice">🔒 Locked</span>');
-    return `
-      <div class="cl-record-card">
-        <div class="cl-record-header"><div class="cl-record-date">Week of ${rec.Date||'—'}</div>${badge}</div>
-        <div class="cl-record-by">Pen: ${rec.Pen||'—'} · By: ${rec.CheckedBy||'—'}</div>
-        ${rec.Notes ? `<div style="font-size:12px;color:#555;font-style:italic">"${rec.Notes}"</div>` : ''}
-        <div class="cl-record-actions">${adminActs}</div>
-      </div>`;
+    const hasConcerns = rec.Status === 'CONCERNS';
+    const badge = hasConcerns ? '<span class="cl-concern-badge">! Concerns</span>' : '<span class="cl-ok-badge">✓ All OK</span>';
+    return '<div class="cl-record-card">'
+      + '<div class="cl-record-header"><div class="cl-record-date">Week: ' + (rec.Date||'-') + '</div>' + badge + '</div>'
+      + '<div class="cl-record-by">Pen: ' + (rec.Pen||'All') + ' · By: ' + (rec.CheckedBy||'-') + '</div>'
+      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic">"' + rec.Notes + '"</div>' : '')
+      + '</div>';
   }).join('');
 }
 
-async function wkEditRecord(wkId) {
-  const rec = allWkRecords.find(r => String(r.WK_ID) === String(wkId));
-  if (!rec) return;
-  if (isEntryLocked(rec.Date) && !isAdminEnabled()) { showToast('Past entries locked — admin required', true); return; }
-  wkEditId = wkId;
-  document.getElementById('wkDate').value = rec.Date || '';
-  document.getElementById('wkPen').value = rec.Pen || '';
-  document.getElementById('wkCheckedBy').value = rec.CheckedBy || '';
-  document.getElementById('wkNotes').value = rec.Notes || '';
-  const waw = document.getElementById('wk_avg_weight'); if(waw) waw.value = rec.AvgWeight||'';
-  const wfk = document.getElementById('wk_feed_kg'); if(wfk) wfk.value = rec.FeedKg||'';
+async function loadMonthlyHistory() {
+  document.getElementById('moHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  const result = await apiGet({ action: 'moGetAll' });
+  if (result && result.success) {
+    allMonthly = result.records || [];
+    renderMonthlyHistory();
+  } else {
+    document.getElementById('moHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+  }
+}
+
+function renderMonthlyHistory() {
+  const container = document.getElementById('moHistoryContainer');
+  const list = (allMonthly||[]).slice().reverse();
+  if (!list.length) { container.innerHTML = '<div class="empty-state">No monthly records found.</div>'; return; }
+  container.innerHTML = list.map(rec => {
+    const hasConcerns = rec.Status === 'CONCERNS';
+    const badge = hasConcerns ? '<span class="cl-concern-badge">! Concerns</span>' : '<span class="cl-ok-badge">✓ All OK</span>';
+    const month = (rec.Date||'').substring(0,7);
+    return '<div class="cl-record-card">'
+      + '<div class="cl-record-header"><div class="cl-record-date">Month: ' + (month||'-') + '</div>' + badge + '</div>'
+      + '<div class="cl-record-by">By: ' + (rec.CheckedBy||'-') + '</div>'
+      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic">"' + rec.Notes + '"</div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+
+  WK_KEYS.forEach(k => { wkState[k] = null; });
+  const today = new Date().toISOString().split('T')[0];
+  const el = document.getElementById('wkDate');
+  if (el) el.value = today;
+}
+
+function wkIsLocked(dateStr) {
+  if (!dateStr) return false;
+  return dateStr < new Date().toISOString().split('T')[0];
+}
+
+function wkLockForm(lock) {
+  document.querySelectorAll('#wkFormView .toggle-btn').forEach(b => {
+    b.style.pointerEvents = lock ? 'none' : '';
+    b.style.opacity       = lock ? '0.5'  : '';
+  });
+  ['wkPen','wkCheckedBy','wkNotes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.disabled = lock;
+  });
+  const btn = document.getElementById('btnSaveWk');
+  if (btn) { btn.disabled = lock; btn.style.opacity = lock ? '0.4' : '1'; }
+}
+
+async function wkDateChanged() {
+  const date = document.getElementById('wkDate')?.value;
+  const pen  = (document.getElementById('wkPen')?.value || '').trim();
+  if (!date) return;
+  const locked = wkIsLocked(date) && !isAdminEnabled();
+  if (allWeekly.length === 0) {
+    const r = await apiGet({ action: 'wkGetAll' });
+    if (r && r.success) allWeekly = r.records || [];
+  }
+  const existing = (date && pen)
+    ? allWeekly.find(r => String(r.Date||'').trim()===date && String(r.Pen||'').trim().toLowerCase()===pen.toLowerCase())
+    : null;
+  const existBanner  = document.getElementById('wkExistingBanner');
+  const lockedBanner = document.getElementById('wkLockedBanner');
+  if (existing) {
+    wkEditId = existing.WK_ID;
+    _populateWkForm(existing);
+    if (existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
+    if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+  } else {
+    wkEditId = null;
+    WK_KEYS.forEach(k => {
+      wkState[k] = null;
+      document.querySelectorAll(`#pageWeekly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    });
+    if (document.getElementById('wkCheckedBy')) document.getElementById('wkCheckedBy').value = '';
+    if (document.getElementById('wkNotes'))     document.getElementById('wkNotes').value     = '';
+    if (existBanner)  existBanner.style.display  = 'none';
+    if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+  }
+  wkLockForm(locked);
+  const btn = document.getElementById('btnSaveWk');
+  if (btn) btn.textContent = existing ? 'UPDATE WEEKLY CHECK' : 'SAVE WEEKLY CHECK';
+}
+
+function _populateWkForm(rec) {
+  if (document.getElementById('wkCheckedBy')) document.getElementById('wkCheckedBy').value = rec.CheckedBy || '';
+  if (document.getElementById('wkNotes'))     document.getElementById('wkNotes').value     = rec.Notes     || '';
   WK_KEYS.forEach(k => {
     wkState[k] = rec[k] || null;
-    document.querySelectorAll(`.wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll(`#pageWeekly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
     if (rec[k]) {
       const cls = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
-      document.querySelector(`.wm-item[data-key="${k}"] ${cls}`)?.classList.add('selected');
+      const item = document.querySelector(`#pageWeekly .wm-item[data-key="${k}"]`);
+      if (item) item.querySelector(cls)?.classList.add('selected');
     }
   });
-  document.getElementById('btnSaveWk').textContent = 'SAVE CHANGES';
-  setWkView('form'); showToast('Record loaded for editing');
 }
 
-async function wkDeleteRecord(wkId) {
-  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
-  if (!confirm('Delete this weekly check?')) return;
-  const result = await apiPost({ action: 'wkDelete', id: wkId });
+async function saveWeekly() {
+  const date      = document.getElementById('wkDate')?.value;
+  const pen       = (document.getElementById('wkPen')?.value||'').trim();
+  const checkedBy = (document.getElementById('wkCheckedBy')?.value||'').trim();
+  const notes     = (document.getElementById('wkNotes')?.value||'').trim();
+  if (!date) { showToast('Please select a date', true); return; }
+  if (wkIsLocked(date) && !isAdminEnabled()) { showToast('Past records are locked — admin required', true); return; }
+  const concerns = WK_KEYS.filter(k => wkState[k]==='bad');
+  const data = { Date:date, Pen:pen, CheckedBy:checkedBy, Notes:notes, Concerns:concerns.join(','), Status:concerns.length>0?'CONCERNS':'ALL OK' };
+  WK_KEYS.forEach(k => { data[k] = wkState[k]||''; });
+  const btn = document.getElementById('btnSaveWk');
+  btn.disabled=true; btn.textContent='Saving…';
+  const result = wkEditId
+    ? await apiPost({ action:'wkUpdate', id:wkEditId, data })
+    : await apiPost({ action:'wkAdd', data });
+  btn.disabled=false;
   if (result && result.success) {
-    showToast('Weekly check deleted');
-    allWkRecords = allWkRecords.filter(r => String(r.WK_ID) !== String(wkId));
-    renderWkHistory();
-  } else { showToast(result?.error || 'Delete failed', true); }
+    if (result.wk_id) wkEditId = result.wk_id;
+    showToast('Weekly checklist saved!');
+    btn.textContent='UPDATE WEEKLY CHECK';
+    allWeekly=[];
+    const b = document.getElementById('wkExistingBanner');
+    if (b) { b.textContent='✅ Saved — you can keep updating this record.'; b.style.display='block'; }
+  } else {
+    showToast(result?.error||'Save failed', true);
+    btn.textContent = wkEditId ? 'UPDATE WEEKLY CHECK' : 'SAVE WEEKLY CHECK';
+  }
 }
 
 // ══════════════════════════════════════════════════
-//  MONTHLY CHECKLIST
+// MONTHLY CHECKLIST
 // ══════════════════════════════════════════════════
-
-// MO_KEYS moved above toggleCheck
 
 let moState = {};
 let moEditId = null;
-let allMoRecords = [];
-let moView = 'form';
+let allMonthly = [];
 
 function initMonthly() {
   MO_KEYS.forEach(k => { moState[k] = null; });
   const today = new Date();
+  const monthStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
   const el = document.getElementById('moMonth');
-  if (el && !el.value) el.value = today.toISOString().slice(0,7);
+  if (el) el.value = monthStr;
 }
 
-function setMoView(v) {
-  moView = v;
-  document.getElementById('moTabForm').className    = 'cl-tab' + (v==='form'    ? ' active' : '');
-  document.getElementById('moTabHistory').className = 'cl-tab' + (v==='history' ? ' active' : '');
-  document.getElementById('moFormView').style.display    = v==='form'    ? 'block' : 'none';
-  document.getElementById('moHistoryView').style.display = v==='history' ? 'block' : 'none';
-  if (v === 'history') loadMoHistory();
-}
-
-function toggleMoCheck(btn, key, val) {
-  if (moState[key] === val) {
-    moState[key] = null; btn.classList.remove('selected');
-  } else {
-    moState[key] = val;
-    const item = btn.closest('.wm-item');
-    item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-  }
-}
-
-function resetMonthly() {
-  MO_KEYS.forEach(k => {
-    moState[k] = null;
-    document.querySelectorAll(`.wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-  });
-  ['mo_pigs_weighed','mo_avg_adg','mo_deaths','mo_vax_count','mo_feed_stock'].forEach(id => {
-    const el=document.getElementById(id); if(el) el.value='';
-  });
-  document.getElementById('moNotes').value = '';
-  document.getElementById('moCheckedBy').value = '';
-  moEditId = null;
-  document.getElementById('btnSaveMo').textContent = 'SAVE MONTHLY CHECK';
-}
-
-function isMoLocked(monthStr) {
-  if (isAdminEnabled()) return false;
+function moIsLocked(monthStr) {
   if (!monthStr) return false;
-  const entry = new Date(monthStr + '-01');
-  const thisMonth = new Date();
-  thisMonth.setDate(1); thisMonth.setHours(0,0,0,0); entry.setHours(0,0,0,0);
-  return entry < thisMonth;
+  const now = new Date();
+  const curMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  return monthStr < curMonth;
+}
+
+function moLockForm(lock) {
+  document.querySelectorAll('#moFormView .toggle-btn').forEach(b => {
+    b.style.pointerEvents = lock ? 'none' : '';
+    b.style.opacity       = lock ? '0.5'  : '';
+  });
+  ['moCheckedBy','moNotes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.disabled = lock;
+  });
+  const btn = document.getElementById('btnSaveMo');
+  if (btn) { btn.disabled = lock; btn.style.opacity = lock ? '0.4' : '1'; }
+}
+
+async function moDateChanged() {
+  const month = document.getElementById('moMonth')?.value;
+  if (!month) return;
+  const locked = moIsLocked(month) && !isAdminEnabled();
+  if (allMonthly.length === 0) {
+    const r = await apiGet({ action: 'moGetAll' });
+    if (r && r.success) allMonthly = r.records || [];
+  }
+  const existing = allMonthly.find(r => String(r.Date||'').trim().startsWith(month));
+  const existBanner  = document.getElementById('moExistingBanner');
+  const lockedBanner = document.getElementById('moLockedBanner');
+  if (existing) {
+    moEditId = existing.MO_ID;
+    _populateMoForm(existing);
+    if (existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
+    if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+  } else {
+    moEditId = null;
+    MO_KEYS.forEach(k => {
+      moState[k] = null;
+      document.querySelectorAll(`#pageMonthly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    });
+    if (document.getElementById('moCheckedBy')) document.getElementById('moCheckedBy').value = '';
+    if (document.getElementById('moNotes'))     document.getElementById('moNotes').value     = '';
+    if (existBanner)  existBanner.style.display  = 'none';
+    if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+  }
+  moLockForm(locked);
+  const btn = document.getElementById('btnSaveMo');
+  if (btn) btn.textContent = existing ? 'UPDATE MONTHLY CHECK' : 'SAVE MONTHLY CHECK';
+}
+
+function _populateMoForm(rec) {
+  if (document.getElementById('moCheckedBy')) document.getElementById('moCheckedBy').value = rec.CheckedBy || '';
+  if (document.getElementById('moNotes'))     document.getElementById('moNotes').value     = rec.Notes     || '';
+  MO_KEYS.forEach(k => {
+    moState[k] = rec[k] || null;
+    document.querySelectorAll(`#pageMonthly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    if (rec[k]) {
+      const cls = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
+      const item = document.querySelector(`#pageMonthly .wm-item[data-key="${k}"]`);
+      if (item) item.querySelector(cls)?.classList.add('selected');
+    }
+  });
 }
 
 async function saveMonthly() {
-  const month = document.getElementById('moMonth').value;
-  const by    = document.getElementById('moCheckedBy').value.trim();
-  const notes = document.getElementById('moNotes').value.trim();
+  const month     = document.getElementById('moMonth')?.value;
+  const checkedBy = (document.getElementById('moCheckedBy')?.value||'').trim();
+  const notes     = (document.getElementById('moNotes')?.value||'').trim();
   if (!month) { showToast('Please select a month', true); return; }
-  if (isMoLocked(month)) { showToast('Past months locked — admin required', true); return; }
-
-  const concerns = MO_KEYS.filter(k => moState[k] === 'bad');
-  const data = { Month: month, CheckedBy: by, Notes: notes,
-    Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK', Concerns: concerns.join(','),
-    PigsWeighed: document.getElementById('mo_pigs_weighed')?.value || '',
-    AvgADG:      document.getElementById('mo_avg_adg')?.value || '',
-    Deaths:      document.getElementById('mo_deaths')?.value || '',
-    VaxCount:    document.getElementById('mo_vax_count')?.value || '',
-    FeedStock:   document.getElementById('mo_feed_stock')?.value || '',
-    ByGrowth:    document.getElementById('moBy_growth')?.value?.trim() || '',
-    ByHealth:    document.getElementById('moBy_health')?.value?.trim() || '',
-    ByFarm:      document.getElementById('moBy_farm')?.value?.trim() || ''
-  };
-  MO_KEYS.forEach(k => { data[k] = moState[k] || ''; });
-
+  if (moIsLocked(month) && !isAdminEnabled()) { showToast('Past records are locked — admin required', true); return; }
+  const date = month + '-01';
+  const concerns = MO_KEYS.filter(k => moState[k]==='bad');
+  const data = { Date:date, CheckedBy:checkedBy, Notes:notes, Concerns:concerns.join(','), Status:concerns.length>0?'CONCERNS':'ALL OK' };
+  MO_KEYS.forEach(k => { data[k] = moState[k]||''; });
   const btn = document.getElementById('btnSaveMo');
-  btn.disabled = true; btn.textContent = 'Saving…';
+  btn.disabled=true; btn.textContent='Saving…';
   const result = moEditId
-    ? await apiPost({ action: 'moUpdate', id: moEditId, data })
-    : await apiPost({ action: 'moAdd', data });
-  btn.disabled = false;
+    ? await apiPost({ action:'moUpdate', id:moEditId, data })
+    : await apiPost({ action:'moAdd', data });
+  btn.disabled=false;
   if (result && result.success) {
-    showToast(moEditId ? '✓ Monthly check updated!' : '✓ Monthly check saved!');
-    moEditId = null; allMoRecords = []; resetMonthly();
-    btn.textContent = 'SAVE MONTHLY CHECK';
+    if (result.mo_id) moEditId = result.mo_id;
+    showToast('Monthly checklist saved!');
+    btn.textContent='UPDATE MONTHLY CHECK';
+    allMonthly=[];
+    const b = document.getElementById('moExistingBanner');
+    if (b) { b.textContent='✅ Saved — you can keep updating this record.'; b.style.display='block'; }
   } else {
-    showToast(result?.error || 'Save failed', true);
-    btn.textContent = 'SAVE MONTHLY CHECK';
+    showToast(result?.error||'Save failed', true);
+    btn.textContent = moEditId ? 'UPDATE MONTHLY CHECK' : 'SAVE MONTHLY CHECK';
   }
 }
 
-async function loadMoHistory() {
-  if (allMoRecords.length > 0) { renderMoHistory(); return; }
-  document.getElementById('moHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-  const result = await apiGet({ action: 'moGetAll' });
-  if (result && result.success) { allMoRecords = result.records || []; renderMoHistory(); }
-  else document.getElementById('moHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
-}
-
-function renderMoHistory() {
-  const filter = (document.getElementById('moHistorySearch')?.value || '').toLowerCase();
-  const container = document.getElementById('moHistoryContainer');
-  let list = allMoRecords.filter(r => (r.Month||'').includes(filter)).slice().reverse();
-  if (list.length === 0) { container.innerHTML = '<div class="empty-state">No monthly records found.</div>'; return; }
-  container.innerHTML = list.map(rec => {
-    const locked = isMoLocked(rec.Month) && !isAdminEnabled();
-    const badge = rec.Status === 'CONCERNS'
-      ? `<span class="cl-concern-badge">⚠️ Concerns</span>`
-      : `<span class="cl-ok-badge">✅ All OK</span>`;
-    const adminActs = isAdminEnabled()
-      ? `<button class="btn-edit" onclick="moEditRecord('${rec.MO_ID}')">Edit</button>
-         <button class="btn-delete" onclick="moDeleteRecord('${rec.MO_ID}')">Delete</button>`
-      : (!locked ? `<button class="btn-edit" onclick="moEditRecord('${rec.MO_ID}')">Edit</button>` : '<span class="sl-locked-notice">🔒 Locked</span>');
-    return `
-      <div class="cl-record-card">
-        <div class="cl-record-header"><div class="cl-record-date">${rec.Month||'—'}</div>${badge}</div>
-        <div class="cl-record-by">By: ${rec.CheckedBy||'—'} · Deaths: ${rec.Deaths||'0'} · ADG: ${rec.AvgADG||'—'} g/day</div>
-        ${rec.Notes ? `<div style="font-size:12px;color:#555;font-style:italic">"${rec.Notes}"</div>` : ''}
-        <div class="cl-record-actions">${adminActs}</div>
-      </div>`;
-  }).join('');
-}
-
-async function moEditRecord(moId) {
-  const rec = allMoRecords.find(r => String(r.MO_ID) === String(moId));
-  if (!rec) return;
-  if (isMoLocked(rec.Month) && !isAdminEnabled()) { showToast('Past entries locked — admin required', true); return; }
-  moEditId = moId;
-  document.getElementById('moMonth').value = rec.Month || '';
-  document.getElementById('moCheckedBy').value = rec.CheckedBy || '';
-  document.getElementById('moNotes').value = rec.Notes || '';
-  ['mo_pigs_weighed','mo_avg_adg','mo_deaths','mo_vax_count','mo_feed_stock'].forEach(id => {
-    const map = {mo_pigs_weighed:'PigsWeighed',mo_avg_adg:'AvgADG',mo_deaths:'Deaths',mo_vax_count:'VaxCount',mo_feed_stock:'FeedStock'};
-    const el = document.getElementById(id); if(el) el.value = rec[map[id]]||'';
-  });
-  MO_KEYS.forEach(k => {
-    moState[k] = rec[k] || null;
-    document.querySelectorAll(`.wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-    if (rec[k]) {
-      const cls = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
-      document.querySelector(`.wm-item[data-key="${k}"] ${cls}`)?.classList.add('selected');
-    }
-  });
-  document.getElementById('btnSaveMo').textContent = 'SAVE CHANGES';
-  setMoView('form'); showToast('Record loaded for editing');
-}
-
-async function moDeleteRecord(moId) {
-  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
-  if (!confirm('Delete this monthly check?')) return;
-  const result = await apiPost({ action: 'moDelete', id: moId });
-  if (result && result.success) {
-    showToast('Monthly check deleted');
-    allMoRecords = allMoRecords.filter(r => String(r.MO_ID) !== String(moId));
-    renderMoHistory();
-  } else { showToast(result?.error || 'Delete failed', true); }
-}
-
-// ── Notching ──────────────────────────────────────
-
-const notchState = {
-  L_L1a:false,L_L1b:false,L_L3a:false,L_L3b:false,L_L9:false,
-  L_B1a:false,L_B1b:false,L_B3a:false,L_B3b:false,
-  R_S1a:false,R_S1b:false,R_S3a:false,R_S3b:false,
-  R_S9a:false,R_S9b:false,R_S27a:false,R_S27b:false,R_S81:false
-};
-
-function getOrigColor(id) {
-  if (id.startsWith('L_L')) return '#e8f5e8';
-  if (id.startsWith('L_B')) return '#fff3e0';
-  return '#f0f0ff';
-}
-
-let notchMode = 'calc';
-
-function setNotchMode(mode) {
-  notchMode = mode;
-  document.getElementById('tabCalc').className   = 'notch-tab' + (mode==='calc'   ? ' active' : '');
-  document.getElementById('tabDecode').className = 'notch-tab' + (mode==='decode' ? ' active' : '');
-  document.getElementById('notchCalcInputs').style.display = mode==='calc'   ? 'block' : 'none';
-  document.getElementById('notchDecodeHint').style.display = mode==='decode' ? 'block' : 'none';
-  if (mode === 'decode') { resetNotches(); } else { calcToNotches(); }
-}
-
-function resetNotches() {
-  Object.keys(notchState).forEach(id => {
-    notchState[id] = false;
-    const el = document.getElementById(id);
-    if (el) { el.classList.remove('active'); el.setAttribute('fill', getOrigColor(id)); }
-  });
-  updateResults();
-}
-
-function toggleNotch(id) {
-  if (notchMode !== 'decode') return;
-  notchState[id] = !notchState[id];
-  const el = document.getElementById(id);
-  if (notchState[id]) { el.classList.add('active'); el.setAttribute('fill', '#c0392b'); }
-  else { el.classList.remove('active'); el.setAttribute('fill', getOrigColor(id)); }
-  updateResults();
-}
-
-function decodeNotches() {
-  const boar   = (notchState.L_B1a?1:0)+(notchState.L_B1b?1:0)+(notchState.L_B3a?3:0)+(notchState.L_B3b?3:0);
-  const litter = (notchState.L_L1a?1:0)+(notchState.L_L1b?1:0)+(notchState.L_L3a?3:0)+(notchState.L_L3b?3:0)+(notchState.L_L9?9:0);
-  const sow    = (notchState.R_S1a?1:0)+(notchState.R_S1b?1:0)+(notchState.R_S3a?3:0)+(notchState.R_S3b?3:0)
-               +(notchState.R_S9a?9:0)+(notchState.R_S9b?9:0)+(notchState.R_S27a?27:0)+(notchState.R_S27b?27:0)+(notchState.R_S81?81:0);
-  return { boar, litter, sow };
-}
-
-function encodeToNotches(boar, litter, sow) {
-  Object.keys(notchState).forEach(id => { notchState[id] = false; });
-  let b = boar;
-  if (b >= 3) { notchState.L_B3a = true; b -= 3; }
-  if (b >= 3) { notchState.L_B3b = true; b -= 3; }
-  if (b >= 1) { notchState.L_B1a = true; b -= 1; }
-  if (b >= 1) { notchState.L_B1b = true; b -= 1; }
-  let l = litter;
-  if (l >= 9) { notchState.L_L9  = true; l -= 9; }
-  if (l >= 3) { notchState.L_L3a = true; l -= 3; }
-  if (l >= 3) { notchState.L_L3b = true; l -= 3; }
-  if (l >= 1) { notchState.L_L1a = true; l -= 1; }
-  if (l >= 1) { notchState.L_L1b = true; l -= 1; }
-  let s = sow;
-  if (s >= 81) { notchState.R_S81  = true; s -= 81; }
-  if (s >= 27) { notchState.R_S27a = true; s -= 27; }
-  if (s >= 27) { notchState.R_S27b = true; s -= 27; }
-  if (s >= 9)  { notchState.R_S9a  = true; s -= 9;  }
-  if (s >= 9)  { notchState.R_S9b  = true; s -= 9;  }
-  if (s >= 3)  { notchState.R_S3a  = true; s -= 3;  }
-  if (s >= 3)  { notchState.R_S3b  = true; s -= 3;  }
-  if (s >= 1)  { notchState.R_S1a  = true; s -= 1;  }
-  if (s >= 1)  { notchState.R_S1b  = true; s -= 1;  }
-}
-
-function applyNotchStateToSVG() {
-  Object.keys(notchState).forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (notchState[id]) { el.classList.add('active'); el.setAttribute('fill','#c0392b'); }
-    else { el.classList.remove('active'); el.setAttribute('fill', getOrigColor(id)); }
-  });
-}
-
-function updateResults() {
-  const { boar, litter, sow } = decodeNotches();
-  document.getElementById('resultBoar').textContent   = boar   > 0 ? boar   : '—';
-  document.getElementById('resultLitter').textContent = litter > 0 ? litter : '—';
-  document.getElementById('resultSow').textContent    = sow    > 0 ? sow    : '—';
-  document.getElementById('resultPigId').textContent  = (boar>0&&sow>0&&litter>0) ? 'B'+boar+'-S'+sow+'-L'+litter : '—';
-}
-
-function calcToNotches() {
-  const boar   = parseInt(document.getElementById('inputBoar')?.value)   || 0;
-  const litter = parseInt(document.getElementById('inputLitter')?.value) || 0;
-  const sow    = parseInt(document.getElementById('inputSow')?.value)    || 0;
-  const eb = document.getElementById('errBoar');
-  const el = document.getElementById('errLitter');
-  const es = document.getElementById('errSow');
-  if(eb) eb.textContent = boar   > 8   ? 'Max is 8'   : '';
-  if(el) el.textContent = litter > 17  ? 'Max is 17'  : '';
-  if(es) es.textContent = sow    > 161 ? 'Max is 161' : '';
-  if (boar > 8 || litter > 17 || sow > 161) return;
-  encodeToNotches(boar, litter, sow);
-  applyNotchStateToSVG();
-  updateResults();
-}
-
-function initNotchClickHandlers() {
-  Object.keys(notchState).forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('click', () => toggleNotch(id));
-  });
-}
-
-</script>
-
-<!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <button class="nav-btn" onclick="goHome()">
-    <span class="nav-icon">🏠</span>
-    <span class="nav-label nav-inactive">Home</span>
-  </button>
-  <button class="nav-btn" onclick="showPage('pageNew')">
-    <span class="nav-icon">➕</span>
-    <span class="nav-label nav-inactive">Add</span>
-  </button>
-  <button class="nav-btn" onclick="showPage('pageSearch')">
-    <span class="nav-icon">✏️</span>
-    <span class="nav-label nav-inactive">Edit</span>
-  </button>
-  <button class="nav-btn" onclick="showPageList()">
-    <span class="nav-icon">📋</span>
-    <span class="nav-label nav-inactive">Records</span>
-  </button>
-  <button class="nav-btn" onclick="showPage('pageNotch')">
-    <span class="nav-icon">🐽</span>
-    <span class="nav-label nav-inactive">Notch</span>
-  </button>
-  <button class="nav-btn" onclick="showPage('pageChecklist')">
-    <span class="nav-icon">✅</span>
-    <span class="nav-label nav-inactive">Daily</span>
-  </button>
-  <button class="nav-btn" onclick="showPage('pageSowLitter')">
-    <span class="nav-icon">🤱</span>
-    <span class="nav-label nav-inactive">Sow</span>
-  </button>
-  <button class="nav-btn" onclick="showPage('pageWeekly')">
-    <span class="nav-icon">📅</span>
-    <span class="nav-label nav-inactive">Weekly</span>
-  </button>
-  <button class="nav-btn" onclick="showPage('pageMonthly')">
-    <span class="nav-icon">📆</span>
-    <span class="nav-label nav-inactive">Monthly</span>
-  </button>
-</nav>
-
-</body>
-</html>
