@@ -1685,8 +1685,8 @@
         </div>
         <div class="notch-input-group">
           <label>Sow ID</label>
-          <input type="number" id="inputSow" min="1" max="161" placeholder="1–161" oninput="calcToNotches()">
-          <div class="notch-max">Max: 161</div>
+          <input type="number" id="inputSow" min="9" max="161" placeholder="9–161" oninput="calcToNotches()">
+          <div class="notch-max">Range: 9–161</div>
           <div class="notch-error" id="errSow"></div>
         </div>
       </div>
@@ -3502,6 +3502,172 @@ async function slDeleteRecord(slId) {
   } else {
     showToast(result?.error || 'Delete failed', true);
   }
+}
+
+// ══════════════════════════════════════════════════
+//  EAR NOTCHING TOOL
+// ══════════════════════════════════════════════════
+
+// Circle ID → { type: 'litter'|'boar'|'sow', value: number }
+const NOTCH_MAP = {
+  L_L9:  { type:'litter', value:9  },
+  L_L3a: { type:'litter', value:3  },
+  L_L3b: { type:'litter', value:3  },
+  L_L1a: { type:'litter', value:1  },
+  L_L1b: { type:'litter', value:1  },
+  L_B3a: { type:'boar',   value:3  },
+  L_B3b: { type:'boar',   value:3  },
+  L_B1a: { type:'boar',   value:1  },
+  L_B1b: { type:'boar',   value:1  },
+  R_S81: { type:'sow',    value:81 },
+  R_S27a:{ type:'sow',    value:27 },
+  R_S27b:{ type:'sow',    value:27 },
+  R_S9a: { type:'sow',    value:9  },
+  R_S9b: { type:'sow',    value:9  },
+  R_S3a: { type:'sow',    value:3  },
+  R_S3b: { type:'sow',    value:3  },
+  R_S1a: { type:'sow',    value:1  },
+  R_S1b: { type:'sow',    value:1  }
+};
+
+// Default fill colours per type
+const NOTCH_FILL_OFF = {
+  litter: '#e8f5e8', boar: '#fff3e0', sow: '#f0f0ff'
+};
+const NOTCH_FILL_ON = {
+  litter: '#2d6a2d', boar: '#e07b00', sow: '#4a1a9a'
+};
+const NOTCH_STROKE = {
+  litter: '#2d6a2d', boar: '#e07b00', sow: '#4a1a9a'
+};
+
+// Active state for decoder mode: circleId → true/false
+let notchActive = {};
+let notchMode   = 'calc'; // 'calc' or 'decode'
+
+function initNotchClickHandlers() {
+  Object.keys(NOTCH_MAP).forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', () => {
+      if (notchMode !== 'decode') return;
+      notchActive[id] = !notchActive[id];
+      _applyNotchState(id);
+      _updateDecodeResults();
+    });
+  });
+}
+
+function setNotchMode(mode) {
+  notchMode = mode;
+  document.getElementById('tabCalc').className   = 'notch-tab' + (mode === 'calc'   ? ' active' : '');
+  document.getElementById('tabDecode').className = 'notch-tab' + (mode === 'decode' ? ' active' : '');
+  document.getElementById('notchCalcInputs').style.display  = mode === 'calc'   ? 'block' : 'none';
+  document.getElementById('notchDecodeHint').style.display  = mode === 'decode' ? 'block' : 'none';
+
+  if (mode === 'calc') {
+    // Restore calc state from inputs
+    calcToNotches();
+  } else {
+    // Clear inputs, reset to decode state
+    document.getElementById('inputBoar').value   = '';
+    document.getElementById('inputLitter').value = '';
+    document.getElementById('inputSow').value    = '';
+    // Reset all circles to off
+    Object.keys(NOTCH_MAP).forEach(id => { notchActive[id] = false; _applyNotchState(id); });
+    _updateDecodeResults();
+  }
+}
+
+function _applyNotchState(id) {
+  const el   = document.getElementById(id);
+  if (!el) return;
+  const info = NOTCH_MAP[id];
+  const on   = !!notchActive[id];
+  el.setAttribute('fill',   on ? NOTCH_FILL_ON[info.type] : NOTCH_FILL_OFF[info.type]);
+  el.setAttribute('stroke', NOTCH_STROKE[info.type]);
+  // Make circles more clickable-looking in decode mode
+  el.style.cursor = (notchMode === 'decode') ? 'pointer' : 'default';
+  el.style.opacity = (notchMode === 'decode' && !on) ? '0.55' : '1';
+}
+
+// Calculator: given number values, work out which circles to light up
+function calcToNotches() {
+  const boarVal   = parseInt(document.getElementById('inputBoar')?.value   || 0) || 0;
+  const litterVal = parseInt(document.getElementById('inputLitter')?.value || 0) || 0;
+  const sowVal    = parseInt(document.getElementById('inputSow')?.value    || 0) || 0;
+
+  // Validate
+  const errBoar   = document.getElementById('errBoar');
+  const errLitter = document.getElementById('errLitter');
+  const errSow    = document.getElementById('errSow');
+  if (errBoar)   errBoar.textContent   = (boarVal   > 8   || boarVal   < 0) ? 'Max 8'   : '';
+  if (errLitter) errLitter.textContent = (litterVal > 17  || litterVal < 0) ? 'Max 17'  : '';
+  if (errSow)    errSow.textContent    = (sowVal > 161 || (sowVal > 0 && sowVal < 9)) ? 'Range: 9–161' : '';
+
+  // Decode into notch counts using the notch system:
+  // Boar (left lower):   uses 3,3,1,1 → max 3+3+1+1=8
+  // Litter (left upper): uses 9,3,3,1,1 → max 9+3+3+1+1=17
+  // Sow (right):         uses 81,27,27,9,9,3,3,1,1 → max 161
+
+  const boarNotches   = _decomposeValue(boarVal,   [3,3,1,1]);
+  const litterNotches = _decomposeValue(litterVal, [9,3,3,1,1]);
+  const sowNotches    = _decomposeValue(sowVal,    [81,27,27,9,9,3,3,1,1]);
+
+  // Map decomposition arrays to specific circle IDs (in order matching decompose arrays)
+  const assignments = {
+    boar:   { ids: ['L_B3a','L_B3b','L_B1a','L_B1b'],                             active: boarNotches   },
+    litter: { ids: ['L_L9','L_L3a','L_L3b','L_L1a','L_L1b'],                      active: litterNotches },
+    sow:    { ids: ['R_S81','R_S27a','R_S27b','R_S9a','R_S9b','R_S3a','R_S3b','R_S1a','R_S1b'], active: sowNotches }
+  };
+
+  Object.values(assignments).forEach(({ ids, active }) => {
+    ids.forEach((id, i) => {
+      notchActive[id] = !!active[i];
+      _applyNotchState(id);
+    });
+  });
+
+  // Update result display
+  const rB = boarVal   > 0 ? boarVal   : '—';
+  const rL = litterVal > 0 ? litterVal : '—';
+  const rS = sowVal    > 0 ? sowVal    : '—';
+  const rP = (boarVal > 0 && sowVal > 0 && litterVal > 0)
+    ? boarVal + '-' + sowVal + '-' + litterVal : '—';
+
+  document.getElementById('resultBoar').textContent   = rB;
+  document.getElementById('resultLitter').textContent = rL;
+  document.getElementById('resultSow').textContent    = rS;
+  document.getElementById('resultPigId').textContent  = rP;
+}
+
+// Greedy decompose: given a value and ordered slot values, mark slots active
+function _decomposeValue(total, slots) {
+  const active = Array(slots.length).fill(false);
+  let remaining = total;
+  slots.forEach((v, i) => {
+    if (remaining >= v) { active[i] = true; remaining -= v; }
+  });
+  return active;
+}
+
+// Decoder: read active circles, sum up values, display result
+function _updateDecodeResults() {
+  let boar = 0, litter = 0, sow = 0;
+  Object.entries(notchActive).forEach(([id, on]) => {
+    if (!on) return;
+    const info = NOTCH_MAP[id];
+    if (info.type === 'boar')   boar   += info.value;
+    if (info.type === 'litter') litter += info.value;
+    if (info.type === 'sow')    sow    += info.value;
+  });
+
+  const anyActive = boar > 0 || litter > 0 || sow > 0;
+  document.getElementById('resultBoar').textContent   = boar   > 0 ? boar   : '—';
+  document.getElementById('resultLitter').textContent = litter > 0 ? litter : '—';
+  document.getElementById('resultSow').textContent    = sow    > 0 ? sow    : '—';
+  document.getElementById('resultPigId').textContent  = anyActive
+    ? (boar||'?') + '-' + (sow||'?') + '-' + (litter||'?') : '—';
 }
 
 </script>
