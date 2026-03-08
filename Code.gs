@@ -53,6 +53,7 @@ function doGet(e) {
     if (action === "slGetAll")   return respond(slGetAll());
     if (action === "wkGetAll")   return respond(wkGetAll());
     if (action === "moGetAll")   return respond(moGetAll());
+    if (action === "moDedup")    return respond(moDeduplicateAll());
     if (action === "getSetting") return respond(getSetting(e.parameter.key));
     return respond({ error: "Unknown action" });
   } catch (err) {
@@ -495,99 +496,113 @@ function getMoSheet() {
     sheet.appendRow(MO_HEADERS_GS);
     sheet.getRange(1,1,1,MO_HEADERS_GS.length).setFontWeight("bold").setBackground("#4a148c").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
-    return sheet;
   }
-  // Migrate old headers if needed (Date→Month, add CreatedDate if missing)
-  const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  MO_HEADERS_GS.forEach((expected, i) => {
-    const col = i + 1;
-    const current = String(headerRow[i]||'').trim();
-    // Rename old 'Date' column (col 2) to 'Month'
-    if (expected === 'Month' && current === 'Date') {
-      sheet.getRange(1, col).setValue('Month');
-    }
-    // Add any missing columns at the right position
-    if (!current && expected) {
-      sheet.getRange(1, col).setValue(expected);
-    }
-  });
   return sheet;
 }
 
+// Read actual header row from sheet (1-based col → header name map)
+function _moGetSheetHeaders(sheet) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return {};
+  const raw = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const map = {}; // name → 0-based index
+  raw.forEach((h, i) => { if (h) map[String(h).trim()] = i; });
+  return map;
+}
+
 function moGetAll() {
-  const sheet = getMoSheet(); const lastRow = sheet.getLastRow();
+  const sheet   = getMoSheet();
+  const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const numCols = Math.max(MO_HEADERS_GS.length, sheet.getLastColumn());
-  const data = sheet.getRange(2, 1, lastRow - 1, MO_HEADERS_GS.length).getValues();
+
+  const hdrs    = _moGetSheetHeaders(sheet);
+  const lastCol = sheet.getLastColumn();
+  const data    = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
   const records = data.filter(r => r[0] !== '').map(row => {
     const rec = {};
-    MO_HEADERS_GS.forEach((h, i) => { rec[h] = row[i]; });
-    // Normalise: if Month is empty but looks like a date, extract YYYY-MM
-    if (!String(rec['Month']||'').trim()) {
-      const d = String(rec['Date']||'').trim();
-      if (d.length >= 7) rec['Month'] = d.substring(0, 7);
-    }
-    // Ensure Month is always YYYY-MM (trim any -DD suffix from old Date values)
-    if (String(rec['Month']||'').length > 7) {
-      rec['Month'] = String(rec['Month']).substring(0, 7);
-    }
+    // Map every column we know about
+    Object.entries(hdrs).forEach(([name, idx]) => { rec[name] = row[idx]; });
+    // Always expose a clean YYYY-MM 'Month' field
+    // Priority: Month col → Date col (legacy) → empty
+    let month = String(rec['Month'] || rec['Date'] || '').trim();
+    if (month.length > 7) month = month.substring(0, 7);
+    rec['Month'] = month;
     return rec;
   });
   return { success: true, records };
 }
 
-function moAdd(data) {
-  const sheet = getMoSheet();
-  const ids = sheet.getLastRow() <= 1 ? [] : sheet.getRange(2,1,sheet.getLastRow()-1,1).getValues().flat().filter(v=>v!=="");
-  const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
-  sheet.appendRow(MO_HEADERS_GS.map(h => h==="MO_ID" ? newId : (data[h]!==undefined ? data[h] : "")));
-  return { success: true, mo_id: newId };
-}
-
-// Bulletproof upsert by Month — handles old 'Date' column, deduplicates any existing extras
+// Bulletproof upsert — reads actual sheet headers, matches on Month value,
+// auto-deduplicates if multiple rows exist for the same month
 function moUpsert(data) {
-  const sheet = getMoSheet();
-  const monthKey = String(data['Month']||'').trim();
-  if (!monthKey) return { success: false, error: "Month is required" };
+  const sheet    = getMoSheet();
+  const monthKey = String(data['Month'] || '').trim().substring(0, 7);
+  if (!monthKey) return { success: false, error: 'Month is required' };
 
-  const lastRow = sheet.getLastRow();
-  const monthColIdx = MO_HEADERS_GS.indexOf('Month');  // 0-based in array = col index
-  const idColIdx    = MO_HEADERS_GS.indexOf('MO_ID');
+  const lastRow  = sheet.getLastRow();
+  const hdrs     = _moGetSheetHeaders(sheet);
 
-  // Collect ALL matching row indices (1-based sheet rows, skipping header row 1)
-  const matchingSheetRows = [];
+  // Resolve which 0-based column index holds the month value
+  // Support both new 'Month' column and legacy 'Date' column
+  const monthColIdx = hdrs['Month'] !== undefined ? hdrs['Month']
+                    : hdrs['Date']  !== undefined ? hdrs['Date']
+                    : 1; // fallback: second column
+
+  const idColIdx = hdrs['MO_ID'] !== undefined ? hdrs['MO_ID'] : 0;
+
+  // Find ALL rows that match this month
+  const matchingRows = [];
   if (lastRow > 1) {
-    const allData = sheet.getRange(2, 1, lastRow - 1, MO_HEADERS_GS.length).getValues();
+    const lastCol = sheet.getLastColumn();
+    const allData = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
     allData.forEach((row, i) => {
-      const cellMonth = String(row[monthColIdx]||'').trim();
-      // Also match legacy 'Date' column pattern (YYYY-MM-DD starting with monthKey)
-      const legacyDate = String(row[1]||'').trim(); // col index 1 = second column (old Date)
-      if (cellMonth === monthKey || legacyDate.startsWith(monthKey)) {
-        matchingSheetRows.push({ sheetRow: i + 2, rowData: row }); // +2 = skip header + 0-index
+      const cellVal = String(row[monthColIdx] || '').trim().substring(0, 7);
+      if (cellVal === monthKey) {
+        matchingRows.push({ sheetRow: i + 2, rowData: row });
       }
     });
   }
 
-  if (matchingSheetRows.length > 0) {
-    // Update the FIRST match
-    const target = matchingSheetRows[0];
-    const moId = target.rowData[idColIdx];
-    MO_HEADERS_GS.forEach((h, i) => {
-      if (h !== 'MO_ID' && h !== 'CreatedDate' && data[h] !== undefined) {
-        sheet.getRange(target.sheetRow, i + 1).setValue(data[h]);
-      }
+  if (matchingRows.length > 0) {
+    // Update the first matching row using actual header positions
+    const target = matchingRows[0];
+    const moId   = target.rowData[idColIdx];
+    MO_HEADERS_GS.forEach(h => {
+      if (h === 'MO_ID' || h === 'CreatedDate') return; // never overwrite these
+      if (data[h] === undefined) return;
+      const colIdx = hdrs[h];
+      if (colIdx === undefined) return; // column doesn't exist in this sheet
+      sheet.getRange(target.sheetRow, colIdx + 1).setValue(data[h]);
     });
-    // Delete any duplicate rows (in reverse order to preserve row indices)
-    for (let d = matchingSheetRows.length - 1; d >= 1; d--) {
-      sheet.deleteRow(matchingSheetRows[d].sheetRow);
+    // Delete any duplicate rows (reverse order to keep row indices valid)
+    for (let d = matchingRows.length - 1; d >= 1; d--) {
+      sheet.deleteRow(matchingRows[d].sheetRow);
     }
     return { success: true, mo_id: moId, updated: true };
   }
 
-  // No match — insert new row
-  const ids = lastRow <= 1 ? [] : sheet.getRange(2,1,Math.max(1,lastRow-1),1).getValues().flat().filter(v=>v!=="");
-  const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
-  sheet.appendRow(MO_HEADERS_GS.map(h => h === 'MO_ID' ? newId : (data[h] !== undefined ? data[h] : '')));
+  // No existing row — append new one
+  // Build row using actual sheet column order
+  const lastCol    = Math.max(sheet.getLastColumn(), MO_HEADERS_GS.length);
+  const headerRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const currentHdrs = _moGetSheetHeaders(sheet);
+
+  // Get next ID
+  const existingIds = lastRow <= 1 ? []
+    : sheet.getRange(2, idColIdx + 1, lastRow - 1, 1).getValues().flat().filter(v => v !== '');
+  const newId = existingIds.length === 0 ? 1 : Math.max(...existingIds.map(Number)) + 1;
+
+  // Build new row aligned to actual sheet columns
+  const newRow = Array(lastCol).fill('');
+  newRow[idColIdx] = newId;
+  MO_HEADERS_GS.forEach(h => {
+    const idx = currentHdrs[h];
+    if (idx === undefined) return;
+    if (h === 'MO_ID') { newRow[idx] = newId; return; }
+    if (data[h] !== undefined) newRow[idx] = data[h];
+  });
+  sheet.appendRow(newRow);
   return { success: true, mo_id: newId, updated: false };
 }
 
@@ -609,6 +624,34 @@ function moDelete(moId) {
   if (rowIndex === -1) return { success: false, error: "Not found" };
   sheet.deleteRow(rowIndex + 2);
   return { success: true };
+}
+
+// ── Run this manually from Apps Script editor to clean up existing duplicate months ──
+function moDeduplicateAll() {
+  const sheet   = getMoSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { removed: 0 };
+
+  const hdrs        = _moGetSheetHeaders(sheet);
+  const monthColIdx = hdrs['Month'] !== undefined ? hdrs['Month']
+                    : hdrs['Date']  !== undefined ? hdrs['Date'] : 1;
+  const lastCol     = sheet.getLastColumn();
+  const allData     = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  // Build map: monthKey → [sheetRow indexes, 1-based], keep first, delete rest
+  const seen   = {};
+  const toDelete = [];
+  allData.forEach((row, i) => {
+    if (row[0] === '') return;
+    const key = String(row[monthColIdx] || '').trim().substring(0, 7);
+    if (!key) return;
+    if (seen[key] === undefined) { seen[key] = i + 2; }
+    else                         { toDelete.push(i + 2); }
+  });
+
+  // Delete in reverse order
+  toDelete.sort((a,b) => b - a).forEach(r => sheet.deleteRow(r));
+  return { removed: toDelete.length };
 }
 
 // ============================================================
