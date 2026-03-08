@@ -2968,14 +2968,12 @@ async function moMonthChanged() {
 
   const locked = moIsLocked(monthKey) && !isAdminEnabled();
 
-  // Load records if needed
-  if (allMonthly.length === 0) {
-    const r = await apiGet({ action: 'moGetAll' });
-    if (r && r.success) allMonthly = r.records || [];
-  }
+  // Always reload fresh — stale cache is what causes duplicate creates
+  const r = await apiGet({ action: 'moGetAll' });
+  if (r && r.success) allMonthly = r.records || [];
 
-  // Match on Month key field (YYYY-MM)
-  const existing = allMonthly.find(r => String(r.Month||'').trim() === monthKey);
+  // Match on Month key (YYYY-MM) — moGetAll now normalises this
+  const existing = allMonthly.find(r => String(r.Month||'').substring(0,7).trim() === monthKey);
 
   const existBanner  = document.getElementById('moExistingBanner');
   const lockedBanner = document.getElementById('moLockedBanner');
@@ -2990,7 +2988,6 @@ async function moMonthChanged() {
   } else {
     moEditId = null;
     _moClearForm();
-    // Set created date to today for new records
     if (createdEl) createdEl.value = new Date().toISOString().split('T')[0];
     if (existBanner)  existBanner.style.display  = 'none';
     if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
@@ -3056,9 +3053,12 @@ async function saveMonthly() {
   const concerns = MO_KEYS.filter(k => moState[k]==='bad');
   const g = id => (document.getElementById(id)?.value||'').trim();
 
+  // Always preserve the original CreatedDate if we know it; otherwise use today
+  const createdDate = document.getElementById('moCreatedDate')?.value || today;
+
   const data = {
     Month:        monthKey,
-    CreatedDate:  moEditId ? (document.getElementById('moCreatedDate')?.value || today) : today,
+    CreatedDate:  createdDate,
     CheckedBy:    checkedBy,
     Notes:        notes,
     Concerns:     concerns.join(','),
@@ -3077,24 +3077,31 @@ async function saveMonthly() {
   const btn = document.getElementById('btnSaveMo');
   btn.disabled=true; btn.textContent='Saving…';
 
-  // Always upsert — prevents duplicates even if moEditId is stale
-  const result = moEditId
-    ? await apiPost({ action:'moUpdate', id:moEditId, data })
-    : await apiPost({ action:'moUpsert', data });
+  // ALWAYS use moUpsert — backend matches on Month key, never creates duplicates
+  const result = await apiPost({ action:'moUpsert', data });
 
   btn.disabled=false;
   if (result && result.success) {
+    // Keep moEditId set so UI knows a record exists
     if (result.mo_id) moEditId = result.mo_id;
+
     const monthName = MO_NAMES[parseInt(monthKey.split('-')[1])-1] + ' ' + monthKey.split('-')[0];
     showToast('✓ ' + monthName + ' checklist saved!');
-    btn.textContent='UPDATE MONTHLY CHECK';
-    allMonthly=[];
+    btn.textContent = 'UPDATE MONTHLY CHECK';
+
+    // Update the in-memory cache instead of clearing it
+    // This keeps moEditId valid without a round-trip
+    const idx = allMonthly.findIndex(r => String(r.Month||'') === monthKey);
+    const updated = { ...data, MO_ID: moEditId };
+    if (idx !== -1) { allMonthly[idx] = updated; }
+    else            { allMonthly.push(updated); }
+
+    document.getElementById('moCreatedDate').value = createdDate;
     const b = document.getElementById('moExistingBanner');
     if (b) { b.textContent='✅ Saved — you can update this record any time this month.'; b.style.display='block'; }
-    document.getElementById('moCreatedDate').value = data.CreatedDate;
   } else {
     showToast(result?.error||'Save failed', true);
-    btn.textContent = moEditId ? 'UPDATE MONTHLY CHECK' : 'SAVE MONTHLY CHECK';
+    btn.textContent = 'SAVE MONTHLY CHECK';
   }
 }
 

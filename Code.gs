@@ -495,19 +495,45 @@ function getMoSheet() {
     sheet.appendRow(MO_HEADERS_GS);
     sheet.getRange(1,1,1,MO_HEADERS_GS.length).setFontWeight("bold").setBackground("#4a148c").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
+    return sheet;
   }
+  // Migrate old headers if needed (Date→Month, add CreatedDate if missing)
+  const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  MO_HEADERS_GS.forEach((expected, i) => {
+    const col = i + 1;
+    const current = String(headerRow[i]||'').trim();
+    // Rename old 'Date' column (col 2) to 'Month'
+    if (expected === 'Month' && current === 'Date') {
+      sheet.getRange(1, col).setValue('Month');
+    }
+    // Add any missing columns at the right position
+    if (!current && expected) {
+      sheet.getRange(1, col).setValue(expected);
+    }
+  });
   return sheet;
 }
 
 function moGetAll() {
   const sheet = getMoSheet(); const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const data = sheet.getRange(2,1,lastRow-1,MO_HEADERS_GS.length).getValues();
-  return { success: true, records: data.filter(r=>r[0]!=='').map(row => {
+  const numCols = Math.max(MO_HEADERS_GS.length, sheet.getLastColumn());
+  const data = sheet.getRange(2, 1, lastRow - 1, MO_HEADERS_GS.length).getValues();
+  const records = data.filter(r => r[0] !== '').map(row => {
     const rec = {};
-    MO_HEADERS_GS.forEach((h,i) => { rec[h] = row[i]; });
+    MO_HEADERS_GS.forEach((h, i) => { rec[h] = row[i]; });
+    // Normalise: if Month is empty but looks like a date, extract YYYY-MM
+    if (!String(rec['Month']||'').trim()) {
+      const d = String(rec['Date']||'').trim();
+      if (d.length >= 7) rec['Month'] = d.substring(0, 7);
+    }
+    // Ensure Month is always YYYY-MM (trim any -DD suffix from old Date values)
+    if (String(rec['Month']||'').length > 7) {
+      rec['Month'] = String(rec['Month']).substring(0, 7);
+    }
     return rec;
-  })};
+  });
+  return { success: true, records };
 }
 
 function moAdd(data) {
@@ -518,31 +544,50 @@ function moAdd(data) {
   return { success: true, mo_id: newId };
 }
 
-// Upsert by Month key — prevents duplicate months
+// Bulletproof upsert by Month — handles old 'Date' column, deduplicates any existing extras
 function moUpsert(data) {
   const sheet = getMoSheet();
   const monthKey = String(data['Month']||'').trim();
   if (!monthKey) return { success: false, error: "Month is required" };
+
   const lastRow = sheet.getLastRow();
+  const monthColIdx = MO_HEADERS_GS.indexOf('Month');  // 0-based in array = col index
+  const idColIdx    = MO_HEADERS_GS.indexOf('MO_ID');
+
+  // Collect ALL matching row indices (1-based sheet rows, skipping header row 1)
+  const matchingSheetRows = [];
   if (lastRow > 1) {
-    const allData = sheet.getRange(2,1,lastRow-1,MO_HEADERS_GS.length).getValues();
-    const monthIdx = MO_HEADERS_GS.indexOf('Month');
-    const idIdx    = MO_HEADERS_GS.indexOf('MO_ID');
-    const rowIdx   = allData.findIndex(r => String(r[monthIdx]||'').trim() === monthKey);
-    if (rowIdx !== -1) {
-      // Update existing
-      const moId = allData[rowIdx][idIdx];
-      MO_HEADERS_GS.forEach((h,i) => {
-        if (h !== 'MO_ID' && h !== 'CreatedDate' && data[h] !== undefined)
-          sheet.getRange(rowIdx+2, i+1).setValue(data[h]);
-      });
-      return { success: true, mo_id: moId, updated: true };
-    }
+    const allData = sheet.getRange(2, 1, lastRow - 1, MO_HEADERS_GS.length).getValues();
+    allData.forEach((row, i) => {
+      const cellMonth = String(row[monthColIdx]||'').trim();
+      // Also match legacy 'Date' column pattern (YYYY-MM-DD starting with monthKey)
+      const legacyDate = String(row[1]||'').trim(); // col index 1 = second column (old Date)
+      if (cellMonth === monthKey || legacyDate.startsWith(monthKey)) {
+        matchingSheetRows.push({ sheetRow: i + 2, rowData: row }); // +2 = skip header + 0-index
+      }
+    });
   }
-  // Insert new
-  const ids = lastRow <= 1 ? [] : sheet.getRange(2,1,lastRow-1,1).getValues().flat().filter(v=>v!=="");
+
+  if (matchingSheetRows.length > 0) {
+    // Update the FIRST match
+    const target = matchingSheetRows[0];
+    const moId = target.rowData[idColIdx];
+    MO_HEADERS_GS.forEach((h, i) => {
+      if (h !== 'MO_ID' && h !== 'CreatedDate' && data[h] !== undefined) {
+        sheet.getRange(target.sheetRow, i + 1).setValue(data[h]);
+      }
+    });
+    // Delete any duplicate rows (in reverse order to preserve row indices)
+    for (let d = matchingSheetRows.length - 1; d >= 1; d--) {
+      sheet.deleteRow(matchingSheetRows[d].sheetRow);
+    }
+    return { success: true, mo_id: moId, updated: true };
+  }
+
+  // No match — insert new row
+  const ids = lastRow <= 1 ? [] : sheet.getRange(2,1,Math.max(1,lastRow-1),1).getValues().flat().filter(v=>v!=="");
   const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
-  sheet.appendRow(MO_HEADERS_GS.map(h => h==="MO_ID" ? newId : (data[h]!==undefined ? data[h] : "")));
+  sheet.appendRow(MO_HEADERS_GS.map(h => h === 'MO_ID' ? newId : (data[h] !== undefined ? data[h] : '')));
   return { success: true, mo_id: newId, updated: false };
 }
 
