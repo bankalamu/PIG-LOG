@@ -488,6 +488,32 @@ const MO_HEADERS_GS = ["MO_ID","Month","CreatedDate","CheckedBy","Status","Conce
   "PigsWeighed","AvgADG","Deaths","VaxCount","FeedStock",
   "ByGrowth","ByHealth","ByFarm",...MO_KEYS_GS];
 
+// Convert any value to YYYY-MM using LOCAL timezone (critical for GAS Date objects)
+function _toMonthKey(val) {
+  if (!val && val !== 0) return '';
+  // GAS returns Date objects for date-formatted cells; use local TZ methods
+  if (Object.prototype.toString.call(val) === '[object Date]') {
+    return val.getFullYear() + '-' + String(val.getMonth() + 1).padStart(2, '0');
+  }
+  const s = String(val).trim();
+  // ISO string from JSON serialisation: "2026-02-28T22:00:00.000Z" (UTC-shifted)
+  // or plain "2026-03-01" or "2026-03"
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    // UTC timestamp — parse using Utilities.formatDate to get spreadsheet local date
+    // (In GAS context; outside GAS we just do best-effort substring)
+    try {
+      const d = new Date(s);
+      const tz = Session.getScriptTimeZone();
+      const formatted = Utilities.formatDate(d, tz, 'yyyy-MM');
+      return formatted;
+    } catch(e) {
+      return s.substring(0, 7);
+    }
+  }
+  if (/^\d{4}-\d{2}/.test(s)) return s.substring(0, 7);
+  return '';
+}
+
 function getMoSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(MO_SHEET);
@@ -500,12 +526,11 @@ function getMoSheet() {
   return sheet;
 }
 
-// Read actual header row from sheet (1-based col → header name map)
 function _moGetSheetHeaders(sheet) {
   const lastCol = sheet.getLastColumn();
   if (lastCol < 1) return {};
   const raw = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  const map = {}; // name → 0-based index
+  const map = {};
   raw.forEach((h, i) => { if (h) map[String(h).trim()] = i; });
   return map;
 }
@@ -514,93 +539,71 @@ function moGetAll() {
   const sheet   = getMoSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-
   const hdrs    = _moGetSheetHeaders(sheet);
   const lastCol = sheet.getLastColumn();
   const data    = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-
-  const records = data.filter(r => r[0] !== '').map(row => {
-    const rec = {};
-    // Map every column we know about
-    Object.entries(hdrs).forEach(([name, idx]) => { rec[name] = row[idx]; });
-    // Always expose a clean YYYY-MM 'Month' field
-    // Priority: Month col → Date col (legacy) → empty
-    let month = String(rec['Month'] || rec['Date'] || '').trim();
-    if (month.length > 7) month = month.substring(0, 7);
-    rec['Month'] = month;
-    return rec;
-  });
+  const records = data
+    .filter(r => r[0] !== '' && r[0] !== null && r[0] !== undefined)
+    .map(row => {
+      const rec = {};
+      Object.entries(hdrs).forEach(([name, idx]) => { rec[name] = row[idx]; });
+      // Normalise Month to clean YYYY-MM, handling Date objects and legacy Date column
+      rec['Month'] = _toMonthKey(rec['Month'] || rec['Date'] || '');
+      return rec;
+    });
   return { success: true, records };
 }
 
-// Bulletproof upsert — reads actual sheet headers, matches on Month value,
-// auto-deduplicates if multiple rows exist for the same month
 function moUpsert(data) {
   const sheet    = getMoSheet();
   const monthKey = String(data['Month'] || '').trim().substring(0, 7);
   if (!monthKey) return { success: false, error: 'Month is required' };
 
-  const lastRow  = sheet.getLastRow();
-  const hdrs     = _moGetSheetHeaders(sheet);
-
-  // Resolve which 0-based column index holds the month value
-  // Support both new 'Month' column and legacy 'Date' column
+  const hdrs        = _moGetSheetHeaders(sheet);
   const monthColIdx = hdrs['Month'] !== undefined ? hdrs['Month']
-                    : hdrs['Date']  !== undefined ? hdrs['Date']
-                    : 1; // fallback: second column
+                    : hdrs['Date']  !== undefined ? hdrs['Date'] : 1;
+  const idColIdx    = hdrs['MO_ID'] !== undefined ? hdrs['MO_ID'] : 0;
+  const lastRow     = sheet.getLastRow();
 
-  const idColIdx = hdrs['MO_ID'] !== undefined ? hdrs['MO_ID'] : 0;
-
-  // Find ALL rows that match this month
   const matchingRows = [];
   if (lastRow > 1) {
     const lastCol = sheet.getLastColumn();
     const allData = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
     allData.forEach((row, i) => {
-      const cellVal = String(row[monthColIdx] || '').trim().substring(0, 7);
-      if (cellVal === monthKey) {
+      if (row[0] === '' || row[0] === null || row[0] === undefined) return;
+      if (_toMonthKey(row[monthColIdx]) === monthKey) {
         matchingRows.push({ sheetRow: i + 2, rowData: row });
       }
     });
   }
 
   if (matchingRows.length > 0) {
-    // Update the first matching row using actual header positions
     const target = matchingRows[0];
     const moId   = target.rowData[idColIdx];
     MO_HEADERS_GS.forEach(h => {
-      if (h === 'MO_ID' || h === 'CreatedDate') return; // never overwrite these
+      if (h === 'MO_ID' || h === 'CreatedDate') return;
       if (data[h] === undefined) return;
       const colIdx = hdrs[h];
-      if (colIdx === undefined) return; // column doesn't exist in this sheet
+      if (colIdx === undefined) return;
       sheet.getRange(target.sheetRow, colIdx + 1).setValue(data[h]);
     });
-    // Delete any duplicate rows (reverse order to keep row indices valid)
     for (let d = matchingRows.length - 1; d >= 1; d--) {
       sheet.deleteRow(matchingRows[d].sheetRow);
     }
     return { success: true, mo_id: moId, updated: true };
   }
 
-  // No existing row — append new one
-  // Build row using actual sheet column order
-  const lastCol    = Math.max(sheet.getLastColumn(), MO_HEADERS_GS.length);
-  const headerRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  const currentHdrs = _moGetSheetHeaders(sheet);
-
-  // Get next ID
+  // Insert new row
   const existingIds = lastRow <= 1 ? []
-    : sheet.getRange(2, idColIdx + 1, lastRow - 1, 1).getValues().flat().filter(v => v !== '');
-  const newId = existingIds.length === 0 ? 1 : Math.max(...existingIds.map(Number)) + 1;
-
-  // Build new row aligned to actual sheet columns
-  const newRow = Array(lastCol).fill('');
-  newRow[idColIdx] = newId;
+    : sheet.getRange(2, idColIdx + 1, lastRow - 1, 1).getValues().flat()
+        .filter(v => v !== '' && v !== null && v !== undefined);
+  const newId   = existingIds.length === 0 ? 1 : Math.max(...existingIds.map(Number)) + 1;
+  const lastCol = Math.max(sheet.getLastColumn(), MO_HEADERS_GS.length);
+  const newRow  = Array(lastCol).fill('');
   MO_HEADERS_GS.forEach(h => {
-    const idx = currentHdrs[h];
+    const idx = hdrs[h];
     if (idx === undefined) return;
-    if (h === 'MO_ID') { newRow[idx] = newId; return; }
-    if (data[h] !== undefined) newRow[idx] = data[h];
+    newRow[idx] = (h === 'MO_ID') ? newId : (data[h] !== undefined ? data[h] : '');
   });
   sheet.appendRow(newRow);
   return { success: true, mo_id: newId, updated: false };
@@ -609,50 +612,57 @@ function moUpsert(data) {
 function moUpdate(moId, data) {
   const sheet = getMoSheet(); const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records" };
-  const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat();
-  const rowIndex = ids.findIndex(id => Number(id) === Number(moId));
-  if (rowIndex === -1) return { success: false, error: "Not found" };
-  MO_HEADERS_GS.forEach((h,i) => { if(h!=="MO_ID" && data[h]!==undefined) sheet.getRange(rowIndex+2,i+1).setValue(data[h]); });
+  const hdrs = _moGetSheetHeaders(sheet);
+  const idColIdx = hdrs['MO_ID'] !== undefined ? hdrs['MO_ID'] : 0;
+  const lastCol  = sheet.getLastColumn();
+  const allData  = sheet.getRange(2, 1, lastRow-1, lastCol).getValues();
+  const rowIdx   = allData.findIndex(r => Number(r[idColIdx]) === Number(moId));
+  if (rowIdx === -1) return { success: false, error: "Not found" };
+  MO_HEADERS_GS.forEach(h => {
+    if (h === 'MO_ID') return;
+    if (data[h] === undefined) return;
+    const colIdx = hdrs[h];
+    if (colIdx === undefined) return;
+    sheet.getRange(rowIdx + 2, colIdx + 1).setValue(data[h]);
+  });
   return { success: true };
 }
 
 function moDelete(moId) {
   const sheet = getMoSheet(); const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records" };
-  const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat();
-  const rowIndex = ids.findIndex(id => Number(id) === Number(moId));
-  if (rowIndex === -1) return { success: false, error: "Not found" };
-  sheet.deleteRow(rowIndex + 2);
+  const hdrs     = _moGetSheetHeaders(sheet);
+  const idColIdx = hdrs['MO_ID'] !== undefined ? hdrs['MO_ID'] : 0;
+  const allIds   = sheet.getRange(2, idColIdx + 1, lastRow - 1, 1).getValues().flat();
+  const rowIdx   = allIds.findIndex(id => Number(id) === Number(moId));
+  if (rowIdx === -1) return { success: false, error: "Not found" };
+  sheet.deleteRow(rowIdx + 2);
   return { success: true };
 }
 
-// ── Run this manually from Apps Script editor to clean up existing duplicate months ──
+// Run from Apps Script editor OR call ?action=moDedup to clean existing duplicates
 function moDeduplicateAll() {
   const sheet   = getMoSheet();
   const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return { removed: 0 };
-
+  if (lastRow <= 1) return { success: true, removed: 0 };
   const hdrs        = _moGetSheetHeaders(sheet);
   const monthColIdx = hdrs['Month'] !== undefined ? hdrs['Month']
                     : hdrs['Date']  !== undefined ? hdrs['Date'] : 1;
-  const lastCol     = sheet.getLastColumn();
-  const allData     = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-
-  // Build map: monthKey → [sheetRow indexes, 1-based], keep first, delete rest
-  const seen   = {};
+  const lastCol  = sheet.getLastColumn();
+  const allData  = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const seen     = {};
   const toDelete = [];
   allData.forEach((row, i) => {
-    if (row[0] === '') return;
-    const key = String(row[monthColIdx] || '').trim().substring(0, 7);
+    if (!row[0] && row[0] !== 0) return;
+    const key = _toMonthKey(row[monthColIdx]);
     if (!key) return;
     if (seen[key] === undefined) { seen[key] = i + 2; }
-    else                         { toDelete.push(i + 2); }
+    else { toDelete.push(i + 2); }
   });
-
-  // Delete in reverse order
-  toDelete.sort((a,b) => b - a).forEach(r => sheet.deleteRow(r));
-  return { removed: toDelete.length };
+  toDelete.sort((a, b) => b - a).forEach(r => sheet.deleteRow(r));
+  return { success: true, removed: toDelete.length };
 }
+
 
 // ============================================================
 //  SETTINGS — Sheet: Settings
