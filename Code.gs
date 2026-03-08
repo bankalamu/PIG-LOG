@@ -419,7 +419,7 @@ const WK_SHEET = "WeeklyChecklist";
 const WK_KEYS_GS = ['wk_weight_spot','wk_body_condition','wk_behaviour',
   'wk_deworm','wk_vitamins','wk_wounds',
   'wk_feeder_clean','wk_pen_repair','wk_feed_consumption','wk_boar_condition'];
-const WK_HEADERS_GS = ["WK_ID","Date","Pen","CheckedBy","Status","Concerns","Notes",
+const WK_HEADERS_GS = ["WK_ID","Date","WeekNum","WeekYear","WeekKey","Pen","CheckedBy","Status","Concerns","Notes",
   "AvgWeight","FeedKg","ByCondition","ByHealth","ByFarm",...WK_KEYS_GS];
 
 function getWkSheet() {

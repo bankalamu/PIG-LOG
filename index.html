@@ -1304,22 +1304,40 @@
     </div>
 
     <div id="wkFormView">
-      <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
-        <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
-          <label class="form-label">Week Starting</label>
-          <input type="date" id="wkDate" class="form-input" onchange="wkDateChanged()">
+
+      <!-- Week number badge + pen setup -->
+      <div style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="background:#1a3a8a;color:#fff;border-radius:8px;padding:6px 14px;text-align:center;min-width:80px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;opacity:.8">WEEK</div>
+            <div style="font-size:24px;font-weight:900;line-height:1" id="wkWeekBadge">—</div>
+            <div style="font-size:10px;opacity:.7" id="wkYearBadge"></div>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:11px;font-weight:800;color:#1a3a8a;margin-bottom:2px" id="wkWeekRangeLabel">Select a date to begin</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+              <div style="display:flex;flex-direction:column;flex:1;min-width:130px">
+                <label class="form-label" style="font-size:10px">Entry Date</label>
+                <input type="date" id="wkDate" class="form-input" onchange="wkDateChanged()">
+              </div>
+              <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
+                <label class="form-label" style="font-size:10px">Pen / Farm</label>
+                <input type="text" id="wkPen" placeholder="All pens" class="form-input" onblur="wkDateChanged()" onchange="wkDateChanged()">
+              </div>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
-          <label class="form-label">Pen / Farm</label>
-          <input type="text" id="wkPen" placeholder="All pens" class="form-input" onblur="wkDateChanged()" onchange="wkDateChanged()">
-        </div>
+        <div id="wkSetupNote" style="font-size:11px;color:#555;margin-top:8px">Records are keyed by <strong>Week Number + Pen</strong>. You can update this record any time during the same week.</div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
           <label class="form-label">Checked by</label>
           <input type="text" id="wkCheckedBy" class="form-input" placeholder="Your name">
         </div>
       </div>
 
-      <div id="wkLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past date — this record is locked. Admin access required to edit.</div>
+      <div id="wkLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past week — this record is closed. Admin access required to edit.</div>
       <div id="wkExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">✅ Existing record loaded — saving will update it.</div>
 
       <!-- Pig Condition -->
@@ -2503,20 +2521,242 @@ let wkState = {};
 let wkEditId = null;
 let allWeekly = [];
 
+// ── ISO week number helpers ─────────────────────────────────────
+
+// Returns { week, year } ISO-8601 week for any Date object
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;            // Mon=1 … Sun=7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);    // nearest Thursday
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { week, year: d.getUTCFullYear() };
+}
+
+// Monday of the ISO week containing `date`
+function isoWeekMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay() || 7;        // Mon=1 … Sun=7
+  d.setDate(d.getDate() - (day - 1));
+  return d;
+}
+
+// Sunday of the ISO week containing `date`
+function isoWeekSunday(date) {
+  const mon = isoWeekMonday(date);
+  const sun = new Date(mon);
+  sun.setDate(sun.getDate() + 6);
+  return sun;
+}
+
+function fmtDate(d) {
+  return d.toISOString().split('T')[0];
+}
+
+// True if the ISO week of dateStr is strictly before the current ISO week
+function wkIsLocked(dateStr) {
+  if (!dateStr) return false;
+  const { week: rw, year: ry } = getISOWeek(new Date(dateStr));
+  const { week: cw, year: cy } = getISOWeek(new Date());
+  return ry < cy || (ry === cy && rw < cw);
+}
+
+// ── UI helpers ──────────────────────────────────────────────────
+
+function _wkUpdateBadge(dateStr) {
+  const badge     = document.getElementById('wkWeekBadge');
+  const yearBadge = document.getElementById('wkYearBadge');
+  const rangeLbl  = document.getElementById('wkWeekRangeLabel');
+  if (!dateStr) {
+    if (badge)    badge.textContent    = '—';
+    if (yearBadge) yearBadge.textContent = '';
+    if (rangeLbl)  rangeLbl.textContent  = 'Select a date to begin';
+    return;
+  }
+  const d   = new Date(dateStr);
+  const { week, year } = getISOWeek(d);
+  const mon = isoWeekMonday(d);
+  const sun = isoWeekSunday(d);
+  const fmt = dt => dt.toLocaleDateString('en-ZA', { day:'numeric', month:'short' });
+  if (badge)     badge.textContent     = week;
+  if (yearBadge) yearBadge.textContent = year;
+  if (rangeLbl)  rangeLbl.textContent  = fmt(mon) + ' – ' + fmt(sun) + '  (Week ' + week + ', ' + year + ')';
+}
+
+function wkLockForm(lock) {
+  document.querySelectorAll('#wkFormView .toggle-btn').forEach(b => {
+    b.style.pointerEvents = lock ? 'none' : '';
+    b.style.opacity       = lock ? '0.5'  : '';
+  });
+  ['wkCheckedBy','wkNotes',
+   'wkBy_condition','wkBy_health','wkBy_farm',
+   'wk_avg_weight','wk_feed_kg'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.disabled = lock;
+  });
+  const btn = document.getElementById('btnSaveWk');
+  if (btn) { btn.disabled = lock; btn.style.opacity = lock ? '0.4' : '1'; }
+}
+
+function _wkClearForm() {
+  WK_KEYS.forEach(k => {
+    wkState[k] = null;
+    document.querySelectorAll(`#pageWeekly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+  });
+  ['wkCheckedBy','wkNotes','wkBy_condition','wkBy_health','wkBy_farm'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['wk_avg_weight','wk_feed_kg'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+}
+
+function initWeekly() {
+  WK_KEYS.forEach(k => { wkState[k] = null; });
+  const today = new Date().toISOString().split('T')[0];
+  const el = document.getElementById('wkDate');
+  if (el) el.value = today;
+  _wkUpdateBadge(today);
+}
+
+async function wkDateChanged() {
+  const date = document.getElementById('wkDate')?.value;
+  const pen  = (document.getElementById('wkPen')?.value || '').trim();
+
+  _wkUpdateBadge(date || '');
+  if (!date) return;
+
+  const locked = wkIsLocked(date) && !isAdminEnabled();
+
+  // Load records if needed
+  if (allWeekly.length === 0) {
+    const r = await apiGet({ action: 'wkGetAll' });
+    if (r && r.success) allWeekly = r.records || [];
+  }
+
+  // Match by ISO week + pen (ignore exact date — any date in same week matches)
+  const { week: selWeek, year: selYear } = getISOWeek(new Date(date));
+  const existing = allWeekly.find(r => {
+    if (!r.Date) return false;
+    const { week: rw, year: ry } = getISOWeek(new Date(r.Date));
+    const penMatch = pen
+      ? String(r.Pen||'').trim().toLowerCase() === pen.toLowerCase()
+      : String(r.Pen||'').trim() === '';
+    return rw === selWeek && ry === selYear && penMatch;
+  });
+
+  const existBanner  = document.getElementById('wkExistingBanner');
+  const lockedBanner = document.getElementById('wkLockedBanner');
+
+  if (existing) {
+    wkEditId = existing.WK_ID;
+    _populateWkForm(existing);
+    if (existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
+    if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+  } else {
+    wkEditId = null;
+    _wkClearForm();
+    if (existBanner)  existBanner.style.display  = 'none';
+    if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
+  }
+
+  wkLockForm(locked);
+  const btn = document.getElementById('btnSaveWk');
+  if (btn) btn.textContent = existing ? 'UPDATE WEEKLY CHECK' : 'SAVE WEEKLY CHECK';
+}
+
+function _populateWkForm(rec) {
+  if (document.getElementById('wkCheckedBy'))   document.getElementById('wkCheckedBy').value   = rec.CheckedBy   || '';
+  if (document.getElementById('wkNotes'))        document.getElementById('wkNotes').value        = rec.Notes       || '';
+  if (document.getElementById('wkBy_condition')) document.getElementById('wkBy_condition').value = rec.ByCondition || '';
+  if (document.getElementById('wkBy_health'))    document.getElementById('wkBy_health').value    = rec.ByHealth    || '';
+  if (document.getElementById('wkBy_farm'))      document.getElementById('wkBy_farm').value      = rec.ByFarm      || '';
+  if (document.getElementById('wk_avg_weight'))  document.getElementById('wk_avg_weight').value  = rec.AvgWeight   || '';
+  if (document.getElementById('wk_feed_kg'))     document.getElementById('wk_feed_kg').value     = rec.FeedKg      || '';
+  WK_KEYS.forEach(k => {
+    wkState[k] = rec[k] || null;
+    document.querySelectorAll(`#pageWeekly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+    if (rec[k]) {
+      const cls = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
+      const item = document.querySelector(`#pageWeekly .wm-item[data-key="${k}"]`);
+      if (item) item.querySelector(cls)?.classList.add('selected');
+    }
+  });
+}
+
+function resetWeekly() {
+  wkEditId = null;
+  allWeekly = [];
+  _wkClearForm();
+  const today = new Date().toISOString().split('T')[0];
+  const el = document.getElementById('wkDate'); if (el) el.value = today;
+  _wkUpdateBadge(today);
+  document.getElementById('wkPen').value = '';
+  const existBanner  = document.getElementById('wkExistingBanner');
+  const lockedBanner = document.getElementById('wkLockedBanner');
+  if (existBanner)  existBanner.style.display  = 'none';
+  if (lockedBanner) lockedBanner.style.display = 'none';
+  const btn = document.getElementById('btnSaveWk');
+  if (btn) { btn.disabled=false; btn.style.opacity='1'; btn.textContent='SAVE WEEKLY CHECK'; }
+  wkLockForm(false);
+}
+
+async function saveWeekly() {
+  const date      = document.getElementById('wkDate')?.value;
+  const pen       = (document.getElementById('wkPen')?.value||'').trim();
+  const checkedBy = (document.getElementById('wkCheckedBy')?.value||'').trim();
+  const notes     = (document.getElementById('wkNotes')?.value||'').trim();
+  if (!date) { showToast('Please select a date', true); return; }
+  if (wkIsLocked(date) && !isAdminEnabled()) {
+    showToast('Past week — this record is closed. Admin access required.', true); return;
+  }
+  const { week, year } = getISOWeek(new Date(date));
+  const concerns = WK_KEYS.filter(k => wkState[k]==='bad');
+  const data = {
+    Date:        date,
+    WeekNum:     week,
+    WeekYear:    year,
+    WeekKey:     year + '-W' + String(week).padStart(2,'0'),
+    Pen:         pen,
+    CheckedBy:   checkedBy,
+    Notes:       notes,
+    Concerns:    concerns.join(','),
+    Status:      concerns.length > 0 ? 'CONCERNS' : 'ALL OK',
+    AvgWeight:   document.getElementById('wk_avg_weight')?.value || '',
+    FeedKg:      document.getElementById('wk_feed_kg')?.value    || '',
+    ByCondition: document.getElementById('wkBy_condition')?.value || '',
+    ByHealth:    document.getElementById('wkBy_health')?.value    || '',
+    ByFarm:      document.getElementById('wkBy_farm')?.value      || ''
+  };
+  WK_KEYS.forEach(k => { data[k] = wkState[k]||''; });
+
+  const btn = document.getElementById('btnSaveWk');
+  btn.disabled=true; btn.textContent='Saving…';
+
+  // Upsert: update if wkEditId exists, otherwise insert
+  const result = wkEditId
+    ? await apiPost({ action:'wkUpdate', id:wkEditId, data })
+    : await apiPost({ action:'wkAdd', data });
+
+  btn.disabled=false;
+  if (result && result.success) {
+    if (result.wk_id) wkEditId = result.wk_id;
+    showToast('✓ Week ' + week + ' checklist saved!');
+    btn.textContent='UPDATE WEEKLY CHECK';
+    allWeekly=[];
+    const b = document.getElementById('wkExistingBanner');
+    if (b) { b.textContent='✅ Saved — you can keep updating this record during Week ' + week + '.'; b.style.display='block'; }
+  } else {
+    showToast(result?.error||'Save failed', true);
+    btn.textContent = wkEditId ? 'UPDATE WEEKLY CHECK' : 'SAVE WEEKLY CHECK';
+  }
+}
+
 function setWkView(view) {
   document.getElementById('wkTabForm').className    = 'cl-tab' + (view==='form'    ? ' active' : '');
   document.getElementById('wkTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
   document.getElementById('wkFormView').style.display    = view==='form'    ? 'block' : 'none';
   document.getElementById('wkHistoryView').style.display = view==='history' ? 'block' : 'none';
   if (view === 'history') { allWeekly=[]; loadWeeklyHistory(); }
-}
-
-function setMoView(view) {
-  document.getElementById('moTabForm').className    = 'cl-tab' + (view==='form'    ? ' active' : '');
-  document.getElementById('moTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
-  document.getElementById('moFormView').style.display    = view==='form'    ? 'block' : 'none';
-  document.getElementById('moHistoryView').style.display = view==='history' ? 'block' : 'none';
-  if (view === 'history') { allMonthly=[]; loadMonthlyHistory(); }
 }
 
 async function loadWeeklyHistory() {
@@ -2532,148 +2772,93 @@ async function loadWeeklyHistory() {
 
 function renderWeeklyHistory() {
   const container = document.getElementById('wkHistoryContainer');
-  const today = new Date().toISOString().split('T')[0];
-  const list = (allWeekly||[]).slice().reverse();
+  const filter = (document.getElementById('wkHistorySearch')?.value || '').toLowerCase();
+  const { week: curWeek, year: curYear } = getISOWeek(new Date());
+
+  let list = (allWeekly||[]).filter(r => {
+    if (!filter) return true;
+    return (r.WeekKey||r.Date||'').toLowerCase().includes(filter)
+      || (r.Pen||'').toLowerCase().includes(filter)
+      || (r.CheckedBy||'').toLowerCase().includes(filter);
+  }).slice().sort((a,b) => {
+    // Sort by year desc, then week desc
+    if ((b.WeekYear||0) !== (a.WeekYear||0)) return (b.WeekYear||0) - (a.WeekYear||0);
+    return (b.WeekNum||0) - (a.WeekNum||0);
+  });
+
   if (!list.length) { container.innerHTML = '<div class="empty-state">No weekly records found.</div>'; return; }
+
   container.innerHTML = list.map(rec => {
+    const wk   = rec.WeekNum  || (rec.Date ? getISOWeek(new Date(rec.Date)).week : '?');
+    const yr   = rec.WeekYear || (rec.Date ? getISOWeek(new Date(rec.Date)).year : '');
+    const wkey = rec.WeekKey  || (yr + '-W' + String(wk).padStart(2,'0'));
+
+    // Current week = editable; past week = history
+    const isCurrent = (Number(wk)===curWeek && Number(yr)===curYear);
+    const isPast    = !isCurrent;
+    const locked    = isPast && !isAdminEnabled();
+
     const hasConcerns = rec.Status === 'CONCERNS';
-    const badge = hasConcerns ? '<span class="cl-concern-badge">! Concerns</span>' : '<span class="cl-ok-badge">✓ All OK</span>';
+    const statusBadge = hasConcerns
+      ? '<span class="cl-concern-badge">⚠ Concerns</span>'
+      : '<span class="cl-ok-badge">✓ All OK</span>';
+    const lockTag = locked ? '<span style="font-size:11px;color:#888;margin-left:6px">🔒</span>' : '';
+    const curTag  = isCurrent ? '<span style="font-size:11px;font-weight:700;color:#2d6a2d;margin-left:6px">● Current</span>' : '';
+
+    const adminActions = isAdminEnabled()
+      ? '<div class="cl-record-actions"><button class="btn-edit" onclick="wkEditRecord(\'' + rec.WK_ID + '\')">Edit</button> <button class="btn-delete" onclick="wkDeleteRecord(\'' + rec.WK_ID + '\')">Delete</button></div>'
+      : '';
+
     return '<div class="cl-record-card">'
-      + '<div class="cl-record-header"><div class="cl-record-date">Week: ' + (rec.Date||'-') + '</div>' + badge + '</div>'
-      + '<div class="cl-record-by">Pen: ' + (rec.Pen||'All') + ' · By: ' + (rec.CheckedBy||'-') + '</div>'
-      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic">"' + rec.Notes + '"</div>' : '')
+      + '<div class="cl-record-header">'
+      + '<div class="cl-record-date">Week ' + wk + ' · ' + yr + curTag + '</div>'
+      + statusBadge + lockTag
+      + '</div>'
+      + '<div class="cl-record-by">Pen: ' + (rec.Pen||'All') + ' · By: ' + (rec.CheckedBy||'—') + ' · ' + (rec.Date||'') + '</div>'
+      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic;margin-top:4px">"' + rec.Notes + '"</div>' : '')
+      + adminActions
       + '</div>';
   }).join('');
 }
 
-async function loadMonthlyHistory() {
-  document.getElementById('moHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-  const result = await apiGet({ action: 'moGetAll' });
-  if (result && result.success) {
-    allMonthly = result.records || [];
-    renderMonthlyHistory();
-  } else {
-    document.getElementById('moHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
-  }
-}
-
-function renderMonthlyHistory() {
-  const container = document.getElementById('moHistoryContainer');
-  const list = (allMonthly||[]).slice().reverse();
-  if (!list.length) { container.innerHTML = '<div class="empty-state">No monthly records found.</div>'; return; }
-  container.innerHTML = list.map(rec => {
-    const hasConcerns = rec.Status === 'CONCERNS';
-    const badge = hasConcerns ? '<span class="cl-concern-badge">! Concerns</span>' : '<span class="cl-ok-badge">✓ All OK</span>';
-    const month = (rec.Date||'').substring(0,7);
-    return '<div class="cl-record-card">'
-      + '<div class="cl-record-header"><div class="cl-record-date">Month: ' + (month||'-') + '</div>' + badge + '</div>'
-      + '<div class="cl-record-by">By: ' + (rec.CheckedBy||'-') + '</div>'
-      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic">"' + rec.Notes + '"</div>' : '')
-      + '</div>';
-  }).join('');
-}
-
-
-function initWeekly() {
-  WK_KEYS.forEach(k => { wkState[k] = null; });
-  const today = new Date().toISOString().split('T')[0];
-  const el = document.getElementById('wkDate');
-  if (el) el.value = today;
-}
-
-function wkIsLocked(dateStr) {
-  if (!dateStr) return false;
-  return dateStr < new Date().toISOString().split('T')[0];
-}
-
-function wkLockForm(lock) {
-  document.querySelectorAll('#wkFormView .toggle-btn').forEach(b => {
-    b.style.pointerEvents = lock ? 'none' : '';
-    b.style.opacity       = lock ? '0.5'  : '';
-  });
-  ['wkPen','wkCheckedBy','wkNotes'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.disabled = lock;
-  });
-  const btn = document.getElementById('btnSaveWk');
-  if (btn) { btn.disabled = lock; btn.style.opacity = lock ? '0.4' : '1'; }
-}
-
-async function wkDateChanged() {
-  const date = document.getElementById('wkDate')?.value;
-  const pen  = (document.getElementById('wkPen')?.value || '').trim();
-  if (!date) return;
-  const locked = wkIsLocked(date) && !isAdminEnabled();
-  if (allWeekly.length === 0) {
-    const r = await apiGet({ action: 'wkGetAll' });
-    if (r && r.success) allWeekly = r.records || [];
-  }
-  const existing = (date && pen)
-    ? allWeekly.find(r => String(r.Date||'').trim()===date && String(r.Pen||'').trim().toLowerCase()===pen.toLowerCase())
-    : null;
+function wkEditRecord(wkId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const rec = allWeekly.find(r => String(r.WK_ID) === String(wkId));
+  if (!rec) return;
+  wkEditId = rec.WK_ID;
+  if (document.getElementById('wkDate')) document.getElementById('wkDate').value = rec.Date || '';
+  if (document.getElementById('wkPen'))  document.getElementById('wkPen').value  = rec.Pen  || '';
+  _wkUpdateBadge(rec.Date || '');
+  _populateWkForm(rec);
+  wkLockForm(false);  // admin always unlocked
   const existBanner  = document.getElementById('wkExistingBanner');
   const lockedBanner = document.getElementById('wkLockedBanner');
-  if (existing) {
-    wkEditId = existing.WK_ID;
-    _populateWkForm(existing);
-    if (existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
-    if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
-  } else {
-    wkEditId = null;
-    WK_KEYS.forEach(k => {
-      wkState[k] = null;
-      document.querySelectorAll(`#pageWeekly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-    });
-    if (document.getElementById('wkCheckedBy')) document.getElementById('wkCheckedBy').value = '';
-    if (document.getElementById('wkNotes'))     document.getElementById('wkNotes').value     = '';
-    if (existBanner)  existBanner.style.display  = 'none';
-    if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
-  }
-  wkLockForm(locked);
+  if (existBanner)  existBanner.style.display  = 'block';
+  if (lockedBanner) lockedBanner.style.display = 'none';
   const btn = document.getElementById('btnSaveWk');
-  if (btn) btn.textContent = existing ? 'UPDATE WEEKLY CHECK' : 'SAVE WEEKLY CHECK';
+  if (btn) btn.textContent = 'UPDATE WEEKLY CHECK';
+  setWkView('form');
 }
 
-function _populateWkForm(rec) {
-  if (document.getElementById('wkCheckedBy')) document.getElementById('wkCheckedBy').value = rec.CheckedBy || '';
-  if (document.getElementById('wkNotes'))     document.getElementById('wkNotes').value     = rec.Notes     || '';
-  WK_KEYS.forEach(k => {
-    wkState[k] = rec[k] || null;
-    document.querySelectorAll(`#pageWeekly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-    if (rec[k]) {
-      const cls = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
-      const item = document.querySelector(`#pageWeekly .wm-item[data-key="${k}"]`);
-      if (item) item.querySelector(cls)?.classList.add('selected');
-    }
-  });
-}
-
-async function saveWeekly() {
-  const date      = document.getElementById('wkDate')?.value;
-  const pen       = (document.getElementById('wkPen')?.value||'').trim();
-  const checkedBy = (document.getElementById('wkCheckedBy')?.value||'').trim();
-  const notes     = (document.getElementById('wkNotes')?.value||'').trim();
-  if (!date) { showToast('Please select a date', true); return; }
-  if (wkIsLocked(date) && !isAdminEnabled()) { showToast('Past records are locked — admin required', true); return; }
-  const concerns = WK_KEYS.filter(k => wkState[k]==='bad');
-  const data = { Date:date, Pen:pen, CheckedBy:checkedBy, Notes:notes, Concerns:concerns.join(','), Status:concerns.length>0?'CONCERNS':'ALL OK' };
-  WK_KEYS.forEach(k => { data[k] = wkState[k]||''; });
-  const btn = document.getElementById('btnSaveWk');
-  btn.disabled=true; btn.textContent='Saving…';
-  const result = wkEditId
-    ? await apiPost({ action:'wkUpdate', id:wkEditId, data })
-    : await apiPost({ action:'wkAdd', data });
-  btn.disabled=false;
+async function wkDeleteRecord(wkId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!confirm('Delete this weekly checklist? This cannot be undone.')) return;
+  const result = await apiPost({ action: 'wkDelete', id: wkId });
   if (result && result.success) {
-    if (result.wk_id) wkEditId = result.wk_id;
-    showToast('Weekly checklist saved!');
-    btn.textContent='UPDATE WEEKLY CHECK';
-    allWeekly=[];
-    const b = document.getElementById('wkExistingBanner');
-    if (b) { b.textContent='✅ Saved — you can keep updating this record.'; b.style.display='block'; }
+    showToast('Weekly record deleted');
+    allWeekly = allWeekly.filter(r => String(r.WK_ID) !== String(wkId));
+    renderWeeklyHistory();
   } else {
-    showToast(result?.error||'Save failed', true);
-    btn.textContent = wkEditId ? 'UPDATE WEEKLY CHECK' : 'SAVE WEEKLY CHECK';
+    showToast(result?.error || 'Delete failed', true);
   }
+}
+
+function setMoView(view) {
+  document.getElementById('moTabForm').className    = 'cl-tab' + (view==='form'    ? ' active' : '');
+  document.getElementById('moTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
+  document.getElementById('moFormView').style.display    = view==='form'    ? 'block' : 'none';
+  document.getElementById('moHistoryView').style.display = view==='history' ? 'block' : 'none';
+  if (view === 'history') { allMonthly=[]; loadMonthlyHistory(); }
 }
 
 // ══════════════════════════════════════════════════
