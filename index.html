@@ -1480,7 +1480,7 @@
     </div>
 
     <div id="wkHistoryView" style="display:none">
-      <input type="text" class="list-search" id="wkHistorySearch" placeholder="Search by date or pen…" oninput="renderWkHistory()"/>
+      <input type="text" class="list-search" id="wkHistorySearch" placeholder="Search by week or pen…" oninput="renderWeeklyHistory()"/>
       <div id="wkHistoryContainer"><div class="empty-state">Loading…</div></div>
     </div>
   </div>
@@ -1496,18 +1496,29 @@
     </div>
 
     <div id="moFormView">
-      <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
-        <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
-          <label class="form-label">Month</label>
-          <input type="month" id="moMonth" class="form-input" onchange="moDateChanged()">
-        </div>
-        <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
-          <label class="form-label">Checked by</label>
-          <input type="text" id="moCheckedBy" class="form-input" placeholder="Your name">
+
+      <!-- Month selector + meta -->
+      <div style="background:#f5f0ff;border:1.5px solid #4a148c;border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:800;color:#4a148c;margin-bottom:8px">📆 Select Month — one record per month, updatable all month</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;flex:1;min-width:160px">
+            <label class="form-label" style="font-size:10px">Month</label>
+            <select id="moMonth" class="form-input" onchange="moMonthChanged()" style="font-weight:700;font-size:14px">
+              <option value="">— Select Month —</option>
+            </select>
+          </div>
+          <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
+            <label class="form-label" style="font-size:10px">Checked by</label>
+            <input type="text" id="moCheckedBy" class="form-input" placeholder="Your name">
+          </div>
+          <div style="display:flex;flex-direction:column;min-width:130px">
+            <label class="form-label" style="font-size:10px">Created</label>
+            <input type="text" id="moCreatedDate" class="form-input" readonly style="background:#f5f5f5;color:#555;font-size:12px">
+          </div>
         </div>
       </div>
 
-      <div id="moLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past month — this record is locked. Admin access required to edit.</div>
+      <div id="moLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past month — this record is closed. Admin access required to edit.</div>
       <div id="moExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">✅ Existing record loaded — saving will update it.</div>
 
       <!-- Growth & Records -->
@@ -1643,7 +1654,7 @@
     </div>
 
     <div id="moHistoryView" style="display:none">
-      <input type="text" class="list-search" id="moHistorySearch" placeholder="Search by month…" oninput="renderMoHistory()"/>
+      <input type="text" class="list-search" id="moHistorySearch" placeholder="Search by month…" oninput="renderMonthlyHistory()"/>
       <div id="moHistoryContainer"><div class="empty-state">Loading…</div></div>
     </div>
   </div>
@@ -1954,7 +1965,7 @@ function showPage(id) {
   if (id === "pageSowLitter") { allSlRecords = []; setSlView('active'); }
   if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
   if (id === "pageWeekly")   { allWeekly = [];     wkDateChanged(); }
-  if (id === "pageMonthly")  { allMonthly = [];    moDateChanged(); }
+  if (id === "pageMonthly")  { allMonthly = []; _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
 }
 
 function goHome() { showPage("pageHome"); }
@@ -2807,7 +2818,7 @@ function renderWeeklyHistory() {
 
     const adminActions = isAdminEnabled()
       ? '<div class="cl-record-actions"><button class="btn-edit" onclick="wkEditRecord(\'' + rec.WK_ID + '\')">Edit</button> <button class="btn-delete" onclick="wkDeleteRecord(\'' + rec.WK_ID + '\')">Delete</button></div>'
-      : '';
+      : (isCurrent ? '<div class="cl-record-actions"><button class="btn-edit" onclick="wkEditRecord(\'' + rec.WK_ID + '\')">Edit</button></div>' : '');
 
     return '<div class="cl-record-card">'
       + '<div class="cl-record-header">'
@@ -2822,9 +2833,15 @@ function renderWeeklyHistory() {
 }
 
 function wkEditRecord(wkId) {
-  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
   const rec = allWeekly.find(r => String(r.WK_ID) === String(wkId));
   if (!rec) return;
+  // Allow edit if admin OR if record is in current week
+  const { week: rw, year: ry } = getISOWeek(new Date(rec.Date||new Date()));
+  const { week: cw, year: cy } = getISOWeek(new Date());
+  const isCurrent = rw === cw && ry === cy;
+  if (!isAdminEnabled() && !isCurrent) {
+    showToast('Past week — admin access required to edit', true); return;
+  }
   wkEditId = rec.WK_ID;
   if (document.getElementById('wkDate')) document.getElementById('wkDate').value = rec.Date || '';
   if (document.getElementById('wkPen'))  document.getElementById('wkPen').value  = rec.Pen  || '';
@@ -2869,19 +2886,44 @@ let moState = {};
 let moEditId = null;
 let allMonthly = [];
 
-function initMonthly() {
-  MO_KEYS.forEach(k => { moState[k] = null; });
-  const today = new Date();
-  const monthStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
-  const el = document.getElementById('moMonth');
-  if (el) el.value = monthStr;
+const MO_NAMES = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+
+function _moCurrentKey() {
+  const now = new Date();
+  return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
 }
 
-function moIsLocked(monthStr) {
-  if (!monthStr) return false;
-  const now = new Date();
-  const curMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  return monthStr < curMonth;
+function moIsLocked(monthKey) {
+  if (!monthKey) return false;
+  return monthKey < _moCurrentKey();
+}
+
+// Populate the month dropdown — last 12 months + current + next 1
+function _moPopulateDropdown() {
+  const sel = document.getElementById('moMonth');
+  if (!sel) return;
+  const cur = _moCurrentKey();
+  const options = [];
+  // Go back 11 months, current month, next month
+  for (let i = -11; i <= 1; i++) {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + i);
+    const key   = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const label = MO_NAMES[d.getMonth()] + ' ' + d.getFullYear();
+    options.push({ key, label });
+  }
+  // Preserve current selection
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Select Month —</option>';
+  options.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.key;
+    opt.textContent = o.label + (o.key === cur ? ' ✦ current' : '');
+    if (o.key === prev) opt.selected = true;
+    sel.appendChild(opt);
+  });
 }
 
 function moLockForm(lock) {
@@ -2889,85 +2931,259 @@ function moLockForm(lock) {
     b.style.pointerEvents = lock ? 'none' : '';
     b.style.opacity       = lock ? '0.5'  : '';
   });
-  ['moCheckedBy','moNotes'].forEach(id => {
+  ['moCheckedBy','moNotes',
+   'moBy_growth','moBy_health','moBy_farm',
+   'mo_pigs_weighed','mo_avg_adg','mo_deaths','mo_vax_count','mo_feed_stock'].forEach(id => {
     const el = document.getElementById(id); if (el) el.disabled = lock;
   });
   const btn = document.getElementById('btnSaveMo');
   if (btn) { btn.disabled = lock; btn.style.opacity = lock ? '0.4' : '1'; }
 }
 
-async function moDateChanged() {
-  const month = document.getElementById('moMonth')?.value;
-  if (!month) return;
-  const locked = moIsLocked(month) && !isAdminEnabled();
+function _moClearForm() {
+  MO_KEYS.forEach(k => {
+    moState[k] = null;
+    document.querySelectorAll(`#pageMonthly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
+  });
+  ['moCheckedBy','moNotes','moBy_growth','moBy_health','moBy_farm',
+   'mo_pigs_weighed','mo_avg_adg','mo_deaths','mo_vax_count','mo_feed_stock'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const cd = document.getElementById('moCreatedDate');
+  if (cd) cd.value = '';
+}
+
+function initMonthly() {
+  MO_KEYS.forEach(k => { moState[k] = null; });
+  _moPopulateDropdown();
+  // Default to current month
+  const cur = _moCurrentKey();
+  const sel = document.getElementById('moMonth');
+  if (sel) sel.value = cur;
+}
+
+async function moMonthChanged() {
+  const monthKey = document.getElementById('moMonth')?.value;
+  if (!monthKey) return;
+
+  const locked = moIsLocked(monthKey) && !isAdminEnabled();
+
+  // Load records if needed
   if (allMonthly.length === 0) {
     const r = await apiGet({ action: 'moGetAll' });
     if (r && r.success) allMonthly = r.records || [];
   }
-  const existing = allMonthly.find(r => String(r.Date||'').trim().startsWith(month));
+
+  // Match on Month key field (YYYY-MM)
+  const existing = allMonthly.find(r => String(r.Month||'').trim() === monthKey);
+
   const existBanner  = document.getElementById('moExistingBanner');
   const lockedBanner = document.getElementById('moLockedBanner');
+  const createdEl    = document.getElementById('moCreatedDate');
+
   if (existing) {
     moEditId = existing.MO_ID;
     _populateMoForm(existing);
+    if (createdEl) createdEl.value = existing.CreatedDate || '';
     if (existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
     if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
   } else {
     moEditId = null;
-    MO_KEYS.forEach(k => {
-      moState[k] = null;
-      document.querySelectorAll(`#pageMonthly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
-    });
-    if (document.getElementById('moCheckedBy')) document.getElementById('moCheckedBy').value = '';
-    if (document.getElementById('moNotes'))     document.getElementById('moNotes').value     = '';
+    _moClearForm();
+    // Set created date to today for new records
+    if (createdEl) createdEl.value = new Date().toISOString().split('T')[0];
     if (existBanner)  existBanner.style.display  = 'none';
     if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
   }
+
   moLockForm(locked);
   const btn = document.getElementById('btnSaveMo');
   if (btn) btn.textContent = existing ? 'UPDATE MONTHLY CHECK' : 'SAVE MONTHLY CHECK';
 }
 
+// Keep old name as alias for showPage hook
+async function moDateChanged() { return moMonthChanged(); }
+
 function _populateMoForm(rec) {
-  if (document.getElementById('moCheckedBy')) document.getElementById('moCheckedBy').value = rec.CheckedBy || '';
-  if (document.getElementById('moNotes'))     document.getElementById('moNotes').value     = rec.Notes     || '';
+  if (document.getElementById('moCheckedBy'))   document.getElementById('moCheckedBy').value   = rec.CheckedBy  || '';
+  if (document.getElementById('moNotes'))        document.getElementById('moNotes').value        = rec.Notes      || '';
+  if (document.getElementById('moBy_growth'))    document.getElementById('moBy_growth').value    = rec.ByGrowth   || '';
+  if (document.getElementById('moBy_health'))    document.getElementById('moBy_health').value    = rec.ByHealth   || '';
+  if (document.getElementById('moBy_farm'))      document.getElementById('moBy_farm').value      = rec.ByFarm     || '';
+  if (document.getElementById('mo_pigs_weighed'))document.getElementById('mo_pigs_weighed').value= rec.PigsWeighed|| '';
+  if (document.getElementById('mo_avg_adg'))     document.getElementById('mo_avg_adg').value     = rec.AvgADG     || '';
+  if (document.getElementById('mo_deaths'))      document.getElementById('mo_deaths').value      = rec.Deaths     || '';
+  if (document.getElementById('mo_vax_count'))   document.getElementById('mo_vax_count').value   = rec.VaxCount   || '';
+  if (document.getElementById('mo_feed_stock'))  document.getElementById('mo_feed_stock').value  = rec.FeedStock  || '';
   MO_KEYS.forEach(k => {
     moState[k] = rec[k] || null;
     document.querySelectorAll(`#pageMonthly .wm-item[data-key="${k}"] .toggle-btn`).forEach(b => b.classList.remove('selected'));
     if (rec[k]) {
-      const cls = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
+      const cls  = rec[k]==='ok' ? '.toggle-ok' : '.toggle-bad';
       const item = document.querySelector(`#pageMonthly .wm-item[data-key="${k}"]`);
       if (item) item.querySelector(cls)?.classList.add('selected');
     }
   });
 }
 
+function resetMonthly() {
+  moEditId   = null;
+  allMonthly = [];
+  _moClearForm();
+  _moPopulateDropdown();
+  const cur = _moCurrentKey();
+  const sel = document.getElementById('moMonth');
+  if (sel) sel.value = cur;
+  const cd = document.getElementById('moCreatedDate');
+  if (cd) cd.value = new Date().toISOString().split('T')[0];
+  document.getElementById('moLockedBanner').style.display  = 'none';
+  document.getElementById('moExistingBanner').style.display = 'none';
+  const btn = document.getElementById('btnSaveMo');
+  if (btn) { btn.disabled=false; btn.style.opacity='1'; btn.textContent='SAVE MONTHLY CHECK'; }
+  moLockForm(false);
+}
+
 async function saveMonthly() {
-  const month     = document.getElementById('moMonth')?.value;
+  const monthKey  = document.getElementById('moMonth')?.value;
   const checkedBy = (document.getElementById('moCheckedBy')?.value||'').trim();
   const notes     = (document.getElementById('moNotes')?.value||'').trim();
-  if (!month) { showToast('Please select a month', true); return; }
-  if (moIsLocked(month) && !isAdminEnabled()) { showToast('Past records are locked — admin required', true); return; }
-  const date = month + '-01';
+  if (!monthKey) { showToast('Please select a month', true); return; }
+  if (moIsLocked(monthKey) && !isAdminEnabled()) {
+    showToast('Past month — record is closed. Admin access required.', true); return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
   const concerns = MO_KEYS.filter(k => moState[k]==='bad');
-  const data = { Date:date, CheckedBy:checkedBy, Notes:notes, Concerns:concerns.join(','), Status:concerns.length>0?'CONCERNS':'ALL OK' };
+  const g = id => (document.getElementById(id)?.value||'').trim();
+
+  const data = {
+    Month:        monthKey,
+    CreatedDate:  moEditId ? (document.getElementById('moCreatedDate')?.value || today) : today,
+    CheckedBy:    checkedBy,
+    Notes:        notes,
+    Concerns:     concerns.join(','),
+    Status:       concerns.length > 0 ? 'CONCERNS' : 'ALL OK',
+    ByGrowth:     g('moBy_growth'),
+    ByHealth:     g('moBy_health'),
+    ByFarm:       g('moBy_farm'),
+    PigsWeighed:  g('mo_pigs_weighed'),
+    AvgADG:       g('mo_avg_adg'),
+    Deaths:       g('mo_deaths'),
+    VaxCount:     g('mo_vax_count'),
+    FeedStock:    g('mo_feed_stock')
+  };
   MO_KEYS.forEach(k => { data[k] = moState[k]||''; });
+
   const btn = document.getElementById('btnSaveMo');
   btn.disabled=true; btn.textContent='Saving…';
+
+  // Always upsert — prevents duplicates even if moEditId is stale
   const result = moEditId
     ? await apiPost({ action:'moUpdate', id:moEditId, data })
-    : await apiPost({ action:'moAdd', data });
+    : await apiPost({ action:'moUpsert', data });
+
   btn.disabled=false;
   if (result && result.success) {
     if (result.mo_id) moEditId = result.mo_id;
-    showToast('Monthly checklist saved!');
+    const monthName = MO_NAMES[parseInt(monthKey.split('-')[1])-1] + ' ' + monthKey.split('-')[0];
+    showToast('✓ ' + monthName + ' checklist saved!');
     btn.textContent='UPDATE MONTHLY CHECK';
     allMonthly=[];
     const b = document.getElementById('moExistingBanner');
-    if (b) { b.textContent='✅ Saved — you can keep updating this record.'; b.style.display='block'; }
+    if (b) { b.textContent='✅ Saved — you can update this record any time this month.'; b.style.display='block'; }
+    document.getElementById('moCreatedDate').value = data.CreatedDate;
   } else {
     showToast(result?.error||'Save failed', true);
     btn.textContent = moEditId ? 'UPDATE MONTHLY CHECK' : 'SAVE MONTHLY CHECK';
+  }
+}
+
+async function loadMonthlyHistory() {
+  document.getElementById('moHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  const result = await apiGet({ action: 'moGetAll' });
+  if (result && result.success) {
+    allMonthly = result.records || [];
+    renderMonthlyHistory();
+  } else {
+    document.getElementById('moHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+  }
+}
+
+function renderMonthlyHistory() {
+  const container = document.getElementById('moHistoryContainer');
+  const filter    = (document.getElementById('moHistorySearch')?.value || '').toLowerCase();
+  const curKey    = _moCurrentKey();
+
+  let list = (allMonthly||[]).filter(r => {
+    if (!filter) return true;
+    const mk = String(r.Month||'');
+    const mn = MO_NAMES[parseInt(mk.split('-')[1])-1] || '';
+    return mk.toLowerCase().includes(filter)
+      || mn.toLowerCase().includes(filter)
+      || (r.CheckedBy||'').toLowerCase().includes(filter);
+  }).slice().sort((a,b) => String(b.Month||'').localeCompare(String(a.Month||'')));
+
+  if (!list.length) { container.innerHTML = '<div class="empty-state">No monthly records found.</div>'; return; }
+
+  container.innerHTML = list.map(rec => {
+    const mk      = String(rec.Month||'');
+    const parts   = mk.split('-');
+    const mn      = (MO_NAMES[parseInt(parts[1])-1] || mk) + ' ' + (parts[0]||'');
+    const isCur   = mk === curKey;
+    const isPast  = !isCur;
+    const locked  = isPast && !isAdminEnabled();
+
+    const hasConcerns = rec.Status === 'CONCERNS';
+    const statusBadge = hasConcerns
+      ? '<span class="cl-concern-badge">⚠ Concerns</span>'
+      : '<span class="cl-ok-badge">✓ All OK</span>';
+    const curTag  = isCur ? '<span style="font-size:11px;font-weight:700;color:#4a148c;margin-left:6px">● Current</span>' : '';
+    const lockTag = locked ? '<span style="font-size:11px;color:#888;margin-left:4px">🔒</span>' : '';
+
+    const adminActions = isAdminEnabled()
+      ? '<div class="cl-record-actions"><button class="btn-edit" onclick="moEditRecord(\'' + rec.MO_ID + '\')">Edit</button> <button class="btn-delete" onclick="moDeleteRecord(\'' + rec.MO_ID + '\')">Delete</button></div>'
+      : (isCur ? '<div class="cl-record-actions"><button class="btn-edit" onclick="moEditRecord(\'' + rec.MO_ID + '\')">Edit</button></div>' : '');
+
+    return '<div class="cl-record-card">'
+      + '<div class="cl-record-header"><div class="cl-record-date">' + mn + curTag + '</div>' + statusBadge + lockTag + '</div>'
+      + '<div class="cl-record-by">By: ' + (rec.CheckedBy||'—') + (rec.CreatedDate ? ' · Created: ' + rec.CreatedDate : '') + '</div>'
+      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic;margin-top:4px">"' + rec.Notes + '"</div>' : '')
+      + adminActions
+      + '</div>';
+  }).join('');
+}
+
+function moEditRecord(moId) {
+  const rec = allMonthly.find(r => String(r.MO_ID) === String(moId));
+  if (!rec) return;
+  // Non-admin can only edit current month
+  if (!isAdminEnabled() && moIsLocked(rec.Month)) {
+    showToast('Past month — admin access required to edit', true); return;
+  }
+  moEditId = rec.MO_ID;
+  const sel = document.getElementById('moMonth');
+  if (sel) sel.value = rec.Month || '';
+  _populateMoForm(rec);
+  const cd = document.getElementById('moCreatedDate');
+  if (cd) cd.value = rec.CreatedDate || '';
+  moLockForm(false);
+  document.getElementById('moExistingBanner').style.display  = 'block';
+  document.getElementById('moLockedBanner').style.display    = 'none';
+  const btn = document.getElementById('btnSaveMo');
+  if (btn) btn.textContent = 'UPDATE MONTHLY CHECK';
+  setMoView('form');
+}
+
+async function moDeleteRecord(moId) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!confirm('Delete this monthly checklist? This cannot be undone.')) return;
+  const result = await apiPost({ action: 'moDelete', id: moId });
+  if (result && result.success) {
+    showToast('Monthly record deleted');
+    allMonthly = allMonthly.filter(r => String(r.MO_ID) !== String(moId));
+    renderMonthlyHistory();
+  } else {
+    showToast(result?.error || 'Delete failed', true);
   }
 }
 

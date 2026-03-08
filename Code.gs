@@ -79,6 +79,7 @@ function doPost(e) {
     if (action === "wkUpdate") return corsRespond(wkUpdate(payload.id, payload.data));
     if (action === "wkDelete") return corsRespond(wkDelete(payload.id));
     if (action === "moAdd")    return corsRespond(moAdd(payload.data));
+    if (action === "moUpsert") return corsRespond(moUpsert(payload.data));
     if (action === "moUpdate") return corsRespond(moUpdate(payload.id, payload.data));
     if (action === "moDelete") return corsRespond(moDelete(payload.id));
     if (action === "saveSetting") return corsRespond(saveSetting(payload.key, payload.value));
@@ -482,7 +483,7 @@ const MO_SHEET = "MonthlyChecklist";
 const MO_KEYS_GS = ['mo_full_weigh','mo_growth_rate','mo_mortality',
   'mo_vaccination','mo_breeding','mo_boar_perf',
   'mo_feed_inventory','mo_equipment','mo_biosecurity'];
-const MO_HEADERS_GS = ["MO_ID","Month","CheckedBy","Status","Concerns","Notes",
+const MO_HEADERS_GS = ["MO_ID","Month","CreatedDate","CheckedBy","Status","Concerns","Notes",
   "PigsWeighed","AvgADG","Deaths","VaxCount","FeedStock",
   "ByGrowth","ByHealth","ByFarm",...MO_KEYS_GS];
 
@@ -515,6 +516,34 @@ function moAdd(data) {
   const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
   sheet.appendRow(MO_HEADERS_GS.map(h => h==="MO_ID" ? newId : (data[h]!==undefined ? data[h] : "")));
   return { success: true, mo_id: newId };
+}
+
+// Upsert by Month key — prevents duplicate months
+function moUpsert(data) {
+  const sheet = getMoSheet();
+  const monthKey = String(data['Month']||'').trim();
+  if (!monthKey) return { success: false, error: "Month is required" };
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const allData = sheet.getRange(2,1,lastRow-1,MO_HEADERS_GS.length).getValues();
+    const monthIdx = MO_HEADERS_GS.indexOf('Month');
+    const idIdx    = MO_HEADERS_GS.indexOf('MO_ID');
+    const rowIdx   = allData.findIndex(r => String(r[monthIdx]||'').trim() === monthKey);
+    if (rowIdx !== -1) {
+      // Update existing
+      const moId = allData[rowIdx][idIdx];
+      MO_HEADERS_GS.forEach((h,i) => {
+        if (h !== 'MO_ID' && h !== 'CreatedDate' && data[h] !== undefined)
+          sheet.getRange(rowIdx+2, i+1).setValue(data[h]);
+      });
+      return { success: true, mo_id: moId, updated: true };
+    }
+  }
+  // Insert new
+  const ids = lastRow <= 1 ? [] : sheet.getRange(2,1,lastRow-1,1).getValues().flat().filter(v=>v!=="");
+  const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
+  sheet.appendRow(MO_HEADERS_GS.map(h => h==="MO_ID" ? newId : (data[h]!==undefined ? data[h] : "")));
+  return { success: true, mo_id: newId, updated: false };
 }
 
 function moUpdate(moId, data) {
