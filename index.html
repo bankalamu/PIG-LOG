@@ -716,6 +716,7 @@
       <button class="btn-edit" style="flex:none;padding:8px 14px;font-size:13px" onclick="showPage('pageNew')">+ Add New</button>
     </div>
     <input type="text" class="list-search" id="listSearch" placeholder="Search records…" oninput="renderList()" />
+    <div id="dupDiagBanner" style="display:none;margin-bottom:10px;padding:8px 12px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:8px;font-size:11px;font-family:monospace;color:#333;word-break:break-all"></div>
     <div id="listContainer"></div>
   </div>
 
@@ -2005,6 +2006,7 @@ async function loadRecords() {
       allRecords = data.records || [];
       updateCounts();
       prepSearchPage();
+      if (currentPage === "pageList") renderList();
     }
   } catch (e) {
     // silently fail if no URL yet
@@ -2269,14 +2271,54 @@ function renderList() {
     return;
   }
 
-  // Build set of DB_IDs that share a key combo with at least one other record
-  const keyOf = r => `${String(r["PIG ID"]||"").trim().toLowerCase()}|${String(r["Boar"]||"").trim().toLowerCase()}|${String(r["SOW"]||"").trim().toLowerCase()}`;
-  const keyCounts = {};
-  allRecords.forEach(r => { const k = keyOf(r); keyCounts[k] = (keyCounts[k]||0) + 1; });
-  const dupIds = new Set(allRecords.filter(r => keyCounts[keyOf(r)] > 1).map(r => r.DB_ID));
+  // ── Duplicate detection ──────────────────────────────────────
+  // A duplicate is when PIG ID + Boar + SOW ALL match another record.
+  // Records where ANY of the three fields is blank/null/0 are EXCLUDED
+  // from duplicate checking (a partial key cannot form a meaningful duplicate).
+  const clean = v => String(v === null || v === undefined ? "" : v).trim().toLowerCase().replace(/\s+/g," ");
+  const isEmpty = v => { const s = clean(v); return s === "" || s === "0"; };
+
+  const dupIds = new Set();
+  const keyMap = {}; // key → [db_id, ...]
+
+  allRecords.forEach(r => {
+    const p = clean(r["PIG ID"]);
+    const b = clean(r["Boar"]);
+    const s = clean(r["SOW"]);
+    // Only flag if ALL THREE fields are non-empty
+    if (isEmpty(p) || isEmpty(b) || isEmpty(s)) return;
+    const k = p + "|||" + b + "|||" + s;
+    if (!keyMap[k]) keyMap[k] = [];
+    keyMap[k].push(String(r.DB_ID));
+  });
+
+  Object.values(keyMap).forEach(ids => {
+    if (ids.length > 1) ids.forEach(id => dupIds.add(id));
+  });
+
+  // Debug: log to console so you can verify in browser devtools
+  if (dupIds.size > 0) {
+    console.warn("[PigLog] Duplicate records detected, DB_IDs:", [...dupIds]);
+    console.table(allRecords.filter(r => dupIds.has(String(r.DB_ID))).map(r => ({
+      DB_ID: r.DB_ID, "PIG ID": r["PIG ID"], Boar: r["Boar"], SOW: r["SOW"]
+    })));
+  }
+
+  // Debug banner — shows field values of first few records so we can verify field names
+  const diagBanner = document.getElementById('dupDiagBanner');
+  if (diagBanner) {
+    const sample = allRecords.slice(0, 3).map(r =>
+      `DB_ID:${r.DB_ID} | PIG_ID:"${r["PIG ID"]}" | Boar:"${r["Boar"]}" | SOW:"${r["SOW"]}"`
+    ).join('\n');
+    const dupInfo = dupIds.size > 0
+      ? `\n⚠️ DUPS found — DB_IDs: ${[...dupIds].join(', ')}`
+      : '\n✓ No duplicates detected';
+    diagBanner.style.display = 'block';
+    diagBanner.textContent = '🔍 Field debug (first 3 records):\n' + sample + dupInfo;
+  }
 
   container.innerHTML = filtered.map(rec => {
-    const isDup = dupIds.has(rec.DB_ID);
+    const isDup = dupIds.has(String(rec.DB_ID));
     const keyStyle  = isDup ? 'color:#c0392b;font-weight:900;' : '';
     const cardBorder = isDup ? 'border:2px solid #c0392b;' : '';
     const dupBanner = isDup
