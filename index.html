@@ -2066,6 +2066,10 @@ function buildForm(containerId, prefix) {
       input.type = "text";
       input.className = "form-input";
       input.placeholder = col === "PIG ID" ? "e.g. B1-S2-L3" : col;
+      // Clear error highlight when user types
+      if (col === "PIG ID" || col === "Boar" || col === "SOW") {
+        input.addEventListener("input", () => { input.style.border = ""; input.style.background = ""; });
+      }
     }
     input.id = `${prefix}_${col.replace(/\s/g, "_")}`;
     div.appendChild(input);
@@ -2106,25 +2110,48 @@ function prepNewForm() {
   document.getElementById("newDbId").textContent = nextId;
 }
 
-async function saveNew() {
-  const data = getFormValues("new");
+// Highlight missing/invalid key fields with red border
+function _highlightKeyFields(prefix, pigId, boar, sow) {
+  const fields = { "PIG_ID": pigId, "Boar": boar, "SOW": sow };
+  let anyMissing = false;
+  Object.entries(fields).forEach(([id, val]) => {
+    const el = document.getElementById(`${prefix}_${id}`);
+    if (!el) return;
+    const missing = !String(val||"").trim();
+    el.style.border = missing ? "2px solid #c0392b" : "";
+    el.style.background = missing ? "#fde8e8" : "";
+    if (missing) anyMissing = true;
+  });
+  return anyMissing;
+}
 
-  // All three key fields required
-  if (!data["PIG ID"] || !data["Boar"] || !data["SOW"]) {
-    showToast("PIG ID, Boar and SOW are all required", true); return;
+async function saveNew() {
+  const data  = getFormValues("new");
+  const pigId = String(data["PIG ID"] || "").trim();
+  const boar  = String(data["Boar"]   || "").trim();
+  const sow   = String(data["SOW"]    || "").trim();
+
+  // Highlight missing fields and block
+  const missing = _highlightKeyFields("new", pigId, boar, sow);
+  if (missing) {
+    showToast("PIG ID, Boar and SOW are all required", true);
+    return;
   }
 
-  // Client-side duplicate check against cached records
-  const pigId = data["PIG ID"].trim().toLowerCase();
-  const boar  = data["Boar"].trim().toLowerCase();
-  const sow   = data["SOW"].trim().toLowerCase();
+  // Client-side duplicate check
+  const clean = v => String(v||"").trim().toLowerCase();
   const dup = allRecords.find(r =>
-    String(r["PIG ID"]||"").trim().toLowerCase() === pigId &&
-    String(r["Boar"]  ||"").trim().toLowerCase() === boar  &&
-    String(r["SOW"]   ||"").trim().toLowerCase() === sow
+    clean(r["PIG ID"]) === clean(pigId) &&
+    clean(r["Boar"])   === clean(boar)  &&
+    clean(r["SOW"])    === clean(sow)
   );
   if (dup) {
-    showToast(`Duplicate — PIG ID "${data["PIG ID"]}", Boar "${data["Boar"]}", SOW "${data["SOW"]}" already exists`, true);
+    // Highlight all three key fields red
+    ["PIG_ID","Boar","SOW"].forEach(id => {
+      const el = document.getElementById(`new_${id}`);
+      if (el) { el.style.border = "2px solid #c0392b"; el.style.background = "#fde8e8"; }
+    });
+    showToast(`Duplicate — "${pigId}" / Boar "${boar}" / SOW "${sow}" already exists (DB_ID: ${dup.DB_ID})`, true);
     return;
   }
 
@@ -2219,23 +2246,29 @@ function _availableBadge(val) {
 async function saveEdit() {
   const data = getFormValues("edit");
 
-  // If key fields are enabled (not locked), validate no duplicate
+  // If key fields are unlocked, enforce all 3 present and check for duplicates
   const keyLocked = document.getElementById(`edit_PIG_ID`)?.disabled;
   if (!keyLocked) {
-    if (!data["PIG ID"] || !data["Boar"] || !data["SOW"]) {
-      showToast("PIG ID, Boar and SOW are all required", true); return;
-    }
-    const pigId = data["PIG ID"].trim().toLowerCase();
-    const boar  = data["Boar"].trim().toLowerCase();
-    const sow   = data["SOW"].trim().toLowerCase();
+    const pigId = String(data["PIG ID"] || "").trim();
+    const boar  = String(data["Boar"]   || "").trim();
+    const sow   = String(data["SOW"]    || "").trim();
+
+    const missing = _highlightKeyFields("edit", pigId, boar, sow);
+    if (missing) { showToast("PIG ID, Boar and SOW are all required", true); return; }
+
+    const clean = v => String(v||"").trim().toLowerCase();
     const dup = allRecords.find(r =>
       Number(r.DB_ID) !== Number(currentEditId) &&
-      String(r["PIG ID"]||"").trim().toLowerCase() === pigId &&
-      String(r["Boar"]  ||"").trim().toLowerCase() === boar  &&
-      String(r["SOW"]   ||"").trim().toLowerCase() === sow
+      clean(r["PIG ID"]) === clean(pigId) &&
+      clean(r["Boar"])   === clean(boar)  &&
+      clean(r["SOW"])    === clean(sow)
     );
     if (dup) {
-      showToast(`Duplicate — PIG ID "${data["PIG ID"]}", Boar "${data["Boar"]}", SOW "${data["SOW"]}" already exists`, true);
+      ["PIG_ID","Boar","SOW"].forEach(id => {
+        const el = document.getElementById(`edit_${id}`);
+        if (el) { el.style.border = "2px solid #c0392b"; el.style.background = "#fde8e8"; }
+      });
+      showToast(`Duplicate — "${pigId}" / Boar "${boar}" / SOW "${sow}" already exists (DB_ID: ${dup.DB_ID})`, true);
       return;
     }
   }
@@ -2248,7 +2281,6 @@ async function saveEdit() {
   if (result && result.success) {
     showToast("✓ Record updated!");
     await loadRecords();
-    // Re-apply lock in case Available was just changed to No
     const updatedRec = allRecords.find(r => Number(r.DB_ID) === Number(currentEditId));
     if (updatedRec) _applyEditLock(String(updatedRec.Available||"").trim().toLowerCase() === "no");
   } else {
@@ -2261,7 +2293,41 @@ async function saveEdit() {
 function renderList() {
   const filter    = document.getElementById("listSearch").value.toLowerCase();
   const container = document.getElementById("listContainer");
+  const diagBanner = document.getElementById('dupDiagBanner');
 
+  // ── Duplicate detection runs over ALL records (not filtered) ──
+  // Rule: ALL THREE of PIG ID + Boar + SOW must be non-empty AND identical → duplicate
+  const clean   = v => String(v === null || v === undefined ? "" : v).trim().toLowerCase().replace(/\s+/g, " ");
+  const hasVal  = v => clean(v) !== "" && clean(v) !== "0";
+  const dupIds  = new Set();
+  const keyMap  = {};
+
+  allRecords.forEach(r => {
+    const p = clean(r["PIG ID"]);
+    const b = clean(r["Boar"]);
+    const s = clean(r["SOW"]);
+    if (!hasVal(p) || !hasVal(b) || !hasVal(s)) return; // skip incomplete keys
+    const k = p + "|||" + b + "|||" + s;
+    if (!keyMap[k]) keyMap[k] = [];
+    keyMap[k].push(String(r.DB_ID));
+  });
+  Object.values(keyMap).forEach(ids => {
+    if (ids.length > 1) ids.forEach(id => dupIds.add(id));
+  });
+
+  // ── Debug banner (always visible on Records page) ──
+  if (diagBanner) {
+    const rows = allRecords.slice(0, 5).map(r =>
+      `&nbsp;&nbsp;DB_ID=${r.DB_ID}&nbsp; PIG_ID=<b>"${r["PIG ID"]}"</b>&nbsp; Boar=<b>"${r["Boar"]}"</b>&nbsp; SOW=<b>"${r["SOW"]}"</b>`
+    ).join('<br>');
+    const dupInfo = dupIds.size > 0
+      ? `<br><span style="color:#c0392b;font-weight:700">⚠️ DUPS detected — DB_IDs: ${[...dupIds].join(', ')}</span>`
+      : `<br><span style="color:#2d6a2d;font-weight:700">✓ No duplicates detected</span>`;
+    diagBanner.style.display = 'block';
+    diagBanner.innerHTML = `<b>🔍 Field check (first ${Math.min(5,allRecords.length)} records):</b><br>${rows}${dupInfo}`;
+  }
+
+  // ── Render cards ──
   const filtered = allRecords.filter(r =>
     Object.values(r).some(v => String(v).toLowerCase().includes(filter))
   );
@@ -2271,65 +2337,17 @@ function renderList() {
     return;
   }
 
-  // ── Duplicate detection ──────────────────────────────────────
-  // A duplicate is when PIG ID + Boar + SOW ALL match another record.
-  // Records where ANY of the three fields is blank/null/0 are EXCLUDED
-  // from duplicate checking (a partial key cannot form a meaningful duplicate).
-  const clean = v => String(v === null || v === undefined ? "" : v).trim().toLowerCase().replace(/\s+/g," ");
-  const isEmpty = v => { const s = clean(v); return s === "" || s === "0"; };
-
-  const dupIds = new Set();
-  const keyMap = {}; // key → [db_id, ...]
-
-  allRecords.forEach(r => {
-    const p = clean(r["PIG ID"]);
-    const b = clean(r["Boar"]);
-    const s = clean(r["SOW"]);
-    // Only flag if ALL THREE fields are non-empty
-    if (isEmpty(p) || isEmpty(b) || isEmpty(s)) return;
-    const k = p + "|||" + b + "|||" + s;
-    if (!keyMap[k]) keyMap[k] = [];
-    keyMap[k].push(String(r.DB_ID));
-  });
-
-  Object.values(keyMap).forEach(ids => {
-    if (ids.length > 1) ids.forEach(id => dupIds.add(id));
-  });
-
-  // Debug: log to console so you can verify in browser devtools
-  if (dupIds.size > 0) {
-    console.warn("[PigLog] Duplicate records detected, DB_IDs:", [...dupIds]);
-    console.table(allRecords.filter(r => dupIds.has(String(r.DB_ID))).map(r => ({
-      DB_ID: r.DB_ID, "PIG ID": r["PIG ID"], Boar: r["Boar"], SOW: r["SOW"]
-    })));
-  }
-
-  // Debug banner — shows field values of first few records so we can verify field names
-  const diagBanner = document.getElementById('dupDiagBanner');
-  if (diagBanner) {
-    const sample = allRecords.slice(0, 3).map(r =>
-      `DB_ID:${r.DB_ID} | PIG_ID:"${r["PIG ID"]}" | Boar:"${r["Boar"]}" | SOW:"${r["SOW"]}"`
-    ).join('\n');
-    const dupInfo = dupIds.size > 0
-      ? `\n⚠️ DUPS found — DB_IDs: ${[...dupIds].join(', ')}`
-      : '\n✓ No duplicates detected';
-    diagBanner.style.display = 'block';
-    diagBanner.textContent = '🔍 Field debug (first 3 records):\n' + sample + dupInfo;
-  }
-
   container.innerHTML = filtered.map(rec => {
-    const isDup = dupIds.has(String(rec.DB_ID));
-    const keyStyle  = isDup ? 'color:#c0392b;font-weight:900;' : '';
-    const cardBorder = isDup ? 'border:2px solid #c0392b;' : '';
-    const dupBanner = isDup
-      ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">
-           ⚠️ Duplicate key — PIG ID, Boar &amp; SOW match another record
-         </div>`
+    const isDup      = dupIds.has(String(rec.DB_ID));
+    const keyStyle   = isDup ? 'color:#c0392b;font-weight:900;' : '';
+    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : '';
+    const dupBanner  = isDup
+      ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">⚠️ Duplicate — PIG ID, Boar &amp; SOW match another record</div>`
       : '';
 
     const pigIdHtml = rec["PIG ID"]
       ? `<span style="${keyStyle}">${rec["PIG ID"]}</span>`
-      : `<span style="color:#3a5a3a;font-style:italic">No PIG ID</span>`;
+      : `<span style="color:#c0392b;font-style:italic;font-weight:700">⚠ No PIG ID</span>`;
 
     return `
     <div class="record-card" style="${cardBorder}">
@@ -2345,12 +2363,12 @@ function renderList() {
         </div>
       </div>
       <div class="record-fields">
-        ${rec.Boar   ? `<span><span class="field-label">Boar: </span><span style="${keyStyle}">${rec.Boar}</span></span>` : ""}
-        ${rec.SOW    ? `<span><span class="field-label">Sow: </span><span style="${keyStyle}">${rec.SOW}</span></span>` : ""}
-        ${rec.DOB    ? `<span><span class="field-label">DOB: </span>${rec.DOB}</span>` : ""}
-        ${rec.SEX    ? `<span><span class="field-label">Sex: </span>${rec.SEX}</span>` : ""}
-        ${rec.Weight ? `<span><span class="field-label">Wt: </span>${rec.Weight} lbs</span>` : ""}
-        ${rec.Pen    ? `<span><span class="field-label">Pen: </span>${rec.Pen}</span>` : ""}
+        ${rec.Boar     ? `<span><span class="field-label">Boar: </span><span style="${keyStyle}">${rec.Boar}</span></span>` : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No Boar</span>`}
+        ${rec.SOW      ? `<span><span class="field-label">Sow: </span><span style="${keyStyle}">${rec.SOW}</span></span>`  : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No SOW</span>`}
+        ${rec.DOB      ? `<span><span class="field-label">DOB: </span>${rec.DOB}</span>` : ""}
+        ${rec.SEX      ? `<span><span class="field-label">Sex: </span>${rec.SEX}</span>` : ""}
+        ${rec.Weight   ? `<span><span class="field-label">Wt: </span>${rec.Weight} lbs</span>` : ""}
+        ${rec.Pen      ? `<span><span class="field-label">Pen: </span>${rec.Pen}</span>` : ""}
         ${rec.Dewormed ? `<span><span class="field-label">Dewormed: </span>${rec.Dewormed}</span>` : ""}
       </div>
       ${rec.Notes ? `<div class="record-notes">${rec.Notes}</div>` : ""}
