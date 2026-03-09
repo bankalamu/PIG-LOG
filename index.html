@@ -2181,7 +2181,7 @@ async function saveNew() {
   const sexErr = _validateTypeSex("new", data["Type"], data["SEX"]);
   if (sexErr) { showToast(sexErr, true); return; }
 
-  // Client-side duplicate check
+  // Client-side duplicate check — same PIG ID + Boar + SOW combo (blanks included)
   const clean = v => String(v||"").trim().toLowerCase();
   const dup = allRecords.find(r =>
     clean(r["PIG ID"]) === clean(pigId) &&
@@ -2342,17 +2342,19 @@ function renderList() {
   const diagBanner = document.getElementById('dupDiagBanner');
 
   // ── Duplicate detection runs over ALL records (not filtered) ──
-  // Rule: ALL THREE of PIG ID + Boar + SOW must be non-empty AND identical → duplicate
-  const clean   = v => String(v === null || v === undefined ? "" : v).trim().toLowerCase().replace(/\s+/g, " ");
-  const hasVal  = v => clean(v) !== "" && clean(v) !== "0";
-  const dupIds  = new Set();
-  const keyMap  = {};
+  // A duplicate = same PIG ID + same Boar + same SOW on two or more records.
+  // Only skip records with no PIG ID at all (completely blank key).
+  // Empty Boar/SOW is a valid key segment — two records with same PIG ID and
+  // both Boar+SOW blank ARE duplicates.
+  const clean  = v => String(v === null || v === undefined ? "" : v).trim().toLowerCase().replace(/\s+/g, " ");
+  const dupIds = new Set();
+  const keyMap = {};
 
   allRecords.forEach(r => {
     const p = clean(r["PIG ID"]);
+    if (!p) return; // skip records with no PIG ID whatsoever
     const b = clean(r["Boar"]);
     const s = clean(r["SOW"]);
-    if (!hasVal(p) || !hasVal(b) || !hasVal(s)) return; // skip incomplete keys
     const k = p + "|||" + b + "|||" + s;
     if (!keyMap[k]) keyMap[k] = [];
     keyMap[k].push(String(r.DB_ID));
@@ -2361,16 +2363,20 @@ function renderList() {
     if (ids.length > 1) ids.forEach(id => dupIds.add(id));
   });
 
-  // ── Debug banner (always visible on Records page) ──
+  // ── Debug banner ──
   if (diagBanner) {
-    const rows = allRecords.slice(0, 5).map(r =>
-      `&nbsp;&nbsp;DB_ID=${r.DB_ID}&nbsp; PIG_ID=<b>"${r["PIG ID"]}"</b>&nbsp; Boar=<b>"${r["Boar"]}"</b>&nbsp; SOW=<b>"${r["SOW"]}"</b>`
-    ).join('<br>');
-    const dupInfo = dupIds.size > 0
-      ? `<br><span style="color:#c0392b;font-weight:700">⚠️ DUPS detected — DB_IDs: ${[...dupIds].join(', ')}</span>`
-      : `<br><span style="color:#2d6a2d;font-weight:700">✓ No duplicates detected</span>`;
+    let info = '';
+    if (dupIds.size > 0) {
+      const dupRecs = allRecords.filter(r => dupIds.has(String(r.DB_ID)));
+      const rows = dupRecs.map(r =>
+        `&nbsp;&nbsp;DB_ID=<b>${r.DB_ID}</b>&nbsp; PIG_ID=<b>"${r["PIG ID"]}"</b>&nbsp; Boar=<b>"${r["Boar"]}"</b>&nbsp; SOW=<b>"${r["SOW"]}"</b>`
+      ).join('<br>');
+      info = `<b>🔍 Duplicate records (${dupRecs.length}):</b><br>${rows}<br><span style="color:#c0392b;font-weight:700">⚠️ DB_IDs: ${[...dupIds].join(', ')}</span>`;
+    } else {
+      info = `<span style="color:#2d6a2d;font-weight:700">✓ No duplicates detected across ${allRecords.length} records</span>`;
+    }
     diagBanner.style.display = 'block';
-    diagBanner.innerHTML = `<b>🔍 Field check (first ${Math.min(5,allRecords.length)} records):</b><br>${rows}${dupInfo}`;
+    diagBanner.innerHTML = info;
   }
 
   // ── Render cards ──
