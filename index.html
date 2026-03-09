@@ -1860,11 +1860,11 @@ const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443b
 
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
 
-const COLUMNS       = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","Weight","Dewormed","Pen","Notes","Available", "Stage", "Type"];
+const COLUMNS       = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","Weight","Dewormed","Pen","Notes","Available"];
 const SEX_OPTS      = ["","Male","Female","Barrow"];
 const TYPE_OPTS     = ["","Boar","Gilt","Barrow","Sow","Piglet"];
-const STAGE_OPTS    = ["","Pocker","Grower","Cull", "Breeding","Finisher"];
-const STATUS_OPTS   = ["","Active","Sold","Deceased", "Slaughtered"];
+const STAGE_OPTS    = ["","Pocker","Grower","Cull","Breeding","Finisher"];
+const STATUS_OPTS   = ["","Active","Sold","Deceased","Breeding","Grower","Finisher"];
 const AVAILABLE_OPTS = ["","Yes","Yes Boar","Yes Sow","No"];
 
 // Type → required Sex mapping (type lowercase → required sex lowercase)

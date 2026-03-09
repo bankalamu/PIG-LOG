@@ -19,9 +19,21 @@ function getSheet() {
     sheet.appendRow(HEADERS);
     sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight("bold").setBackground("#c9a84c").setFontColor("#000000");
     sheet.setFrozenRows(1);
-    sheet.setColumnWidth(1, 70);   // DB_ID
-    sheet.setColumnWidth(2, 120);  // PIG ID
-    sheet.setColumnWidth(11, 250); // Notes
+    sheet.setColumnWidth(1, 70);
+    sheet.setColumnWidth(2, 120);
+  } else {
+    // Ensure all HEADERS columns exist — add any missing ones to the right
+    const lastCol  = sheet.getLastColumn();
+    const existing = lastCol > 0
+      ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim())
+      : [];
+    HEADERS.forEach(h => {
+      if (!existing.includes(h)) {
+        const newCol = sheet.getLastColumn() + 1;
+        sheet.getRange(1, newCol).setValue(h)
+             .setFontWeight("bold").setBackground("#c9a84c").setFontColor("#000000");
+      }
+    });
   }
   return sheet;
 }
