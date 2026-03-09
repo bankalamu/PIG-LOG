@@ -4,7 +4,7 @@
 // ============================================================
 
 const SHEET_NAME = "PigLog";
-const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Status", "Weight", "Dewormed", "Pen", "Notes", "Available"];
+const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "Weight", "Dewormed", "Pen", "Notes", "Available"];
 
 // Key fields that define a unique pig record
 const KEY_FIELDS = ["PIG ID", "Boar", "SOW"];
@@ -96,22 +96,32 @@ function doPost(e) {
 // ── CRUD Operations ──────────────────────────────────────────
 
 function getAllRecords() {
-  const sheet = getSheet();
+  const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
 
-  const data = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
+  const lastCol  = sheet.getLastColumn();
+  const hdrRow   = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const hdrMap   = {}; // colName → 0-based index
+  hdrRow.forEach((h, i) => { if (h) hdrMap[String(h).trim()] = i; });
+
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   const records = data
-    .filter(row => row[0] !== "")
+    .filter(row => row[0] !== "" && row[0] !== null && row[0] !== undefined)
     .map(row => {
       const rec = {};
-      HEADERS.forEach((h, i) => {
-        // Format dates nicely
-        if (row[i] instanceof Date) {
-          rec[h] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
-        } else {
-          rec[h] = row[i];
-        }
+      // Always include all known HEADERS (fill missing ones with "")
+      HEADERS.forEach(h => {
+        const idx = hdrMap[h];
+        if (idx === undefined) { rec[h] = ""; return; }
+        const v = row[idx];
+        rec[h] = (v instanceof Date)
+          ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")
+          : (v === null || v === undefined ? "" : v);
+      });
+      // Also expose any extra columns in the sheet not in HEADERS
+      hdrRow.forEach((h, i) => {
+        if (h && !(h in rec)) rec[h] = row[i] === null ? "" : row[i];
       });
       return rec;
     });
@@ -121,31 +131,46 @@ function getAllRecords() {
 
 function getByPigId(pigId) {
   if (!pigId) return { success: false, error: "No PIG ID provided" };
-  const sheet = getSheet();
+  const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records found" };
 
-  const data = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
-  const row = data.find(r => String(r[1]).toLowerCase() === String(pigId).toLowerCase());
+  const lastCol = sheet.getLastColumn();
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const hdrMap  = {};
+  hdrRow.forEach((h, i) => { if (h) hdrMap[String(h).trim()] = i; });
+
+  const pidIdx = hdrMap["PIG ID"] !== undefined ? hdrMap["PIG ID"] : 1;
+  const data   = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const row    = data.find(r => String(r[pidIdx]).trim().toLowerCase() === String(pigId).trim().toLowerCase());
 
   if (!row) return { success: false, error: `No record found for PIG ID: "${pigId}"` };
 
   const rec = {};
-  HEADERS.forEach((h, i) => {
-    if (row[i] instanceof Date) {
-      rec[h] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
-    } else {
-      rec[h] = row[i];
-    }
+  HEADERS.forEach(h => {
+    const idx = hdrMap[h];
+    if (idx === undefined) { rec[h] = ""; return; }
+    const v = row[idx];
+    rec[h] = (v instanceof Date)
+      ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")
+      : (v === null || v === undefined ? "" : v);
   });
   return { success: true, record: rec };
+}
+
+function _getPigLogHeaders(sheet) {
+  const lastCol = sheet.getLastColumn();
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const map     = {};
+  hdrRow.forEach((h, i) => { if (h) map[String(h).trim()] = i; });
+  return { map, lastCol, hdrRow };
 }
 
 function addRecord(data) {
   const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
 
-  // Require all three key fields
+  // All three key fields required
   const pigId = String(data["PIG ID"] || "").trim();
   const boar  = String(data["Boar"]   || "").trim();
   const sow   = String(data["SOW"]    || "").trim();
@@ -153,24 +178,32 @@ function addRecord(data) {
     return { success: false, error: "PIG ID, Boar and SOW are all required." };
   }
 
-  // Duplicate key check — PIG ID + Boar + SOW must be unique
+  const { map, lastCol } = _getPigLogHeaders(sheet);
+  const pidIdx  = map["PIG ID"] !== undefined ? map["PIG ID"] : 1;
+  const borIdx  = map["Boar"]   !== undefined ? map["Boar"]   : 2;
+  const sowIdx  = map["SOW"]    !== undefined ? map["SOW"]    : 3;
+
+  // Duplicate check using live header positions
   if (lastRow > 1) {
-    const existing = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
-    const pidIdx = HEADERS.indexOf("PIG ID");
-    const borIdx = HEADERS.indexOf("Boar");
-    const sowIdx = HEADERS.indexOf("SOW");
+    const existing = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
     const dup = existing.find(r =>
       String(r[pidIdx]).trim().toLowerCase() === pigId.toLowerCase() &&
       String(r[borIdx]).trim().toLowerCase() === boar.toLowerCase()  &&
       String(r[sowIdx]).trim().toLowerCase() === sow.toLowerCase()
     );
-    if (dup) {
-      return { success: false, error: `Duplicate record — PIG ID "${pigId}", Boar "${boar}", SOW "${sow}" already exists.` };
-    }
+    if (dup) return { success: false, error: `Duplicate — PIG ID "${pigId}", Boar "${boar}", SOW "${sow}" already exists.` };
   }
 
-  const newId = getNextId(sheet);
-  sheet.appendRow(HEADERS.map(h => h === "DB_ID" ? newId : (data[h] !== undefined ? data[h] : "")));
+  // Build new row aligned to actual sheet columns
+  const newId  = getNextId(sheet);
+  const newRow = Array(Math.max(lastCol, HEADERS.length)).fill("");
+  HEADERS.forEach(h => {
+    const idx = map[h];
+    if (idx === undefined) return;
+    newRow[idx] = (h === "DB_ID") ? newId : (data[h] !== undefined ? data[h] : "");
+  });
+  // If Available column exists in sheet but not in HEADERS yet, leave blank
+  sheet.appendRow(newRow.slice(0, Math.max(lastCol, HEADERS.length)));
   return { success: true, db_id: newId };
 }
 
@@ -179,54 +212,56 @@ function updateRecord(dbId, data) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records found" };
 
-  const allData = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
-  const idIdx   = HEADERS.indexOf("DB_ID");
+  const { map, lastCol } = _getPigLogHeaders(sheet);
+  const idIdx    = map["DB_ID"]    !== undefined ? map["DB_ID"]    : 0;
+  const pidIdx   = map["PIG ID"]   !== undefined ? map["PIG ID"]   : 1;
+  const borIdx   = map["Boar"]     !== undefined ? map["Boar"]     : 2;
+  const sowIdx   = map["SOW"]      !== undefined ? map["SOW"]      : 3;
+  const availIdx = map["Available"];
+
+  const allData = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   const rowIdx  = allData.findIndex(r => Number(r[idIdx]) === Number(dbId));
   if (rowIdx === -1) return { success: false, error: `Record DB_ID ${dbId} not found` };
 
   const existingRow = allData[rowIdx];
-  const availIdx    = HEADERS.indexOf("Available");
-  const isLocked = String(existingRow[availIdx] || "").trim().toLowerCase() === "no";
+  const sheetRow    = rowIdx + 2;
 
-  // If Available = "No", block changes to the three key fields
-  if (isLocked) {
-    const pidIdx = HEADERS.indexOf("PIG ID");
-    const borIdx = HEADERS.indexOf("Boar");
-    const sowIdx = HEADERS.indexOf("SOW");
+  // Key-lock check: Available = "No" blocks key field changes
+  const availVal = availIdx !== undefined ? String(existingRow[availIdx] || "").trim().toLowerCase() : "";
+  if (availVal === "no") {
     const newPigId = String(data["PIG ID"] || "").trim();
     const newBoar  = String(data["Boar"]   || "").trim();
     const newSow   = String(data["SOW"]    || "").trim();
     if (
-      (newPigId && newPigId.toLowerCase() !== String(existingRow[pidIdx]).trim().toLowerCase()) ||
-      (newBoar  && newBoar.toLowerCase()  !== String(existingRow[borIdx]).trim().toLowerCase()) ||
-      (newSow   && newSow.toLowerCase()   !== String(existingRow[sowIdx]).trim().toLowerCase())
+      (newPigId && newPigId.toLowerCase() !== String(existingRow[pidIdx] || "").trim().toLowerCase()) ||
+      (newBoar  && newBoar.toLowerCase()  !== String(existingRow[borIdx] || "").trim().toLowerCase()) ||
+      (newSow   && newSow.toLowerCase()   !== String(existingRow[sowIdx] || "").trim().toLowerCase())
     ) {
-      return { success: false, error: "Cannot change PIG ID, Boar or SOW — this record is marked Available: No." };
+      return { success: false, error: "Cannot change PIG ID, Boar or SOW — record is marked Available: No." };
     }
   }
 
-  // Duplicate check: if key fields are changing, ensure new combo doesn't already exist
-  const sheetRow = rowIdx + 2;
-  const pidIdx   = HEADERS.indexOf("PIG ID");
-  const borIdx   = HEADERS.indexOf("Boar");
-  const sowIdx   = HEADERS.indexOf("SOW");
-  const newPigId = String(data["PIG ID"] || existingRow[pidIdx] || "").trim();
-  const newBoar  = String(data["Boar"]   || existingRow[borIdx] || "").trim();
-  const newSow   = String(data["SOW"]    || existingRow[sowIdx] || "").trim();
-
-  const dup = allData.find((r, i) => {
-    if (i === rowIdx) return false; // skip self
-    return String(r[pidIdx]).trim().toLowerCase() === newPigId.toLowerCase() &&
-           String(r[borIdx]).trim().toLowerCase() === newBoar.toLowerCase()  &&
-           String(r[sowIdx]).trim().toLowerCase() === newSow.toLowerCase();
-  });
-  if (dup) {
-    return { success: false, error: `Duplicate record — PIG ID "${newPigId}", Boar "${newBoar}", SOW "${newSow}" already exists.` };
+  // Duplicate check for key field changes
+  const newPigId = String(data["PIG ID"] !== undefined ? data["PIG ID"] : existingRow[pidIdx] || "").trim();
+  const newBoar  = String(data["Boar"]   !== undefined ? data["Boar"]   : existingRow[borIdx] || "").trim();
+  const newSow   = String(data["SOW"]    !== undefined ? data["SOW"]    : existingRow[sowIdx] || "").trim();
+  if (newPigId && newBoar && newSow) {
+    const dup = allData.find((r, i) => {
+      if (i === rowIdx) return false;
+      return String(r[pidIdx]).trim().toLowerCase() === newPigId.toLowerCase() &&
+             String(r[borIdx]).trim().toLowerCase() === newBoar.toLowerCase()  &&
+             String(r[sowIdx]).trim().toLowerCase() === newSow.toLowerCase();
+    });
+    if (dup) return { success: false, error: `Duplicate — PIG ID "${newPigId}", Boar "${newBoar}", SOW "${newSow}" already exists.` };
   }
 
-  HEADERS.forEach((h, colIndex) => {
+  // Write each field using live column positions
+  HEADERS.forEach(h => {
     if (h === "DB_ID") return;
-    if (data[h] !== undefined) sheet.getRange(sheetRow, colIndex + 1).setValue(data[h]);
+    if (data[h] === undefined) return;
+    const colIdx = map[h];
+    if (colIdx === undefined) return; // column not in sheet yet — skip
+    sheet.getRange(sheetRow, colIdx + 1).setValue(data[h]);
   });
   return { success: true };
 }

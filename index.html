@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" contentAVAILA="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Pig Log</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -1860,11 +1860,21 @@ const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443b
 
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
 
-const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Status","Weight","Dewormed","Pen","Notes","Available"];
-const SEX_OPTS = ["","Male","Female","Barrow"];
-const STATUS_OPTS = ["","Active","Sold","Deceased","Breeding","Grower","Finisher"];
+const COLUMNS       = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","Weight","Dewormed","Pen","Notes","Available"];
+const SEX_OPTS      = ["","Male","Female","Barrow"];
+const TYPE_OPTS     = ["","Boar","Gilt","Barrow","Sow","Piglet"];
+const STAGE_OPTS    = ["","Pocker","Grower","Cull"];
+const STATUS_OPTS   = ["","Active","Sold","Deceased","Breeding","Grower","Finisher"];
 const AVAILABLE_OPTS = ["","Yes","Yes Boar","Yes Sow","No"];
-const KEY_COLS = ["PIG ID","Boar","SOW"]; // unique key — cannot be duplicated
+
+// Type → required Sex mapping (type lowercase → required sex lowercase)
+const TYPE_SEX_RULE = {
+  sow:    "female",
+  gilt:   "female",
+  boar:   "male",
+  barrow: "male",
+};
+const KEY_COLS = ["PIG ID","Boar","SOW"];
 
 let allRecords = [];
 let currentEditId = null;
@@ -2040,6 +2050,14 @@ function buildForm(containerId, prefix) {
       input = document.createElement("select");
       input.className = "form-select";
       SEX_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
+    } else if (col === "Type") {
+      input = document.createElement("select");
+      input.className = "form-select";
+      TYPE_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
+    } else if (col === "Stage") {
+      input = document.createElement("select");
+      input.className = "form-select";
+      STAGE_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
     } else if (col === "Status") {
       input = document.createElement("select");
       input.className = "form-select";
@@ -2066,10 +2084,14 @@ function buildForm(containerId, prefix) {
       input.type = "text";
       input.className = "form-input";
       input.placeholder = col === "PIG ID" ? "e.g. B1-S2-L3" : col;
-      // Clear error highlight when user types
+      // Clear error highlight when user types or changes value
       if (col === "PIG ID" || col === "Boar" || col === "SOW") {
         input.addEventListener("input", () => { input.style.border = ""; input.style.background = ""; });
       }
+    }
+    // Clear error highlight on select change for dropdowns (Type, SEX)
+    if (col === "Type" || col === "SEX") {
+      input.addEventListener("change", () => { input.style.border = ""; input.style.background = ""; });
     }
     input.id = `${prefix}_${col.replace(/\s/g, "_")}`;
     div.appendChild(input);
@@ -2125,6 +2147,26 @@ function _highlightKeyFields(prefix, pigId, boar, sow) {
   return anyMissing;
 }
 
+// Validate Type ↔ Sex consistency; returns error string or null
+function _validateTypeSex(prefix, type, sex) {
+  const t = String(type||"").trim().toLowerCase();
+  const s = String(sex ||"").trim().toLowerCase();
+  const required = TYPE_SEX_RULE[t]; // "male", "female", or undefined
+  if (!required) return null;        // piglet or blank — no rule
+
+  const sexOk = (required === "female" && s === "female") ||
+                (required === "male"   && (s === "male" || s === "barrow"));
+  if (sexOk) return null;
+
+  // Highlight both fields red
+  ["Type","SEX"].forEach(col => {
+    const el = document.getElementById(`${prefix}_${col}`);
+    if (el) { el.style.border = "2px solid #c0392b"; el.style.background = "#fde8e8"; }
+  });
+  const label = required === "female" ? "Female" : "Male";
+  return `${type} must have Sex = ${label} (got "${sex || "blank"}")`;
+}
+
 async function saveNew() {
   const data  = getFormValues("new");
   const pigId = String(data["PIG ID"] || "").trim();
@@ -2133,10 +2175,11 @@ async function saveNew() {
 
   // Highlight missing fields and block
   const missing = _highlightKeyFields("new", pigId, boar, sow);
-  if (missing) {
-    showToast("PIG ID, Boar and SOW are all required", true);
-    return;
-  }
+  if (missing) { showToast("PIG ID, Boar and SOW are all required", true); return; }
+
+  // Type / Sex consistency
+  const sexErr = _validateTypeSex("new", data["Type"], data["SEX"]);
+  if (sexErr) { showToast(sexErr, true); return; }
 
   // Client-side duplicate check
   const clean = v => String(v||"").trim().toLowerCase();
@@ -2146,7 +2189,6 @@ async function saveNew() {
     clean(r["SOW"])    === clean(sow)
   );
   if (dup) {
-    // Highlight all three key fields red
     ["PIG_ID","Boar","SOW"].forEach(id => {
       const el = document.getElementById(`new_${id}`);
       if (el) { el.style.border = "2px solid #c0392b"; el.style.background = "#fde8e8"; }
@@ -2273,6 +2315,10 @@ async function saveEdit() {
     }
   }
 
+  // Type / Sex consistency (always checked regardless of key lock)
+  const sexErr = _validateTypeSex("edit", data["Type"], data["SEX"]);
+  if (sexErr) { showToast(sexErr, true); return; }
+
   const btn = document.getElementById("btnSaveEdit");
   btn.disabled = true; btn.textContent = "Saving…";
   const result = await apiPost({ action: "update", id: currentEditId, data });
@@ -2365,6 +2411,8 @@ function renderList() {
       <div class="record-fields">
         ${rec.Boar     ? `<span><span class="field-label">Boar: </span><span style="${keyStyle}">${rec.Boar}</span></span>` : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No Boar</span>`}
         ${rec.SOW      ? `<span><span class="field-label">Sow: </span><span style="${keyStyle}">${rec.SOW}</span></span>`  : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No SOW</span>`}
+        ${rec.Type     ? `<span><span class="field-label">Type: </span>${rec.Type}</span>` : ""}
+        ${rec.Stage    ? `<span><span class="field-label">Stage: </span>${rec.Stage}</span>` : ""}
         ${rec.DOB      ? `<span><span class="field-label">DOB: </span>${rec.DOB}</span>` : ""}
         ${rec.SEX      ? `<span><span class="field-label">Sex: </span>${rec.SEX}</span>` : ""}
         ${rec.Weight   ? `<span><span class="field-label">Wt: </span>${rec.Weight} lbs</span>` : ""}
