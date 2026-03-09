@@ -697,6 +697,9 @@
     </div>
 
     <div class="form-card">
+      <div id="editKeyLockNotice" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:12px">
+        🔒 <strong>Available is set to No</strong> — PIG ID, Boar and SOW cannot be changed. Update Available to Yes first if you need to edit the key fields.
+      </div>
       <div class="form-grid" id="editFormGrid"></div>
     </div>
 
@@ -1856,9 +1859,11 @@ const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443b
 
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
 
-const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Status","Weight","Dewormed","Pen","Notes"];
+const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Status","Weight","Dewormed","Pen","Notes","Available"];
 const SEX_OPTS = ["","Male","Female","Barrow"];
 const STATUS_OPTS = ["","Active","Sold","Deceased","Breeding","Grower","Finisher"];
+const AVAILABLE_OPTS = ["","Yes","Yes Boar","Yes Sow","No"];
+const KEY_COLS = ["PIG ID","Boar","SOW"]; // unique key — cannot be duplicated
 
 let allRecords = [];
 let currentEditId = null;
@@ -2037,6 +2042,10 @@ function buildForm(containerId, prefix) {
       input = document.createElement("select");
       input.className = "form-select";
       STATUS_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
+    } else if (col === "Available") {
+      input = document.createElement("select");
+      input.className = "form-select";
+      AVAILABLE_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
     } else if (col === "DOB" || col === "Dewormed") {
       input = document.createElement("input");
       input.type = "date";
@@ -2097,11 +2106,28 @@ function prepNewForm() {
 
 async function saveNew() {
   const data = getFormValues("new");
-  if (!data["PIG ID"]) { showToast("PIG ID is required", true); return; }
+
+  // All three key fields required
+  if (!data["PIG ID"] || !data["Boar"] || !data["SOW"]) {
+    showToast("PIG ID, Boar and SOW are all required", true); return;
+  }
+
+  // Client-side duplicate check against cached records
+  const pigId = data["PIG ID"].trim().toLowerCase();
+  const boar  = data["Boar"].trim().toLowerCase();
+  const sow   = data["SOW"].trim().toLowerCase();
+  const dup = allRecords.find(r =>
+    String(r["PIG ID"]||"").trim().toLowerCase() === pigId &&
+    String(r["Boar"]  ||"").trim().toLowerCase() === boar  &&
+    String(r["SOW"]   ||"").trim().toLowerCase() === sow
+  );
+  if (dup) {
+    showToast(`Duplicate — PIG ID "${data["PIG ID"]}", Boar "${data["Boar"]}", SOW "${data["SOW"]}" already exists`, true);
+    return;
+  }
 
   const btn = document.getElementById("btnSaveNew");
   btn.disabled = true; btn.textContent = "Saving…";
-
   const result = await apiPost({ action: "add", data });
   btn.disabled = false; btn.textContent = "SAVE RECORD";
 
@@ -2155,22 +2181,74 @@ async function doSearch() {
   document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
   setFormValues("edit", rec);
+  _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
   showPage("pageEdit");
 }
 
 // ── EDIT ─────────────────────────────────────────
 
+// Lock or unlock the three key fields in the edit form
+function _applyEditLock(isLocked) {
+  KEY_COLS.forEach(col => {
+    const el = document.getElementById(`edit_${col.replace(/\s/g,"_")}`);
+    if (!el) return;
+    el.disabled = isLocked;
+    el.style.background = isLocked ? '#f0f0f0' : '';
+    el.style.color      = isLocked ? '#888'    : '';
+    el.title = isLocked ? 'Cannot change — record is marked Available: No' : '';
+  });
+  const notice = document.getElementById('editKeyLockNotice');
+  if (notice) notice.style.display = isLocked ? 'block' : 'none';
+}
+
+function _availableBadge(val) {
+  if (!val) return '';
+  const v = String(val).trim();
+  const cfg = {
+    'No':       { bg:'#fde8e8', color:'#c0392b', border:'#c0392b' },
+    'Yes':      { bg:'#e8f5e8', color:'#1a5c1a', border:'#2d6a2d' },
+    'Yes Boar': { bg:'#fff3e0', color:'#7a3000', border:'#e07b00' },
+    'Yes Sow':  { bg:'#f0f0ff', color:'#2a0a6a', border:'#4a1a9a' },
+  };
+  const c = cfg[v] || { bg:'#f5f5f5', color:'#333', border:'#aaa' };
+  return `<span style="font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;background:${c.bg};color:${c.color};border:1.5px solid ${c.border}">Available: ${v}</span>`;
+}
+
 async function saveEdit() {
   const data = getFormValues("edit");
+
+  // If key fields are enabled (not locked), validate no duplicate
+  const keyLocked = document.getElementById(`edit_PIG_ID`)?.disabled;
+  if (!keyLocked) {
+    if (!data["PIG ID"] || !data["Boar"] || !data["SOW"]) {
+      showToast("PIG ID, Boar and SOW are all required", true); return;
+    }
+    const pigId = data["PIG ID"].trim().toLowerCase();
+    const boar  = data["Boar"].trim().toLowerCase();
+    const sow   = data["SOW"].trim().toLowerCase();
+    const dup = allRecords.find(r =>
+      Number(r.DB_ID) !== Number(currentEditId) &&
+      String(r["PIG ID"]||"").trim().toLowerCase() === pigId &&
+      String(r["Boar"]  ||"").trim().toLowerCase() === boar  &&
+      String(r["SOW"]   ||"").trim().toLowerCase() === sow
+    );
+    if (dup) {
+      showToast(`Duplicate — PIG ID "${data["PIG ID"]}", Boar "${data["Boar"]}", SOW "${data["SOW"]}" already exists`, true);
+      return;
+    }
+  }
+
   const btn = document.getElementById("btnSaveEdit");
   btn.disabled = true; btn.textContent = "Saving…";
-
   const result = await apiPost({ action: "update", id: currentEditId, data });
   btn.disabled = false; btn.textContent = "SAVE CHANGES";
 
   if (result && result.success) {
     showToast("✓ Record updated!");
     await loadRecords();
+    // Re-apply lock in case Available was just changed to No
+    const updatedRec = allRecords.find(r => Number(r.DB_ID) === Number(currentEditId));
+    if (updatedRec) _applyEditLock(String(updatedRec.Available||"").trim().toLowerCase() === "no");
   } else {
     showToast(result?.error || "Update failed", true);
   }
@@ -2179,7 +2257,7 @@ async function saveEdit() {
 // ── LIST ──────────────────────────────────────────
 
 function renderList() {
-  const filter = document.getElementById("listSearch").value.toLowerCase();
+  const filter    = document.getElementById("listSearch").value.toLowerCase();
   const container = document.getElementById("listContainer");
 
   const filtered = allRecords.filter(r =>
@@ -2191,22 +2269,46 @@ function renderList() {
     return;
   }
 
-  container.innerHTML = filtered.map(rec => `
-    <div class="record-card">
+  // Build set of DB_IDs that share a key combo with at least one other record
+  const keyOf = r => `${String(r["PIG ID"]||"").trim().toLowerCase()}|${String(r["Boar"]||"").trim().toLowerCase()}|${String(r["SOW"]||"").trim().toLowerCase()}`;
+  const keyCounts = {};
+  allRecords.forEach(r => { const k = keyOf(r); keyCounts[k] = (keyCounts[k]||0) + 1; });
+  const dupIds = new Set(allRecords.filter(r => keyCounts[keyOf(r)] > 1).map(r => r.DB_ID));
+
+  container.innerHTML = filtered.map(rec => {
+    const isDup = dupIds.has(rec.DB_ID);
+    const keyStyle  = isDup ? 'color:#c0392b;font-weight:900;' : '';
+    const cardBorder = isDup ? 'border:2px solid #c0392b;' : '';
+    const dupBanner = isDup
+      ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">
+           ⚠️ Duplicate key — PIG ID, Boar &amp; SOW match another record
+         </div>`
+      : '';
+
+    const pigIdHtml = rec["PIG ID"]
+      ? `<span style="${keyStyle}">${rec["PIG ID"]}</span>`
+      : `<span style="color:#3a5a3a;font-style:italic">No PIG ID</span>`;
+
+    return `
+    <div class="record-card" style="${cardBorder}">
+      ${dupBanner}
       <div class="record-header">
         <div>
-          <div class="record-pig-id">${rec["PIG ID"] || '<span style="color:#3a5a3a;font-style:italic">No PIG ID</span>'}</div>
+          <div class="record-pig-id">${pigIdHtml}</div>
           <div class="record-db-id">DB_ID: ${rec.DB_ID}</div>
         </div>
-        ${rec.Status ? `<span class="status-badge">${rec.Status}</span>` : ""}
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          ${rec.Status ? `<span class="status-badge">${rec.Status}</span>` : ""}
+          ${_availableBadge(rec.Available)}
+        </div>
       </div>
       <div class="record-fields">
-        ${rec.Boar ? `<span><span class="field-label">Boar: </span>${rec.Boar}</span>` : ""}
-        ${rec.SOW ? `<span><span class="field-label">Sow: </span>${rec.SOW}</span>` : ""}
-        ${rec.DOB ? `<span><span class="field-label">DOB: </span>${rec.DOB}</span>` : ""}
-        ${rec.SEX ? `<span><span class="field-label">Sex: </span>${rec.SEX}</span>` : ""}
+        ${rec.Boar   ? `<span><span class="field-label">Boar: </span><span style="${keyStyle}">${rec.Boar}</span></span>` : ""}
+        ${rec.SOW    ? `<span><span class="field-label">Sow: </span><span style="${keyStyle}">${rec.SOW}</span></span>` : ""}
+        ${rec.DOB    ? `<span><span class="field-label">DOB: </span>${rec.DOB}</span>` : ""}
+        ${rec.SEX    ? `<span><span class="field-label">Sex: </span>${rec.SEX}</span>` : ""}
         ${rec.Weight ? `<span><span class="field-label">Wt: </span>${rec.Weight} lbs</span>` : ""}
-        ${rec.Pen ? `<span><span class="field-label">Pen: </span>${rec.Pen}</span>` : ""}
+        ${rec.Pen    ? `<span><span class="field-label">Pen: </span>${rec.Pen}</span>` : ""}
         ${rec.Dewormed ? `<span><span class="field-label">Dewormed: </span>${rec.Dewormed}</span>` : ""}
       </div>
       ${rec.Notes ? `<div class="record-notes">${rec.Notes}</div>` : ""}
@@ -2214,8 +2316,8 @@ function renderList() {
         <button class="btn-edit" onclick="editFromList(${rec.DB_ID})">Edit</button>
         ${isAdminEnabled() ? `<button class="btn-delete" onclick="deleteRecord(${rec.DB_ID})">Delete</button>` : ""}
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 }
 
 function editFromList(dbId) {
@@ -2226,6 +2328,7 @@ function editFromList(dbId) {
   document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
   setFormValues("edit", rec);
+  _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
   showPage("pageEdit");
 }
 

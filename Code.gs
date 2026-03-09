@@ -4,7 +4,10 @@
 // ============================================================
 
 const SHEET_NAME = "PigLog";
-const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Status", "Weight", "Dewormed", "Pen", "Notes"];
+const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Status", "Weight", "Dewormed", "Pen", "Notes", "Available"];
+
+// Key fields that define a unique pig record
+const KEY_FIELDS = ["PIG ID", "Boar", "SOW"];
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -139,35 +142,93 @@ function getByPigId(pigId) {
 }
 
 function addRecord(data) {
-  const sheet = getSheet();
+  const sheet   = getSheet();
+  const lastRow = sheet.getLastRow();
+
+  // Require all three key fields
+  const pigId = String(data["PIG ID"] || "").trim();
+  const boar  = String(data["Boar"]   || "").trim();
+  const sow   = String(data["SOW"]    || "").trim();
+  if (!pigId || !boar || !sow) {
+    return { success: false, error: "PIG ID, Boar and SOW are all required." };
+  }
+
+  // Duplicate key check — PIG ID + Boar + SOW must be unique
+  if (lastRow > 1) {
+    const existing = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
+    const pidIdx = HEADERS.indexOf("PIG ID");
+    const borIdx = HEADERS.indexOf("Boar");
+    const sowIdx = HEADERS.indexOf("SOW");
+    const dup = existing.find(r =>
+      String(r[pidIdx]).trim().toLowerCase() === pigId.toLowerCase() &&
+      String(r[borIdx]).trim().toLowerCase() === boar.toLowerCase()  &&
+      String(r[sowIdx]).trim().toLowerCase() === sow.toLowerCase()
+    );
+    if (dup) {
+      return { success: false, error: `Duplicate record — PIG ID "${pigId}", Boar "${boar}", SOW "${sow}" already exists.` };
+    }
+  }
+
   const newId = getNextId(sheet);
-  const row = HEADERS.map((h, i) => {
-    if (h === "DB_ID") return newId;
-    return data[h] !== undefined ? data[h] : "";
-  });
-  sheet.appendRow(row);
-  return { success: true, db_id: newId, message: "Record added successfully" };
+  sheet.appendRow(HEADERS.map(h => h === "DB_ID" ? newId : (data[h] !== undefined ? data[h] : "")));
+  return { success: true, db_id: newId };
 }
 
 function updateRecord(dbId, data) {
-  const sheet = getSheet();
+  const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records found" };
 
-  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat();
-  const rowIndex = ids.findIndex(id => Number(id) === Number(dbId));
+  const allData = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
+  const idIdx   = HEADERS.indexOf("DB_ID");
+  const rowIdx  = allData.findIndex(r => Number(r[idIdx]) === Number(dbId));
+  if (rowIdx === -1) return { success: false, error: `Record DB_ID ${dbId} not found` };
 
-  if (rowIndex === -1) return { success: false, error: `Record with DB_ID ${dbId} not found` };
+  const existingRow = allData[rowIdx];
+  const availIdx    = HEADERS.indexOf("Available");
+  const isLocked = String(existingRow[availIdx] || "").trim().toLowerCase() === "no";
 
-  const sheetRow = rowIndex + 2; // +2 for header row and 0-index
-  HEADERS.forEach((h, colIndex) => {
-    if (h === "DB_ID") return; // Never overwrite DB_ID
-    if (data[h] !== undefined) {
-      sheet.getRange(sheetRow, colIndex + 1).setValue(data[h]);
+  // If Available = "No", block changes to the three key fields
+  if (isLocked) {
+    const pidIdx = HEADERS.indexOf("PIG ID");
+    const borIdx = HEADERS.indexOf("Boar");
+    const sowIdx = HEADERS.indexOf("SOW");
+    const newPigId = String(data["PIG ID"] || "").trim();
+    const newBoar  = String(data["Boar"]   || "").trim();
+    const newSow   = String(data["SOW"]    || "").trim();
+    if (
+      (newPigId && newPigId.toLowerCase() !== String(existingRow[pidIdx]).trim().toLowerCase()) ||
+      (newBoar  && newBoar.toLowerCase()  !== String(existingRow[borIdx]).trim().toLowerCase()) ||
+      (newSow   && newSow.toLowerCase()   !== String(existingRow[sowIdx]).trim().toLowerCase())
+    ) {
+      return { success: false, error: "Cannot change PIG ID, Boar or SOW — this record is marked Available: No." };
     }
-  });
+  }
 
-  return { success: true, message: "Record updated successfully" };
+  // Duplicate check: if key fields are changing, ensure new combo doesn't already exist
+  const sheetRow = rowIdx + 2;
+  const pidIdx   = HEADERS.indexOf("PIG ID");
+  const borIdx   = HEADERS.indexOf("Boar");
+  const sowIdx   = HEADERS.indexOf("SOW");
+  const newPigId = String(data["PIG ID"] || existingRow[pidIdx] || "").trim();
+  const newBoar  = String(data["Boar"]   || existingRow[borIdx] || "").trim();
+  const newSow   = String(data["SOW"]    || existingRow[sowIdx] || "").trim();
+
+  const dup = allData.find((r, i) => {
+    if (i === rowIdx) return false; // skip self
+    return String(r[pidIdx]).trim().toLowerCase() === newPigId.toLowerCase() &&
+           String(r[borIdx]).trim().toLowerCase() === newBoar.toLowerCase()  &&
+           String(r[sowIdx]).trim().toLowerCase() === newSow.toLowerCase();
+  });
+  if (dup) {
+    return { success: false, error: `Duplicate record — PIG ID "${newPigId}", Boar "${newBoar}", SOW "${newSow}" already exists.` };
+  }
+
+  HEADERS.forEach((h, colIndex) => {
+    if (h === "DB_ID") return;
+    if (data[h] !== undefined) sheet.getRange(sheetRow, colIndex + 1).setValue(data[h]);
+  });
+  return { success: true };
 }
 
 function deleteRecord(dbId) {
