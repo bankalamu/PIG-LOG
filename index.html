@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Pig Log</title>
+  <title>Pig Log v2.1</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
   <style>
@@ -1863,7 +1863,8 @@ const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443b
 
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
 
-const COLUMNS       = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","Weight","Dewormed","Pen","Notes","Available"];
+// ── PigLog column definitions — DO NOT reorder without updating Code.gs HEADERS ──
+const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","Weight","Dewormed","Pen","Notes","Available"];
 const SEX_OPTS      = ["","Male","Female","Barrow"];
 const TYPE_OPTS     = ["","Boar","Gilt","Barrow","Sow","Piglet"];
 const STAGE_OPTS    = ["","Pocker","Grower","Cull","Breeding","Finisher"];
@@ -2039,8 +2040,11 @@ function updateCounts() {
 function buildForm(containerId, prefix) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.innerHTML = ""; // always clear first — prevents any double-render
+  container.innerHTML = ""; // clear — prevents double-render
+  const seen = new Set(); // deduplicate columns defensively
   COLUMNS.forEach(col => {
+    if (seen.has(col)) return; // skip any accidental duplicate
+    seen.add(col);
     const div = document.createElement("div");
     div.className = "form-group" + (col === "Notes" ? " full" : "");
 
