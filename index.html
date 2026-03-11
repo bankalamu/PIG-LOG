@@ -1356,23 +1356,29 @@
                 <input type="date" id="wkDate" class="form-input" onchange="wkDateChanged()">
               </div>
               <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
-                <label class="form-label" style="font-size:10px">Pen / Farm</label>
-                <input type="text" id="wkPen" placeholder="All pens" class="form-input" onblur="wkDateChanged()" onchange="wkDateChanged()">
+                <label class="form-label" style="font-size:10px">Pen No. <span style="font-weight:400;color:#666;font-size:10px">(1–<span id="wkMaxPenLabel">50</span>)</span></label>
+                <input type="number" id="wkPen" min="1" max="50" placeholder="1" class="form-input" oninput="this.style.border='';this.style.background='';wkDateChanged()" onchange="wkDateChanged()">
               </div>
             </div>
           </div>
         </div>
         <div id="wkSetupNote" style="font-size:11px;color:#555;margin-top:8px">Records are keyed by <strong>Week Number + Pen</strong>. You can update this record any time during the same week.</div>
+        <!-- Admin: max pen setting -->
+        <div id="wkAdminSettings" style="display:none;margin-top:10px;padding:8px 12px;background:#fff9c4;border:1.5px solid #f59e0b;border-radius:8px;font-size:12px">
+          <span style="font-weight:800;color:#78350f">⚙️ Admin — Max Pen Number:</span>
+          <input type="number" id="wkMaxPenInput" min="1" max="999" value="50" style="width:65px;margin:0 8px;padding:4px 8px;border:1.5px solid #f59e0b;border-radius:6px;font-weight:700;font-size:13px">
+          <button onclick="wkSaveMaxPen()" style="background:#f59e0b;border:none;border-radius:6px;padding:5px 12px;font-weight:800;font-size:12px;cursor:pointer;color:#000">Save</button>
+        </div>
       </div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
         <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
           <label class="form-label">Checked by</label>
-          <input type="text" id="wkCheckedBy" class="form-input" placeholder="Your name">
+          <input type="text" id="wkCheckedBy" class="form-input" placeholder="Your name" oninput="this.style.border='';this.style.background=''">
         </div>
       </div>
 
-      <div id="wkLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past week — this record is closed. Admin access required to edit.</div>
+      <div id="wkLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Record older than 1 month — admin access required to edit.</div>
       <div id="wkExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">✅ Existing record loaded — saving will update it.</div>
 
       <!-- Pig Condition -->
@@ -1380,7 +1386,7 @@
         <div class="wm-section-title">🐷 Pig Condition</div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
-          <input type="text" id="wkBy_condition" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+          <input type="text" id="wkBy_condition" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif" oninput="this.style.border='';this.style.background=''">
         </div>
         <div class="wm-item" data-key="wk_weight_spot">
           <div class="wm-item-text">
@@ -1420,7 +1426,7 @@
         <div class="wm-section-title">💊 Health &amp; Husbandry Activities</div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
-          <input type="text" id="wkBy_health" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+          <input type="text" id="wkBy_health" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif" oninput="this.style.border='';this.style.background=''">
         </div>
         <div class="wm-item" data-key="wk_deworm">
           <div class="wm-item-text">
@@ -1459,7 +1465,7 @@
         <div class="wm-section-title">🏚️ Farm &amp; Feed Activities</div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
-          <input type="text" id="wkBy_farm" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+          <input type="text" id="wkBy_farm" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif" oninput="this.style.border='';this.style.background=''">
         </div>
         <div class="wm-item" data-key="wk_feeder_clean">
           <div class="wm-item-text">
@@ -1544,7 +1550,7 @@
           </div>
           <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
             <label class="form-label" style="font-size:10px">Checked by</label>
-            <input type="text" id="moCheckedBy" class="form-input" placeholder="Your name">
+            <input type="text" id="moCheckedBy" class="form-input" placeholder="Your name" oninput="this.style.border='';this.style.background=''">
           </div>
           <div style="display:flex;flex-direction:column;min-width:130px">
             <label class="form-label" style="font-size:10px">Created</label>
@@ -1553,7 +1559,7 @@
         </div>
       </div>
 
-      <div id="moLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past month — this record is closed. Admin access required to edit.</div>
+      <div id="moLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Record older than 3 months — admin access required to edit.</div>
       <div id="moExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">✅ Existing record loaded — saving will update it.</div>
 
       <!-- Growth & Records -->
@@ -1561,7 +1567,7 @@
         <div class="wm-section-title">📈 Growth &amp; Records</div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
-          <input type="text" id="moBy_growth" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+          <input type="text" id="moBy_growth" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif" oninput="this.style.border='';this.style.background=''">
         </div>
         <div class="wm-item" data-key="mo_full_weigh">
           <div class="wm-item-text">
@@ -1603,7 +1609,7 @@
         <div class="wm-section-title">💉 Health Programme</div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
-          <input type="text" id="moBy_health" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+          <input type="text" id="moBy_health" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif" oninput="this.style.border='';this.style.background=''">
         </div>
         <div class="wm-item" data-key="mo_vaccination">
           <div class="wm-item-text">
@@ -1643,7 +1649,7 @@
         <div class="wm-section-title">🏚️ Farm Management</div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
-          <input type="text" id="moBy_farm" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+          <input type="text" id="moBy_farm" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif" oninput="this.style.border='';this.style.background=''">
         </div>
         <div class="wm-item" data-key="mo_feed_inventory">
           <div class="wm-item-text">
@@ -1949,6 +1955,8 @@ function updateAdminBadge() {
   // Show/hide admin-only panels
   const clAdmin = document.getElementById('clAdminSettings');
   if (clAdmin) clAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
+  const wkAdmin = document.getElementById('wkAdminSettings');
+  if (wkAdmin) wkAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
 }
 
 function toggleAdminMode() {
@@ -3071,6 +3079,7 @@ function toggleCheck(btn, key, val) {
 let wkState = {};
 let wkEditId = null;
 let allWeekly = [];
+let wkMaxPen  = 50; // loaded from Settings; admin-editable
 
 // ── ISO week number helpers ─────────────────────────────────────
 
@@ -3104,8 +3113,17 @@ function fmtDate(d) {
   return d.toISOString().split('T')[0];
 }
 
-// True if the ISO week of dateStr is strictly before the current ISO week
+// True if the record date is more than 1 month in the past (admin-only to edit)
 function wkIsLocked(dateStr) {
+  if (!dateStr) return false;
+  const recDate = new Date(dateStr);
+  const cutoff  = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 1);
+  return recDate < cutoff;
+}
+
+// True if the ISO week of dateStr is strictly before the current ISO week (for UI hint only)
+function wkIsPastWeek(dateStr) {
   if (!dateStr) return false;
   const { week: rw, year: ry } = getISOWeek(new Date(dateStr));
   const { week: cw, year: cy } = getISOWeek(new Date());
@@ -3167,14 +3185,55 @@ function initWeekly() {
   const el = document.getElementById('wkDate');
   if (el) el.value = today;
   _wkUpdateBadge(today);
+  // Load max pen from Settings (shared with daily checklist key "maxPen")
+  apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
+    wkMaxPen = (r && r.success && r.value) ? (parseInt(r.value, 10) || 50) : 50;
+    _wkApplyMaxPen();
+  });
+}
+
+function _wkApplyMaxPen() {
+  const penEl = document.getElementById('wkPen');
+  const label = document.getElementById('wkMaxPenLabel');
+  const input = document.getElementById('wkMaxPenInput');
+  if (penEl)  penEl.max      = wkMaxPen;
+  if (label)  label.textContent = wkMaxPen;
+  if (input)  input.value    = wkMaxPen;
+}
+
+async function wkSaveMaxPen() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const val = parseInt(document.getElementById('wkMaxPenInput').value, 10);
+  if (!val || val < 1) { showToast('Enter a valid number ≥ 1', true); return; }
+  const result = await apiPost({ action: 'saveSetting', key: 'maxPen', value: String(val) });
+  if (result && result.success) {
+    wkMaxPen = val; clMaxPen = val; // keep both in sync
+    _wkApplyMaxPen(); _clApplyMaxPen();
+    showToast(`✓ Max pen updated to ${val}`);
+  } else {
+    showToast(result?.error || 'Save failed', true);
+  }
 }
 
 async function wkDateChanged() {
-  const date = document.getElementById('wkDate')?.value;
-  const pen  = (document.getElementById('wkPen')?.value || '').trim();
+  const date   = document.getElementById('wkDate')?.value;
+  const penRaw = (document.getElementById('wkPen')?.value || '').trim();
+  const penEl  = document.getElementById('wkPen');
 
   _wkUpdateBadge(date || '');
   if (!date) return;
+
+  // Validate pen if entered
+  let pen = '';
+  if (penRaw !== '') {
+    const penNum = parseInt(penRaw, 10);
+    if (isNaN(penNum) || penNum < 1 || penNum > wkMaxPen) {
+      if (penEl) { penEl.style.border = '2px solid #c0392b'; penEl.style.background = '#fde8e8'; }
+      return;
+    }
+    pen = String(penNum);
+    if (penEl) { penEl.style.border = ''; penEl.style.background = ''; }
+  }
 
   const locked = wkIsLocked(date) && !isAdminEnabled();
 
@@ -3184,13 +3243,13 @@ async function wkDateChanged() {
     if (r && r.success) allWeekly = r.records || [];
   }
 
-  // Match by ISO week + pen (ignore exact date — any date in same week matches)
+  // Match by ISO week + pen
   const { week: selWeek, year: selYear } = getISOWeek(new Date(date));
   const existing = allWeekly.find(r => {
     if (!r.Date) return false;
     const { week: rw, year: ry } = getISOWeek(new Date(r.Date));
     const penMatch = pen
-      ? String(r.Pen||'').trim().toLowerCase() === pen.toLowerCase()
+      ? String(r.Pen||'').trim() === pen
       : String(r.Pen||'').trim() === '';
     return rw === selWeek && ry === selYear && penMatch;
   });
@@ -3201,6 +3260,7 @@ async function wkDateChanged() {
   if (existing) {
     wkEditId = existing.WK_ID;
     _populateWkForm(existing);
+    if (existBanner)  existBanner.textContent   = `✏️ Pen ${pen||'All'} already has a record for Week ${selWeek} — editing existing record.`;
     if (existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
     if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
   } else {
@@ -3253,14 +3313,64 @@ function resetWeekly() {
 
 async function saveWeekly() {
   const date      = document.getElementById('wkDate')?.value;
-  const pen       = (document.getElementById('wkPen')?.value||'').trim();
+  const penRaw    = (document.getElementById('wkPen')?.value||'').trim();
   const checkedBy = (document.getElementById('wkCheckedBy')?.value||'').trim();
   const notes     = (document.getElementById('wkNotes')?.value||'').trim();
+
   if (!date) { showToast('Please select a date', true); return; }
-  if (wkIsLocked(date) && !isAdminEnabled()) {
-    showToast('Past week — this record is closed. Admin access required.', true); return;
+
+  // Validate pen
+  const penNum = penRaw !== '' ? parseInt(penRaw, 10) : NaN;
+  if (isNaN(penNum) || penNum < 1 || penNum > wkMaxPen) {
+    const penEl = document.getElementById('wkPen');
+    if (penEl) { penEl.style.border = '2px solid #c0392b'; penEl.style.background = '#fde8e8'; penEl.focus(); }
+    showToast(`Pen must be a whole number between 1 and ${wkMaxPen}`, true); return;
   }
+  const pen = String(penNum);
+
+  // Validate checked by
+  if (!checkedBy) {
+    const el = document.getElementById('wkCheckedBy');
+    if (el) { el.style.border = '2px solid #c0392b'; el.style.background = '#fde8e8'; el.focus(); }
+    showToast('Checked By is required before saving', true); return;
+  }
+
+  // Validate at least one section "Completed by" filled
+  const byIds = ['wkBy_condition','wkBy_health','wkBy_farm'];
+  const byVals = byIds.map(id => (document.getElementById(id)?.value||'').trim());
+  if (byVals.every(v => !v)) {
+    byIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.border = '2px solid #c0392b'; el.style.background = '#fde8e8'; }
+    });
+    document.getElementById('wkBy_condition')?.focus();
+    showToast('Please fill at least one section "Completed by" field', true); return;
+  }
+
+  if (wkIsLocked(date) && !isAdminEnabled()) {
+    showToast('This record is older than 1 month — admin access required.', true); return;
+  }
+
   const { week, year } = getISOWeek(new Date(date));
+
+  // Hard duplicate guard
+  if (!wkEditId) {
+    const dup = allWeekly.find(r => {
+      if (!r.Date) return false;
+      const { week: rw, year: ry } = getISOWeek(new Date(r.Date));
+      return rw === week && ry === year && String(r.Pen||'').trim() === pen;
+    });
+    if (dup) {
+      showToast(`Pen ${pen} already has a record for Week ${week}. Switched to edit mode.`, true);
+      wkEditId = dup.WK_ID;
+      _populateWkForm(dup);
+      const b = document.getElementById('wkExistingBanner');
+      if (b) { b.textContent = `✏️ Pen ${pen} already has a record for Week ${week} — editing existing.`; b.style.display = 'block'; }
+      document.getElementById('btnSaveWk').textContent = 'UPDATE WEEKLY CHECK';
+      return;
+    }
+  }
+
   const concerns = WK_KEYS.filter(k => wkState[k]==='bad');
   const data = {
     Date:        date,
@@ -3283,7 +3393,6 @@ async function saveWeekly() {
   const btn = document.getElementById('btnSaveWk');
   btn.disabled=true; btn.textContent='Saving…';
 
-  // Upsert: update if wkEditId exists, otherwise insert
   const result = wkEditId
     ? await apiPost({ action:'wkUpdate', id:wkEditId, data })
     : await apiPost({ action:'wkAdd', data });
@@ -3293,7 +3402,10 @@ async function saveWeekly() {
     if (result.wk_id) wkEditId = result.wk_id;
     showToast('✓ Week ' + week + ' checklist saved!');
     btn.textContent='UPDATE WEEKLY CHECK';
-    allWeekly=[];
+    // Update allWeekly in memory
+    const idx = allWeekly.findIndex(r => String(r.WK_ID) === String(wkEditId));
+    if (idx !== -1) allWeekly[idx] = { ...allWeekly[idx], ...data, WK_ID: wkEditId };
+    else allWeekly.push({ ...data, WK_ID: wkEditId });
     const b = document.getElementById('wkExistingBanner');
     if (b) { b.textContent='✅ Saved — you can keep updating this record during Week ' + week + '.'; b.style.display='block'; }
   } else {
@@ -3311,13 +3423,20 @@ function setWkView(view) {
 }
 
 async function loadWeeklyHistory() {
-  document.getElementById('wkHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-  const result = await apiGet({ action: 'wkGetAll' });
-  if (result && result.success) {
+  const container = document.getElementById('wkHistoryContainer');
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p style="margin-top:10px;color:#666;font-size:13px">Loading history…</p></div>';
+  let result = null;
+  try { result = await apiGet({ action: 'wkGetAll' }); } catch(e) {
+    container.innerHTML = '<div class="empty-state">⚠️ Network error loading history.</div>'; return;
+  }
+  if (!result) { container.innerHTML = '<div class="empty-state">⚠️ Could not connect. Check your Script URL.</div>'; return; }
+  if (result.success) {
     allWeekly = result.records || [];
-    renderWeeklyHistory();
+    allWeekly.length === 0
+      ? (container.innerHTML = '<div class="empty-state">No weekly records yet.</div>')
+      : renderWeeklyHistory();
   } else {
-    document.getElementById('wkHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+    container.innerHTML = `<div class="empty-state">⚠️ ${result.error || 'Could not load history.'}</div>`;
   }
 }
 
@@ -3325,76 +3444,158 @@ function renderWeeklyHistory() {
   const container = document.getElementById('wkHistoryContainer');
   const filter = (document.getElementById('wkHistorySearch')?.value || '').toLowerCase();
   const { week: curWeek, year: curYear } = getISOWeek(new Date());
+  const isAdmin = isAdminEnabled();
 
-  let list = (allWeekly||[]).filter(r => {
-    if (!filter) return true;
-    return (r.WeekKey||r.Date||'').toLowerCase().includes(filter)
-      || (r.Pen||'').toLowerCase().includes(filter)
-      || (r.CheckedBy||'').toLowerCase().includes(filter);
-  }).slice().sort((a,b) => {
-    // Sort by year desc, then week desc
-    if ((b.WeekYear||0) !== (a.WeekYear||0)) return (b.WeekYear||0) - (a.WeekYear||0);
-    return (b.WeekNum||0) - (a.WeekNum||0);
-  });
-
+  let list = (allWeekly||[]).filter(r =>
+    !filter ||
+    (r.WeekKey||r.Date||'').toLowerCase().includes(filter) ||
+    (r.Pen||'').toLowerCase().includes(filter) ||
+    (r.CheckedBy||'').toLowerCase().includes(filter)
+  );
   if (!list.length) { container.innerHTML = '<div class="empty-state">No weekly records found.</div>'; return; }
 
-  container.innerHTML = list.map(rec => {
-    const wk   = rec.WeekNum  || (rec.Date ? getISOWeek(new Date(rec.Date)).week : '?');
-    const yr   = rec.WeekYear || (rec.Date ? getISOWeek(new Date(rec.Date)).year : '');
-    const wkey = rec.WeekKey  || (yr + '-W' + String(wk).padStart(2,'0'));
+  // Group by WeekKey, newest first
+  const byWeek = {};
+  list.forEach(r => {
+    const wk  = r.WeekNum  || (r.Date ? getISOWeek(new Date(r.Date)).week  : '?');
+    const yr  = r.WeekYear || (r.Date ? getISOWeek(new Date(r.Date)).year  : '');
+    const key = r.WeekKey  || (yr + '-W' + String(wk).padStart(2,'0'));
+    if (!byWeek[key]) byWeek[key] = { key, wk, yr, recs: [] };
+    byWeek[key].recs.push(r);
+  });
+  const sortedWeeks = Object.values(byWeek).sort((a,b) =>
+    b.yr !== a.yr ? b.yr - a.yr : b.wk - a.wk
+  );
 
-    // Current week = editable; past week = history
-    const isCurrent = (Number(wk)===curWeek && Number(yr)===curYear);
-    const isPast    = !isCurrent;
-    const locked    = isPast && !isAdminEnabled();
+  const WK_LABELS = {
+    wk_weight_spot:'Weight Spot-Check', wk_body_condition:'Body Condition Score',
+    wk_behaviour:'Behaviour', wk_deworm:'Deworming Check', wk_vitamins:'Vitamins/Supplements',
+    wk_wounds:'Wounds/Injuries', wk_feeder_clean:'Feeder Cleanliness',
+    wk_pen_repair:'Pen Repair', wk_feed_consumption:'Feed Consumption', wk_boar_condition:'Boar Condition'
+  };
 
-    const hasConcerns = rec.Status === 'CONCERNS';
-    const statusBadge = hasConcerns
-      ? '<span class="cl-concern-badge">⚠ Concerns</span>'
-      : '<span class="cl-ok-badge">✓ All OK</span>';
-    const lockTag = locked ? '<span style="font-size:11px;color:#888;margin-left:6px">🔒</span>' : '';
-    const curTag  = isCurrent ? '<span style="font-size:11px;font-weight:700;color:#2d6a2d;margin-left:6px">● Current</span>' : '';
+  container.innerHTML = sortedWeeks.map((wkGrp, gi) => {
+    const { key, wk, yr, recs } = wkGrp;
+    const isCurrent  = Number(wk) === curWeek && Number(yr) === curYear;
+    const concerns   = recs.filter(r => r.Status === 'CONCERNS').length;
+    const totalPens  = recs.length;
 
-    const adminActions = isAdminEnabled()
-      ? '<div class="cl-record-actions"><button class="btn-edit" onclick="wkEditRecord(\'' + rec.WK_ID + '\')">Edit</button> <button class="btn-delete" onclick="wkDeleteRecord(\'' + rec.WK_ID + '\')">Delete</button></div>'
-      : (isCurrent ? '<div class="cl-record-actions"><button class="btn-edit" onclick="wkEditRecord(\'' + rec.WK_ID + '\')">Edit</button></div>' : '');
+    const curTag     = isCurrent ? `<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,0.3);padding:2px 7px;border-radius:8px">CURRENT</span>` : '';
+    const countBadge = `<span class="cl-day-count">${totalPens} pen${totalPens>1?'s':''}</span>`;
+    const concernBadge = concerns > 0 ? `<span class="cl-concern-badge">⚠ ${concerns} concern${concerns>1?'s':''}</span>` : '';
 
-    return '<div class="cl-record-card">'
-      + '<div class="cl-record-header">'
-      + '<div class="cl-record-date">Week ' + wk + ' · ' + yr + curTag + '</div>'
-      + statusBadge + lockTag
-      + '</div>'
-      + '<div class="cl-record-by">Pen: ' + (rec.Pen||'All') + ' · By: ' + (rec.CheckedBy||'—') + ' · ' + (rec.Date||'') + '</div>'
-      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic;margin-top:4px">"' + rec.Notes + '"</div>' : '')
-      + adminActions
-      + '</div>';
+    // Pen cards inside week folder
+    const penCards = recs.map(rec => {
+      const hasConcerns = rec.Status === 'CONCERNS';
+      const concernList = (rec.Concerns||'').split(',').filter(Boolean);
+      const badge = hasConcerns
+        ? `<span class="cl-concern-badge">⚠ ${concernList.length} concern(s)</span>`
+        : `<span class="cl-ok-badge">✓ All OK</span>`;
+
+      const isLocked  = wkIsLocked(rec.Date||'') && !isAdmin;
+      const canEdit   = isAdmin || !wkIsPastWeek(rec.Date||'');
+      const editBtn   = canEdit ? `<button class="btn-edit" onclick="wkEditRecord('${rec.WK_ID}')">✏️ Edit</button>` : '';
+      const deleteBtn = isAdmin ? `<button class="btn-delete" onclick="wkDeleteRecord('${rec.WK_ID}')">Delete</button>` : '';
+      const lockNote  = isLocked ? `<span style="font-size:11px;color:#888;margin-left:4px">🔒 Locked</span>` : '';
+
+      const detailRows = WK_KEYS.map(k => {
+        const val = rec[k] || '';
+        const icon  = val === 'ok' ? '✅' : val === 'bad' ? '❌' : '—';
+        const color = val === 'bad' ? '#c0392b' : val === 'ok' ? '#2d6a2d' : '#999';
+        return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
+          <span style="color:#444">${WK_LABELS[k]||k}</span>
+          <span style="font-weight:700;color:${color}">${icon} ${val||'not recorded'}</span>
+        </div>`;
+      }).join('');
+      const extraDetail = `
+        ${rec.AvgWeight ? `<div style="font-size:12px;color:#444;margin-top:4px">Avg Weight: <b>${rec.AvgWeight} kg</b></div>` : ''}
+        ${rec.FeedKg    ? `<div style="font-size:12px;color:#444">Feed: <b>${rec.FeedKg} kg</b></div>` : ''}`;
+
+      const detailId = `wkDetail_${rec.WK_ID}`;
+      return `<div class="cl-pen-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <div>
+            <span style="font-size:14px;font-weight:800;color:#000">Pen ${rec.Pen||'—'}</span>
+            <span style="font-size:11px;color:#666;margin-left:8px">By: ${rec.CheckedBy||'—'}</span>
+            ${lockNote}
+          </div>
+          ${badge}
+        </div>
+        ${hasConcerns ? `<div style="font-size:11px;color:#c0392b;margin-bottom:5px">⚠ Concerns: ${concernList.join(', ')}</div>` : ''}
+        ${rec.Notes ? `<div style="font-size:11px;color:#444;font-style:italic;margin-bottom:6px">"${rec.Notes}"</div>` : ''}
+        <div class="cl-record-actions">
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn-edit" style="background:#f0f4f0;color:#2d6a2d;border-color:#2d6a2d" onclick="wkToggleDetail('${detailId}',this)">👁 View</button>
+            ${editBtn}${deleteBtn ? ' '+deleteBtn : ''}
+          </div>
+        </div>
+        <div id="${detailId}" style="display:none;margin-top:10px;border-top:1.5px solid #eee;padding-top:10px">
+          <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Full Weekly Check</div>
+          ${detailRows}${extraDetail}
+        </div>
+      </div>`;
+    }).join('');
+
+    const openClass = isCurrent ? 'open' : '';
+    return `<div class="cl-day-folder">
+      <div class="cl-day-header ${isCurrent?'today':''}" onclick="wkToggleWeek('wkWeek_${gi}')">
+        <div>
+          <div class="cl-day-title">📋 Week ${wk} · ${yr}</div>
+          <div class="cl-day-meta">${totalPens} pen record${totalPens>1?'s':''} · ${concerns>0?concerns+' concern(s)':'All OK'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="cl-day-badges">${curTag}${countBadge}${concernBadge}</div>
+          <span class="cl-day-chevron ${openClass}" id="chev_wkWeek_${gi}">▼</span>
+        </div>
+      </div>
+      <div class="cl-day-body ${openClass}" id="wkWeek_${gi}">${penCards}</div>
+    </div>`;
   }).join('');
+}
+
+function wkToggleWeek(id) {
+  const body    = document.getElementById(id);
+  const chevron = document.getElementById('chev_' + id);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chevron) chevron.classList.toggle('open', !isOpen);
+}
+
+function wkToggleDetail(id, btn) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? '👁 View' : '🔼 Hide';
 }
 
 function wkEditRecord(wkId) {
   const rec = allWeekly.find(r => String(r.WK_ID) === String(wkId));
-  if (!rec) return;
-  // Allow edit if admin OR if record is in current week
-  const { week: rw, year: ry } = getISOWeek(new Date(rec.Date||new Date()));
-  const { week: cw, year: cy } = getISOWeek(new Date());
-  const isCurrent = rw === cw && ry === cy;
-  if (!isAdminEnabled() && !isCurrent) {
-    showToast('Past week — admin access required to edit', true); return;
+  if (!rec) { showToast('Record not found', true); return; }
+  if (wkIsLocked(rec.Date||'') && !isAdminEnabled()) {
+    showToast('This record is older than 1 month — admin access required', true); return;
   }
+
+  // Switch to form tab WITHOUT clearing allWeekly (don't use setWkView)
+  document.getElementById('wkTabForm').className    = 'cl-tab active';
+  document.getElementById('wkTabHistory').className = 'cl-tab';
+  document.getElementById('wkFormView').style.display    = 'block';
+  document.getElementById('wkHistoryView').style.display = 'none';
+
   wkEditId = rec.WK_ID;
   if (document.getElementById('wkDate')) document.getElementById('wkDate').value = rec.Date || '';
   if (document.getElementById('wkPen'))  document.getElementById('wkPen').value  = rec.Pen  || '';
   _wkUpdateBadge(rec.Date || '');
   _populateWkForm(rec);
-  wkLockForm(false);  // admin always unlocked
+  wkLockForm(false);
   const existBanner  = document.getElementById('wkExistingBanner');
   const lockedBanner = document.getElementById('wkLockedBanner');
-  if (existBanner)  existBanner.style.display  = 'block';
+  if (existBanner)  { existBanner.textContent = `✏️ Editing: Week ${rec.WeekNum||''} · Pen ${rec.Pen||'—'}`; existBanner.style.display = 'block'; }
   if (lockedBanner) lockedBanner.style.display = 'none';
   const btn = document.getElementById('btnSaveWk');
   if (btn) btn.textContent = 'UPDATE WEEKLY CHECK';
-  setWkView('form');
+  window.scrollTo(0, 0);
 }
 
 async function wkDeleteRecord(wkId) {
@@ -3436,7 +3637,13 @@ function _moCurrentKey() {
 
 function moIsLocked(monthKey) {
   if (!monthKey) return false;
-  return monthKey < _moCurrentKey();
+  // Locked if older than 3 months
+  const [yr, mo] = monthKey.split('-').map(Number);
+  const recDate  = new Date(yr, mo - 1, 1); // first of that month
+  const cutoff   = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 3);
+  cutoff.setDate(1);
+  return recDate < cutoff;
 }
 
 // Populate the month dropdown — last 12 months + current + next 1
@@ -3523,7 +3730,8 @@ async function moMonthChanged() {
     moEditId = existing.MO_ID;
     _populateMoForm(existing);
     if (createdEl) createdEl.value = existing.CreatedDate || '';
-    if (existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
+    const mn = MO_NAMES[parseInt(monthKey.split('-')[1])-1] + ' ' + monthKey.split('-')[0];
+    if (existBanner)  { existBanner.textContent = `✏️ ${mn} already has a record — editing existing record.`; existBanner.style.display = locked ? 'none' : 'block'; }
     if (lockedBanner) lockedBanner.style.display = locked ? 'block' : 'none';
   } else {
     moEditId = null;
@@ -3584,16 +3792,36 @@ async function saveMonthly() {
   const monthKey  = document.getElementById('moMonth')?.value;
   const checkedBy = (document.getElementById('moCheckedBy')?.value||'').trim();
   const notes     = (document.getElementById('moNotes')?.value||'').trim();
+
   if (!monthKey) { showToast('Please select a month', true); return; }
+
+  // Validate checked by
+  if (!checkedBy) {
+    const el = document.getElementById('moCheckedBy');
+    if (el) { el.style.border = '2px solid #c0392b'; el.style.background = '#fde8e8'; el.focus(); }
+    showToast('Checked By is required before saving', true); return;
+  }
+
+  // Validate at least one section "Completed by" filled
+  const moByIds = ['moBy_growth','moBy_health','moBy_farm'];
+  const moByVals = moByIds.map(id => (document.getElementById(id)?.value||'').trim());
+  if (moByVals.every(v => !v)) {
+    moByIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.border = '2px solid #c0392b'; el.style.background = '#fde8e8'; }
+    });
+    document.getElementById('moBy_growth')?.focus();
+    showToast('Please fill at least one section "Completed by" field', true); return;
+  }
+
   if (moIsLocked(monthKey) && !isAdminEnabled()) {
-    showToast('Past month — record is closed. Admin access required.', true); return;
+    showToast('This record is older than 3 months — admin access required.', true); return;
   }
 
   const today = new Date().toISOString().split('T')[0];
   const concerns = MO_KEYS.filter(k => moState[k]==='bad');
   const g = id => (document.getElementById(id)?.value||'').trim();
 
-  // Always preserve the original CreatedDate if we know it; otherwise use today
   const createdDate = document.getElementById('moCreatedDate')?.value || today;
 
   const data = {
@@ -3617,42 +3845,43 @@ async function saveMonthly() {
   const btn = document.getElementById('btnSaveMo');
   btn.disabled=true; btn.textContent='Saving…';
 
-  // ALWAYS use moUpsert — backend matches on Month key, never creates duplicates
   const result = await apiPost({ action:'moUpsert', data });
 
   btn.disabled=false;
   if (result && result.success) {
-    // Keep moEditId set so UI knows a record exists
     if (result.mo_id) moEditId = result.mo_id;
-
     const monthName = MO_NAMES[parseInt(monthKey.split('-')[1])-1] + ' ' + monthKey.split('-')[0];
     showToast('✓ ' + monthName + ' checklist saved!');
     btn.textContent = 'UPDATE MONTHLY CHECK';
-
-    // Update the in-memory cache instead of clearing it
-    // This keeps moEditId valid without a round-trip
-    const idx = allMonthly.findIndex(r => String(r.Month||'') === monthKey);
+    // Update in-memory cache without round-trip
+    const idx = allMonthly.findIndex(r => String(r.Month||'').substring(0,7) === monthKey);
     const updated = { ...data, MO_ID: moEditId };
-    if (idx !== -1) { allMonthly[idx] = updated; }
-    else            { allMonthly.push(updated); }
-
+    if (idx !== -1) allMonthly[idx] = updated;
+    else allMonthly.push(updated);
     document.getElementById('moCreatedDate').value = createdDate;
     const b = document.getElementById('moExistingBanner');
     if (b) { b.textContent='✅ Saved — you can update this record any time this month.'; b.style.display='block'; }
   } else {
     showToast(result?.error||'Save failed', true);
-    btn.textContent = 'SAVE MONTHLY CHECK';
+    btn.textContent = moEditId ? 'UPDATE MONTHLY CHECK' : 'SAVE MONTHLY CHECK';
   }
 }
 
 async function loadMonthlyHistory() {
-  document.getElementById('moHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-  const result = await apiGet({ action: 'moGetAll' });
-  if (result && result.success) {
+  const container = document.getElementById('moHistoryContainer');
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p style="margin-top:10px;color:#666;font-size:13px">Loading history…</p></div>';
+  let result = null;
+  try { result = await apiGet({ action: 'moGetAll' }); } catch(e) {
+    container.innerHTML = '<div class="empty-state">⚠️ Network error loading history.</div>'; return;
+  }
+  if (!result) { container.innerHTML = '<div class="empty-state">⚠️ Could not connect. Check your Script URL.</div>'; return; }
+  if (result.success) {
     allMonthly = result.records || [];
-    renderMonthlyHistory();
+    allMonthly.length === 0
+      ? (container.innerHTML = '<div class="empty-state">No monthly records yet.</div>')
+      : renderMonthlyHistory();
   } else {
-    document.getElementById('moHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+    container.innerHTML = `<div class="empty-state">⚠️ ${result.error || 'Could not load history.'}</div>`;
   }
 }
 
@@ -3660,6 +3889,15 @@ function renderMonthlyHistory() {
   const container = document.getElementById('moHistoryContainer');
   const filter    = (document.getElementById('moHistorySearch')?.value || '').toLowerCase();
   const curKey    = _moCurrentKey();
+  const isAdmin   = isAdminEnabled();
+
+  const MO_LABELS = {
+    mo_full_weigh:'Full Weight Recording', mo_growth_rate:'Growth Rate Review',
+    mo_mortality:'Mortality Review', mo_vaccination:'Vaccination Round',
+    mo_breeding:'Breeding Records Updated', mo_boar_perf:'Boar Performance Review',
+    mo_feed_inventory:'Feed Stock Inventory', mo_equipment:'Equipment Maintenance',
+    mo_biosecurity:'Biosecurity Check'
+  };
 
   let list = (allMonthly||[]).filter(r => {
     if (!filter) return true;
@@ -3672,53 +3910,127 @@ function renderMonthlyHistory() {
 
   if (!list.length) { container.innerHTML = '<div class="empty-state">No monthly records found.</div>'; return; }
 
-  container.innerHTML = list.map(rec => {
-    const mk      = String(rec.Month||'');
-    const parts   = mk.split('-');
-    const mn      = (MO_NAMES[parseInt(parts[1])-1] || mk) + ' ' + (parts[0]||'');
-    const isCur   = mk === curKey;
-    const isPast  = !isCur;
-    const locked  = isPast && !isAdminEnabled();
+  container.innerHTML = list.map((rec, gi) => {
+    const mk   = String(rec.Month||'').substring(0,7);
+    const parts = mk.split('-');
+    const mn   = (MO_NAMES[parseInt(parts[1])-1] || mk) + ' ' + (parts[0]||'');
+    const isCur    = mk === curKey;
+    const isLocked = moIsLocked(mk) && !isAdmin;
+    const canEdit  = isAdmin || !moIsLocked(mk);
 
-    const hasConcerns = rec.Status === 'CONCERNS';
-    const statusBadge = hasConcerns
-      ? '<span class="cl-concern-badge">⚠ Concerns</span>'
-      : '<span class="cl-ok-badge">✓ All OK</span>';
-    const curTag  = isCur ? '<span style="font-size:11px;font-weight:700;color:#4a148c;margin-left:6px">● Current</span>' : '';
-    const lockTag = locked ? '<span style="font-size:11px;color:#888;margin-left:4px">🔒</span>' : '';
+    const hasConcerns  = rec.Status === 'CONCERNS';
+    const concernList  = (rec.Concerns||'').split(',').filter(Boolean);
+    const statusBadge  = hasConcerns
+      ? `<span class="cl-concern-badge">⚠ ${concernList.length} concern(s)</span>`
+      : `<span class="cl-ok-badge">✓ All OK</span>`;
+    const curTag  = isCur ? `<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,0.3);padding:2px 7px;border-radius:8px">CURRENT</span>` : '';
+    const lockNote = isLocked ? `<span style="font-size:11px;color:#888;margin-left:4px">🔒 Locked</span>` : '';
+    const editBtn   = canEdit  ? `<button class="btn-edit" onclick="moEditRecord('${rec.MO_ID}')">✏️ Edit</button>` : '';
+    const deleteBtn = isAdmin  ? `<button class="btn-delete" onclick="moDeleteRecord('${rec.MO_ID}')">Delete</button>` : '';
 
-    const adminActions = isAdminEnabled()
-      ? '<div class="cl-record-actions"><button class="btn-edit" onclick="moEditRecord(\'' + rec.MO_ID + '\')">Edit</button> <button class="btn-delete" onclick="moDeleteRecord(\'' + rec.MO_ID + '\')">Delete</button></div>'
-      : (isCur ? '<div class="cl-record-actions"><button class="btn-edit" onclick="moEditRecord(\'' + rec.MO_ID + '\')">Edit</button></div>' : '');
+    const detailRows = MO_KEYS.map(k => {
+      const val  = rec[k] || '';
+      const icon  = val === 'ok' ? '✅' : val === 'bad' ? '❌' : '—';
+      const color = val === 'bad' ? '#c0392b' : val === 'ok' ? '#2d6a2d' : '#999';
+      return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
+        <span style="color:#444">${MO_LABELS[k]||k}</span>
+        <span style="font-weight:700;color:${color}">${icon} ${val||'not recorded'}</span>
+      </div>`;
+    }).join('');
+    const extraDetail = [
+      rec.PigsWeighed ? `Pigs weighed: <b>${rec.PigsWeighed}</b>` : '',
+      rec.AvgADG      ? `Avg ADG: <b>${rec.AvgADG} g/day</b>`     : '',
+      rec.Deaths      ? `Deaths: <b>${rec.Deaths}</b>`             : '',
+      rec.VaxCount    ? `Vaccinated: <b>${rec.VaxCount}</b>`       : '',
+      rec.FeedStock   ? `Feed stock: <b>${rec.FeedStock} bags</b>` : '',
+    ].filter(Boolean).map(s => `<div style="font-size:12px;color:#444;margin-top:3px">${s}</div>`).join('');
+    const byDetail = [
+      rec.ByGrowth ? `Growth by: ${rec.ByGrowth}` : '',
+      rec.ByHealth ? `Health by: ${rec.ByHealth}` : '',
+      rec.ByFarm   ? `Farm by: ${rec.ByFarm}`     : '',
+    ].filter(Boolean).join(' · ');
 
-    return '<div class="cl-record-card">'
-      + '<div class="cl-record-header"><div class="cl-record-date">' + mn + curTag + '</div>' + statusBadge + lockTag + '</div>'
-      + '<div class="cl-record-by">By: ' + (rec.CheckedBy||'—') + (rec.CreatedDate ? ' · Created: ' + rec.CreatedDate : '') + '</div>'
-      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic;margin-top:4px">"' + rec.Notes + '"</div>' : '')
-      + adminActions
-      + '</div>';
+    const detailId = `moDetail_${rec.MO_ID}`;
+    // Month folders — each month is one record, so the "folder" IS the record card
+    const openClass = isCur ? 'open' : '';
+    return `<div class="cl-day-folder">
+      <div class="cl-day-header ${isCur?'today':''}" onclick="moToggleMonth('moMonth_${gi}')">
+        <div>
+          <div class="cl-day-title">📆 ${mn}</div>
+          <div class="cl-day-meta">By: ${rec.CheckedBy||'—'}${rec.CreatedDate?' · '+rec.CreatedDate:''} · ${hasConcerns?concernList.length+' concern(s)':'All OK'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="cl-day-badges">${curTag}${statusBadge}${lockNote}</div>
+          <span class="cl-day-chevron ${openClass}" id="chev_moMonth_${gi}">▼</span>
+        </div>
+      </div>
+      <div class="cl-day-body ${openClass}" id="moMonth_${gi}">
+        <div class="cl-pen-card">
+          ${hasConcerns ? `<div style="font-size:11px;color:#c0392b;margin-bottom:6px">⚠ Concerns: ${concernList.join(', ')}</div>` : ''}
+          ${byDetail ? `<div style="font-size:11px;color:#555;margin-bottom:6px">${byDetail}</div>` : ''}
+          ${rec.Notes ? `<div style="font-size:11px;color:#444;font-style:italic;margin-bottom:8px">"${rec.Notes}"</div>` : ''}
+          <div class="cl-record-actions">
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="btn-edit" style="background:#f5f0ff;color:#4a148c;border-color:#4a148c" onclick="moToggleDetail('${detailId}',this)">👁 View</button>
+              ${editBtn}${deleteBtn?' '+deleteBtn:''}
+            </div>
+          </div>
+          <div id="${detailId}" style="display:none;margin-top:10px;border-top:1.5px solid #eee;padding-top:10px">
+            <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Full Monthly Check</div>
+            ${detailRows}${extraDetail}
+          </div>
+        </div>
+      </div>
+    </div>`;
   }).join('');
+}
+
+function moToggleMonth(id) {
+  const body    = document.getElementById(id);
+  const chevron = document.getElementById('chev_' + id);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chevron) chevron.classList.toggle('open', !isOpen);
+}
+
+function moToggleDetail(id, btn) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? '👁 View' : '🔼 Hide';
 }
 
 function moEditRecord(moId) {
   const rec = allMonthly.find(r => String(r.MO_ID) === String(moId));
-  if (!rec) return;
-  // Non-admin can only edit current month
-  if (!isAdminEnabled() && moIsLocked(rec.Month)) {
-    showToast('Past month — admin access required to edit', true); return;
+  if (!rec) { showToast('Record not found', true); return; }
+  if (moIsLocked(String(rec.Month||'').substring(0,7)) && !isAdminEnabled()) {
+    showToast('This record is older than 3 months — admin access required', true); return;
   }
+
+  // Switch to form tab WITHOUT clearing allMonthly (don't call setMoView)
+  document.getElementById('moTabForm').className    = 'cl-tab active';
+  document.getElementById('moTabHistory').className = 'cl-tab';
+  document.getElementById('moFormView').style.display    = 'block';
+  document.getElementById('moHistoryView').style.display = 'none';
+
   moEditId = rec.MO_ID;
+  const mk  = String(rec.Month||'').substring(0,7);
   const sel = document.getElementById('moMonth');
-  if (sel) sel.value = rec.Month || '';
+  if (sel) sel.value = mk;
   _populateMoForm(rec);
   const cd = document.getElementById('moCreatedDate');
   if (cd) cd.value = rec.CreatedDate || '';
   moLockForm(false);
-  document.getElementById('moExistingBanner').style.display  = 'block';
-  document.getElementById('moLockedBanner').style.display    = 'none';
+  const mn = MO_NAMES[parseInt(mk.split('-')[1])-1] + ' ' + mk.split('-')[0];
+  const existBanner  = document.getElementById('moExistingBanner');
+  const lockedBanner = document.getElementById('moLockedBanner');
+  if (existBanner)  { existBanner.textContent = `✏️ Editing: ${mn}`; existBanner.style.display = 'block'; }
+  if (lockedBanner) lockedBanner.style.display = 'none';
   const btn = document.getElementById('btnSaveMo');
   if (btn) btn.textContent = 'UPDATE MONTHLY CHECK';
-  setMoView('form');
+  window.scrollTo(0, 0);
 }
 
 async function moDeleteRecord(moId) {
