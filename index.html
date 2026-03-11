@@ -2019,17 +2019,32 @@ function showPageList() {
 async function apiGet(params) {
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
   const url = SCRIPT_URL + "?" + new URLSearchParams(params);
-  const res = await fetch(url);
-  return res.json();
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 20000);
+    const res  = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tid);
+    return res.json();
+  } catch(e) {
+    if (e.name === 'AbortError') showToast("Request timed out — check your Script URL", true);
+    else showToast("Network error: " + e.message, true);
+    return null;
+  }
 }
 
 async function apiPost(body) {
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
-  const res = await fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify(body)
-  });
-  return res.json();
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 20000);
+    const res  = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body), signal: ctrl.signal });
+    clearTimeout(tid);
+    return res.json();
+  } catch(e) {
+    if (e.name === 'AbortError') showToast("Request timed out — check your Script URL", true);
+    else showToast("Network error: " + e.message, true);
+    return null;
+  }
 }
 
 async function loadRecords() {
@@ -2614,7 +2629,10 @@ function setClView(view) {
   document.getElementById('clTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
   document.getElementById('clFormView').style.display    = view==='form'    ? 'block' : 'none';
   document.getElementById('clHistoryView').style.display = view==='history' ? 'block' : 'none';
-  if (view === 'history') { allChecklists = []; loadChecklists(); }
+  if (view === 'history') {
+    allChecklists = [];
+    loadChecklists();
+  }
 }
 
 function resetChecklist() {
@@ -2669,13 +2687,24 @@ async function saveChecklist() {
 }
 
 async function loadChecklists() {
-  document.getElementById('clHistoryContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
-  const result = await apiGet({ action: 'clGetAll' });
-  if (result && result.success) {
+  const container = document.getElementById('clHistoryContainer');
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p style="margin-top:10px;color:#666;font-size:13px">Loading history…</p></div>';
+  let result = null;
+  try { result = await apiGet({ action: 'clGetAll' }); } catch(e) {
+    container.innerHTML = '<div class="empty-state">⚠️ Network error loading history.</div>'; return;
+  }
+  if (!result) {
+    container.innerHTML = '<div class="empty-state">⚠️ Could not connect. Check your Script URL.</div>'; return;
+  }
+  if (result.success) {
     allChecklists = result.records || [];
-    renderChecklistHistory();
+    if (allChecklists.length === 0) {
+      container.innerHTML = '<div class="empty-state">No checklist records yet.</div>';
+    } else {
+      renderChecklistHistory();
+    }
   } else {
-    document.getElementById('clHistoryContainer').innerHTML = '<div class="empty-state">Could not load history.</div>';
+    container.innerHTML = '<div class="empty-state">⚠️ ' + (result.error || 'Could not load history.') + '</div>';
   }
 }
 

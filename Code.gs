@@ -348,8 +348,10 @@ function clGetAll() {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const data = sheet.getRange(2,1,lastRow-1,CL_HEADERS.length).getValues();
-  const records = data.filter(r => r[0] !== "").map(rowToClRecord);
+  const lastCol = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const records = data.filter(r => r[0] !== "" && r[0] !== null && r[0] !== undefined)
+                      .map(row => rowToClRecord(row));
   return { success: true, records };
 }
 
