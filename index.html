@@ -770,14 +770,20 @@
             <input type="date" id="clDate" style="font-weight:700">
           </div>
           <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
-            <label>Pen No.</label>
-            <input type="text" id="clPen" placeholder="e.g. Pen 3" style="font-weight:700">
+            <label>Pen No. <span id="clPenHint" style="font-weight:400;color:#666;font-size:11px">(1–<span id="clMaxPenLabel">50</span>)</span></label>
+            <input type="number" id="clPen" min="1" max="50" placeholder="1" style="font-weight:700" oninput="this.style.border='';this.style.background=''">
           </div>
           <div style="display:flex;align-items:flex-end">
             <button class="btn-primary btn-green" onclick="clStartRecord()" style="white-space:nowrap;padding:8px 18px">Start ▶</button>
           </div>
         </div>
         <div id="clSetupError" style="display:none;color:#c0392b;font-size:12px;font-weight:700;margin-top:6px"></div>
+        <!-- Admin: max pen setting -->
+        <div id="clAdminSettings" style="display:none;margin-top:10px;padding:8px 12px;background:#fff9c4;border:1.5px solid #f59e0b;border-radius:8px;font-size:12px">
+          <span style="font-weight:800;color:#78350f">⚙️ Admin — Max Pen Number:</span>
+          <input type="number" id="clMaxPenInput" min="1" max="999" value="50" style="width:65px;margin:0 8px;padding:4px 8px;border:1.5px solid #f59e0b;border-radius:6px;font-weight:700;font-size:13px">
+          <button onclick="clSaveMaxPen()" style="background:#f59e0b;border:none;border-radius:6px;padding:5px 12px;font-weight:800;font-size:12px;cursor:pointer;color:#000">Save</button>
+        </div>
       </div>
 
       <!-- Once started: locked header showing date+pen -->
@@ -1940,6 +1946,9 @@ function updateAdminBadge() {
     badge.className = "admin-badge";
     badge.innerHTML = "🔒 Admin";
   }
+  // Show/hide admin-only panels
+  const clAdmin = document.getElementById('clAdminSettings');
+  if (clAdmin) clAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
 }
 
 function toggleAdminMode() {
@@ -2546,6 +2555,7 @@ const CL_KEYS = ['tail','eyes','stool','posture','skin','breathing',
                  'appetite','water','feed','smell',
                  'pinch','belly','limbs','injuries','temp'];
 
+let clMaxPen = 50; // loaded from Settings on init; admin-editable
 let clState = {};  // key -> 'ok' | 'bad' | null
 let clView = 'form';
 let allChecklists = [];
@@ -2557,6 +2567,38 @@ function initChecklist() {
   const dateEl = document.getElementById('clDate');
   if (dateEl) dateEl.value = today;
   _clShowSetup();
+  // Load max pen from settings (async, non-blocking)
+  apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
+    if (r && r.success && r.value) {
+      clMaxPen = parseInt(r.value, 10) || 50;
+    } else {
+      clMaxPen = 50;
+    }
+    _clApplyMaxPen();
+  });
+}
+
+function _clApplyMaxPen() {
+  const penEl   = document.getElementById('clPen');
+  const label   = document.getElementById('clMaxPenLabel');
+  const input   = document.getElementById('clMaxPenInput');
+  if (penEl)  { penEl.max = clMaxPen; penEl.placeholder = '1'; }
+  if (label)  label.textContent = clMaxPen;
+  if (input)  input.value = clMaxPen;
+}
+
+async function clSaveMaxPen() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const val = parseInt(document.getElementById('clMaxPenInput').value, 10);
+  if (!val || val < 1) { showToast('Enter a valid number ≥ 1', true); return; }
+  const result = await apiPost({ action: 'saveSetting', key: 'maxPen', value: String(val) });
+  if (result && result.success) {
+    clMaxPen = val;
+    _clApplyMaxPen();
+    showToast(`✓ Max pen updated to ${val}`);
+  } else {
+    showToast(result?.error || 'Save failed', true);
+  }
 }
 
 function _clShowSetup() {
@@ -2571,12 +2613,24 @@ function _clShowSetup() {
 }
 
 async function clStartRecord() {
-  const date = document.getElementById('clDate').value;
-  const pen  = document.getElementById('clPen').value.trim();
-  const errEl = document.getElementById('clSetupError');
-  if (!date && !pen) { errEl.textContent = 'Please fill in Date and Pen No.'; errEl.style.display='block'; return; }
-  if (!date)         { errEl.textContent = 'Please fill in Date.';            errEl.style.display='block'; return; }
-  if (!pen)          { errEl.textContent = 'Please fill in Pen No.';          errEl.style.display='block'; return; }
+  const date   = document.getElementById('clDate').value;
+  const penRaw = document.getElementById('clPen').value.trim();
+  const penEl  = document.getElementById('clPen');
+  const errEl  = document.getElementById('clSetupError');
+
+  if (!date && !penRaw) { errEl.textContent = 'Please fill in Date and Pen No.'; errEl.style.display='block'; return; }
+  if (!date)            { errEl.textContent = 'Please fill in Date.';            errEl.style.display='block'; return; }
+  if (!penRaw)          { errEl.textContent = 'Please fill in Pen No.';          errEl.style.display='block'; return; }
+
+  // Validate pen is integer 1–maxPen
+  const penNum = parseInt(penRaw, 10);
+  if (isNaN(penNum) || penNum < 1 || penNum > clMaxPen || String(penNum) !== penRaw) {
+    errEl.textContent = `Pen must be a whole number between 1 and ${clMaxPen}.`;
+    errEl.style.display = 'block';
+    penEl.style.border = '2px solid #c0392b'; penEl.style.background = '#fde8e8';
+    return;
+  }
+  const pen = String(penNum); // normalised
   errEl.style.display = 'none';
 
   if (allChecklists.length === 0) {
@@ -2678,11 +2732,22 @@ function resetChecklist() {
 
 async function saveChecklist() {
   const date      = document.getElementById('clDate').value;
-  const pen       = document.getElementById('clPen').value.trim();
+  const penRaw    = document.getElementById('clPen').value.trim();
   const checkedBy = document.getElementById('clCheckedBy').value.trim();
   const notes     = document.getElementById('clNotes').value.trim();
 
-  if (!date || !pen) { showToast('Date and Pen are required', true); return; }
+  if (!date || !penRaw) { showToast('Date and Pen are required', true); return; }
+
+  // Validate pen is integer 1–maxPen
+  const penNum = parseInt(penRaw, 10);
+  if (isNaN(penNum) || penNum < 1 || penNum > clMaxPen) {
+    const penEl = document.getElementById('clPen');
+    if (penEl) { penEl.style.border = '2px solid #c0392b'; penEl.style.background = '#fde8e8'; }
+    showToast(`Pen must be a whole number between 1 and ${clMaxPen}`, true);
+    return;
+  }
+  const pen = String(penNum);
+
   if (!checkedBy) {
     const el = document.getElementById('clCheckedBy');
     if (el) { el.style.border = '2px solid #c0392b'; el.style.background = '#fde8e8'; el.focus(); }

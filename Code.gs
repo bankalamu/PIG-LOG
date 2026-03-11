@@ -786,8 +786,9 @@ function getSettingsSheet() {
     sheet.appendRow(["Key", "Value", "UpdatedBy", "UpdatedAt"]);
     sheet.getRange(1,1,1,4).setFontWeight("bold").setBackground("#555555").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
-    // seed default
+    // seed defaults
     sheet.appendRow(["weaningWeeks", "5", "system", new Date()]);
+    sheet.appendRow(["maxPen", "50", "system", new Date()]);
   }
   return sheet;
 }
