@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Pig Log v2.1</title>
+  <title>Pig Log v2.2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
   <style>
@@ -559,8 +559,11 @@
     </div>
     <div style="text-align:right">
       <div class="header-count" id="recordCount">— records</div>
-      <button class="back-btn" id="backBtn" onclick="goHome()" style="display:none">← Home</button>
-      <div id="adminBadge" style="display:none" onclick="toggleAdminMode()"></div>
+      <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:3px">
+        <span id="versionBadge" style="font-size:9px;opacity:0.7;cursor:pointer" onclick="forceReload()" title="Tap to force reload">v<span id="versionNum"></span></span>
+        <button class="back-btn" id="backBtn" onclick="goHome()" style="display:none">← Home</button>
+        <div id="adminBadge" style="display:none" onclick="toggleAdminMode()"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1873,6 +1876,7 @@
 // ══════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════
+const APP_VERSION    = "2.2";
 const SCRIPT_URL_KEY = "piglog_script_url";
 const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
 
@@ -1881,6 +1885,17 @@ const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
 const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443bc3e5ad5d";
 
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
+
+// ── Force hard reload if browser served a stale cached page ──
+(function() {
+  const stored = localStorage.getItem("piglog_version");
+  if (stored && stored !== APP_VERSION) {
+    localStorage.setItem("piglog_version", APP_VERSION);
+    location.reload(true);
+  } else {
+    localStorage.setItem("piglog_version", APP_VERSION);
+  }
+})();
 
 // ── PigLog column definitions — DO NOT reorder without updating Code.gs HEADERS ──
 const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","Weight","Dewormed","Pen","Notes","Available"];
@@ -1964,6 +1979,10 @@ async function submitAdminPw() {
 // ── Init ──────────────────────────────────────────
 
 window.addEventListener("DOMContentLoaded", () => {
+  // Set version badge
+  const vn = document.getElementById("versionNum");
+  if (vn) vn.textContent = APP_VERSION;
+
   if (!SCRIPT_URL) {
     document.getElementById("configBanner").style.display = "block";
     document.getElementById("scriptUrlInput").value = "";
@@ -2008,6 +2027,13 @@ function showPage(id) {
 }
 
 function goHome() { showPage("pageHome"); }
+
+function forceReload() {
+  if (confirm("Force reload the app to get the latest version?")) {
+    localStorage.setItem("piglog_version", "0"); // reset so version check triggers
+    location.reload(true);
+  }
+}
 
 function showPageList() {
   showPage("pageList");
