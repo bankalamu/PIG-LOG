@@ -402,6 +402,25 @@
     }
     .cl-record-actions { display: flex; gap: 8px; margin-top: 10px; }
 
+    /* Day folder accordion */
+    .cl-day-folder { margin-bottom: 10px; border-radius: 12px; overflow: hidden; border: 1.5px solid var(--border); box-shadow: var(--shadow); }
+    .cl-day-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; background: var(--brand); color: #fff;
+      cursor: pointer; user-select: none; gap: 8px;
+    }
+    .cl-day-header:active { opacity: 0.85; }
+    .cl-day-header.today { background: #1a5c1a; }
+    .cl-day-title { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 900; }
+    .cl-day-meta  { font-size: 11px; opacity: 0.88; margin-top: 2px; }
+    .cl-day-badges { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+    .cl-day-count { font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 10px; }
+    .cl-day-chevron { font-size: 13px; transition: transform 0.2s; flex-shrink: 0; }
+    .cl-day-chevron.open { transform: rotate(180deg); }
+    .cl-day-body { background: #f9fafb; padding: 10px 10px 4px; display: none; }
+    .cl-day-body.open { display: block; }
+    .cl-pen-card { background: #fff; border: 1.5px solid var(--border); border-radius: 9px; padding: 11px 14px; margin-bottom: 8px; }
+
     /* History tab toggle */
     .cl-view-tabs { display: flex; gap: 0; margin-bottom: 16px; border-radius: 10px; overflow: hidden; border: 1.5px solid var(--brand); }
     .cl-tab {
@@ -2661,36 +2680,114 @@ async function loadChecklists() {
 }
 
 function renderChecklistHistory() {
-  const filter = (document.getElementById('clHistorySearch')?.value || '').toLowerCase();
+  const filter    = (document.getElementById('clHistorySearch')?.value || '').toLowerCase();
   const container = document.getElementById('clHistoryContainer');
-  const today = new Date().toISOString().split('T')[0];
-  let list = allChecklists
-    .filter(r => (r.Date||'').includes(filter) || (r.Pen||'').toLowerCase().includes(filter) || (r.CheckedBy||'').toLowerCase().includes(filter))
-    .slice().reverse();
-  if (list.length === 0) { container.innerHTML = '<div class="empty-state">No checklist records found.</div>'; return; }
-  container.innerHTML = list.map(rec => {
-    const hasConcerns = rec.Status === 'CONCERNS';
-    const isPast = String(rec.Date||'') < today;
-    const badge = hasConcerns
-      ? '<span class="cl-concern-badge">! ' + (rec.Concerns||'').split(',').filter(Boolean).length + ' concern(s)</span>'
-      : '<span class="cl-ok-badge">OK All OK</span>';
-    const lockTag = isPast && !isAdminEnabled() ? '<span style="font-size:11px;color:#888;margin-left:6px">Locked</span>' : '';
-    const adminActions = isAdminEnabled()
-      ? '<button class="btn-edit" onclick="clEditRecord(\'' + rec.CL_ID + '\')">Edit</button> <button class="btn-delete" onclick="clDeleteRecord(\'' + rec.CL_ID + '\')">Delete</button>'
-      : '';
-    return '<div class="cl-record-card">'
-      + '<div class="cl-record-header"><div class="cl-record-date">' + (rec.Date||'-') + '</div>' + badge + '</div>'
-      + '<div class="cl-record-by">Pen: ' + (rec.Pen||'-') + ' - By: ' + (rec.CheckedBy||'-') + ' ' + lockTag + '</div>'
-      + (rec.Notes ? '<div style="font-size:12px;color:#333;font-style:italic;margin-bottom:6px">"' + rec.Notes + '"</div>' : '')
-      + (adminActions ? '<div class="cl-record-actions">' + adminActions + '</div>' : '')
-      + '</div>';
+  const today     = new Date().toISOString().split('T')[0];
+  const isAdmin   = isAdminEnabled();
+
+  // Filter records
+  let list = allChecklists.filter(r =>
+    (r.Date||'').includes(filter) ||
+    (r.Pen||'').toLowerCase().includes(filter) ||
+    (r.CheckedBy||'').toLowerCase().includes(filter)
+  );
+  if (list.length === 0) {
+    container.innerHTML = '<div class="empty-state">No checklist records found.</div>';
+    return;
+  }
+
+  // Group by date, newest first
+  const byDate = {};
+  list.forEach(r => {
+    const d = r.Date || 'Unknown';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(r);
+  });
+  const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+
+  container.innerHTML = sortedDates.map((date, di) => {
+    const recs      = byDate[date];
+    const isToday   = date === today;
+    const isPast    = date < today;
+    const concerns  = recs.filter(r => r.Status === 'CONCERNS').length;
+    const totalPens = recs.length;
+
+    // Day-level badges
+    const concernBadge = concerns > 0
+      ? `<span class="cl-concern-badge">⚠ ${concerns} concern${concerns>1?'s':''}</span>` : '';
+    const todayBadge = isToday
+      ? `<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,0.3);padding:2px 7px;border-radius:8px">TODAY</span>` : '';
+    const countBadge = `<span class="cl-day-count">${totalPens} pen${totalPens>1?'s':''}</span>`;
+
+    // Format date label
+    const dateLabel = isToday ? `📅 Today — ${date}` : `📅 ${date}`;
+
+    // Open today by default, rest collapsed
+    const openClass   = isToday ? 'open' : '';
+    const chevronOpen = isToday ? 'open' : '';
+
+    // Pen cards inside the folder
+    const penCards = recs.map(rec => {
+      const hasConcerns = rec.Status === 'CONCERNS';
+      const concernList = (rec.Concerns||'').split(',').filter(Boolean);
+      const badge = hasConcerns
+        ? `<span class="cl-concern-badge">⚠ ${concernList.length} concern(s)</span>`
+        : `<span class="cl-ok-badge">✓ All OK</span>`;
+
+      // Edit: today's records editable by all; past records admin only
+      const canEdit = isAdmin || !isPast;
+      const editBtn = canEdit
+        ? `<button class="btn-edit" onclick="clEditRecord('${rec.CL_ID}')">Edit</button>`
+        : `<span style="font-size:11px;color:#888">🔒 Locked</span>`;
+      const deleteBtn = isAdmin
+        ? `<button class="btn-delete" onclick="clDeleteRecord('${rec.CL_ID}')">Delete</button>`
+        : '';
+
+      return `<div class="cl-pen-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <div>
+            <span style="font-size:14px;font-weight:800;color:#000">Pen ${rec.Pen||'—'}</span>
+            <span style="font-size:11px;color:#666;margin-left:8px">By: ${rec.CheckedBy||'—'}</span>
+          </div>
+          ${badge}
+        </div>
+        ${hasConcerns ? `<div style="font-size:11px;color:#c0392b;margin-bottom:5px">Concerns: ${concernList.join(', ')}</div>` : ''}
+        ${rec.Notes ? `<div style="font-size:11px;color:#444;font-style:italic;margin-bottom:5px">"${rec.Notes}"</div>` : ''}
+        <div class="cl-record-actions">${editBtn}${deleteBtn ? ' ' + deleteBtn : ''}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="cl-day-folder">
+      <div class="cl-day-header ${isToday?'today':''}" onclick="clToggleDay('clDay_${di}')">
+        <div>
+          <div class="cl-day-title">${dateLabel}</div>
+          <div class="cl-day-meta">${totalPens} pen record${totalPens>1?'s':''} · ${concerns>0?concerns+' concern(s)':'All OK'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="cl-day-badges">${todayBadge}${countBadge}${concernBadge}</div>
+          <span class="cl-day-chevron ${chevronOpen}" id="chev_clDay_${di}">▼</span>
+        </div>
+      </div>
+      <div class="cl-day-body ${openClass}" id="clDay_${di}">${penCards}</div>
+    </div>`;
   }).join('');
 }
 
+function clToggleDay(id) {
+  const body   = document.getElementById(id);
+  const chevron = document.getElementById('chev_' + id);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chevron) chevron.classList.toggle('open', !isOpen);
+}
+
 function clEditRecord(clId) {
-  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
-  const rec = allChecklists.find(r => String(r.CL_ID) === String(clId));
+  const rec    = allChecklists.find(r => String(r.CL_ID) === String(clId));
   if (!rec) return;
+  const today  = new Date().toISOString().split('T')[0];
+  const isPast = String(rec.Date||'') < today;
+  if (isPast && !isAdminEnabled()) { showToast('Past records require admin access', true); return; }
   document.getElementById('clDate').value = rec.Date || '';
   document.getElementById('clPen').value  = rec.Pen  || '';
   setClView('form');
