@@ -804,7 +804,7 @@
         <div class="checklist-meta" style="grid-template-columns:1fr">
           <div>
             <label>Checked by</label>
-            <input type="text" id="clCheckedBy" placeholder="Your name">
+            <input type="text" id="clCheckedBy" placeholder="Your name" oninput="this.style.border='';this.style.background=''">
           </div>
         </div>
 
@@ -2681,7 +2681,14 @@ async function saveChecklist() {
   const pen       = document.getElementById('clPen').value.trim();
   const checkedBy = document.getElementById('clCheckedBy').value.trim();
   const notes     = document.getElementById('clNotes').value.trim();
+
   if (!date || !pen) { showToast('Date and Pen are required', true); return; }
+  if (!checkedBy) {
+    const el = document.getElementById('clCheckedBy');
+    if (el) { el.style.border = '2px solid #c0392b'; el.style.background = '#fde8e8'; el.focus(); }
+    showToast('Checked By is required before saving', true);
+    return;
+  }
   if (clIsLocked(date) && !isAdminEnabled()) {
     showToast('Past records are locked -- admin access required', true); return;
   }
