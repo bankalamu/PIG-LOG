@@ -380,6 +380,22 @@ function clUpsert(data) {
 
 function clAdd(data) {
   const sheet = getClSheet();
+  // Server-side duplicate guard: reject if same Date+Pen already exists
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const dateIdx = CL_HEADERS.indexOf("Date");
+    const penIdx  = CL_HEADERS.indexOf("Pen");
+    const allData = sheet.getRange(2, 1, lastRow - 1, CL_HEADERS.length).getValues();
+    const inDate  = String(data.Date || '').trim();
+    const inPen   = String(data.Pen  || '').trim().toLowerCase();
+    const dup = allData.find(r => {
+      const rowDate = r[dateIdx] instanceof Date
+        ? Utilities.formatDate(r[dateIdx], Session.getScriptTimeZone(), "yyyy-MM-dd")
+        : String(r[dateIdx] || '').trim();
+      return rowDate === inDate && String(r[penIdx] || '').trim().toLowerCase() === inPen;
+    });
+    if (dup) return { success: false, error: `Pen ${data.Pen} already has a record for ${data.Date}. Use update instead.` };
+  }
   const newId = getNextClId(sheet);
   const row = CL_HEADERS.map(h => {
     if (h === "CL_ID") return newId;

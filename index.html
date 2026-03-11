@@ -2640,13 +2640,15 @@ async function clStartRecord() {
 
   const existing = allChecklists.find(r =>
     String(r.Date||'').trim() === date &&
-    String(r.Pen||'').trim().toLowerCase() === pen.toLowerCase()
+    String(r.Pen||'').trim() === pen
   );
 
   if (existing) {
+    // Always load into edit mode — never allow a second record for same date+pen
     clEditId = existing.CL_ID;
     _populateClForm(existing);
     document.getElementById('clExistingBanner').style.display = 'block';
+    document.getElementById('clExistingBanner').textContent   = `✏️ Pen ${pen} already has a record for ${date} — editing existing record.`;
     document.getElementById('btnSaveChecklist').textContent   = 'UPDATE CHECKLIST';
   } else {
     clEditId = null;
@@ -2764,6 +2766,25 @@ async function saveChecklist() {
     Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK'
   };
   CL_KEYS.forEach(k => { data[k] = clState[k] || ''; });
+
+  // Hard duplicate guard: if no clEditId but a record already exists for this date+pen, block new creation
+  if (!clEditId) {
+    const dup = allChecklists.find(r =>
+      String(r.Date||'').trim() === date &&
+      String(r.Pen||'').trim() === pen
+    );
+    if (dup) {
+      showToast(`Pen ${pen} already has a record for ${date}. Use Edit to update it.`, true);
+      // Auto-load it for editing
+      clEditId = dup.CL_ID;
+      _populateClForm(dup);
+      const b = document.getElementById('clExistingBanner');
+      if (b) { b.textContent = `✏️ Pen ${pen} already has a record for ${date} — switched to edit mode.`; b.style.display = 'block'; }
+      document.getElementById('btnSaveChecklist').textContent = 'UPDATE CHECKLIST';
+      return;
+    }
+  }
+
   const btn = document.getElementById('btnSaveChecklist');
   btn.disabled = true; btn.textContent = 'Saving...';
   const result = clEditId
@@ -2774,9 +2795,15 @@ async function saveChecklist() {
     if (result.cl_id) clEditId = result.cl_id;
     showToast('Checklist saved!');
     btn.textContent = 'UPDATE CHECKLIST';
-    allChecklists = [];
+    // Update allChecklists in memory rather than clearing it
+    const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clEditId));
+    if (idx !== -1) {
+      allChecklists[idx] = { ...allChecklists[idx], ...data, CL_ID: clEditId };
+    } else {
+      allChecklists.push({ ...data, CL_ID: clEditId });
+    }
     const b = document.getElementById('clExistingBanner');
-    if(b) { b.textContent = 'Saved -- you can keep updating this record today.'; b.style.display='block'; }
+    if(b) { b.textContent = '✅ Saved — you can keep updating this record.'; b.style.display='block'; }
     document.getElementById('clLockedSub').textContent = '(saved)';
   } else {
     showToast(result?.error || 'Save failed', true);
