@@ -2949,15 +2949,40 @@ function clToggleDetail(id, btn) {
 }
 
 function clEditRecord(clId) {
-  const rec    = allChecklists.find(r => String(r.CL_ID) === String(clId));
-  if (!rec) return;
+  const rec = allChecklists.find(r => String(r.CL_ID) === String(clId));
+  if (!rec) { showToast('Record not found', true); return; }
   const today  = new Date().toISOString().split('T')[0];
   const isPast = String(rec.Date||'') < today;
   if (isPast && !isAdminEnabled()) { showToast('Past records require admin access', true); return; }
+
+  // Switch to form tab WITHOUT triggering a history reload (don't use setClView)
+  clView = 'form';
+  document.getElementById('clTabForm').className    = 'cl-tab active';
+  document.getElementById('clTabHistory').className = 'cl-tab';
+  document.getElementById('clFormView').style.display    = 'block';
+  document.getElementById('clHistoryView').style.display = 'none';
+
+  // Reset setup state then populate directly — no re-fetch needed
+  _clShowSetup();
   document.getElementById('clDate').value = rec.Date || '';
   document.getElementById('clPen').value  = rec.Pen  || '';
-  setClView('form');
-  clStartRecord();
+
+  // Set clEditId BEFORE clStartRecord so it finds the record in allChecklists
+  clEditId = rec.CL_ID;
+
+  // Populate the form body directly (skip the async lookup in clStartRecord)
+  const locked = isPast && !isAdminEnabled();
+  document.getElementById('clDatePenSetup').style.display  = 'none';
+  document.getElementById('clDatePenLocked').style.display = 'block';
+  document.getElementById('clLockedLabel').textContent     = (rec.Date||'') + '  -- Pen: ' + (rec.Pen||'');
+  document.getElementById('clLockedSub').textContent       = '(editing existing record)';
+  document.getElementById('clBody').style.display          = 'block';
+  document.getElementById('clExistingBanner').style.display = 'block';
+  document.getElementById('clLockedBanner').style.display   = locked ? 'block' : 'none';
+  document.getElementById('btnSaveChecklist').textContent   = 'UPDATE CHECKLIST';
+  _populateClForm(rec);
+  clLockForm(locked);
+  window.scrollTo(0, 0);
 }
 
 async function clDeleteRecord(clId) {
