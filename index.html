@@ -2789,26 +2789,57 @@ function renderChecklistHistory() {
         ? `<span class="cl-concern-badge">⚠ ${concernList.length} concern(s)</span>`
         : `<span class="cl-ok-badge">✓ All OK</span>`;
 
-      // Edit: today's records editable by all; past records admin only
+      // Edit: today editable by all; past records admin only
       const canEdit = isAdmin || !isPast;
       const editBtn = canEdit
-        ? `<button class="btn-edit" onclick="clEditRecord('${rec.CL_ID}')">Edit</button>`
-        : `<span style="font-size:11px;color:#888">🔒 Locked</span>`;
+        ? `<button class="btn-edit" onclick="clEditRecord('${rec.CL_ID}')">✏️ Edit</button>`
+        : '';
       const deleteBtn = isAdmin
         ? `<button class="btn-delete" onclick="clDeleteRecord('${rec.CL_ID}')">Delete</button>`
         : '';
+      const lockNote = isPast && !isAdmin
+        ? `<span style="font-size:11px;color:#888;margin-left:4px">🔒 Locked</span>` : '';
 
+      // Full record detail panel (hidden by default)
+      const CL_LABELS = {
+        tail:'Tail', eyes:'Eyes', stool:'Stool/Droppings', posture:'Posture/Movement',
+        skin:'Skin Condition', breathing:'Breathing', appetite:'Appetite',
+        water:'Water Intake', feed:'Feed Intake', smell:'Smell',
+        pinch:'Pinch Test (Hydration)', belly:'Belly Fill', limbs:'Limbs/Hooves',
+        injuries:'Injuries/Wounds', temp:'Temperature'
+      };
+      const detailRows = CL_KEYS.map(k => {
+        const val = rec[k] || '';
+        const icon = val === 'ok' ? '✅' : val === 'bad' ? '❌' : '—';
+        const color = val === 'bad' ? '#c0392b' : val === 'ok' ? '#2d6a2d' : '#999';
+        return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px">
+          <span style="color:#444">${CL_LABELS[k]||k}</span>
+          <span style="font-weight:700;color:${color}">${icon} ${val||'not recorded'}</span>
+        </div>`;
+      }).join('');
+
+      const detailId = `clDetail_${rec.CL_ID}`;
       return `<div class="cl-pen-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
           <div>
             <span style="font-size:14px;font-weight:800;color:#000">Pen ${rec.Pen||'—'}</span>
             <span style="font-size:11px;color:#666;margin-left:8px">By: ${rec.CheckedBy||'—'}</span>
+            ${lockNote}
           </div>
           ${badge}
         </div>
-        ${hasConcerns ? `<div style="font-size:11px;color:#c0392b;margin-bottom:5px">Concerns: ${concernList.join(', ')}</div>` : ''}
-        ${rec.Notes ? `<div style="font-size:11px;color:#444;font-style:italic;margin-bottom:5px">"${rec.Notes}"</div>` : ''}
-        <div class="cl-record-actions">${editBtn}${deleteBtn ? ' ' + deleteBtn : ''}</div>
+        ${hasConcerns ? `<div style="font-size:11px;color:#c0392b;margin-bottom:5px">⚠ Concerns: ${concernList.join(', ')}</div>` : ''}
+        ${rec.Notes ? `<div style="font-size:11px;color:#444;font-style:italic;margin-bottom:6px">"${rec.Notes}"</div>` : ''}
+        <div class="cl-record-actions" style="justify-content:space-between;align-items:center">
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn-edit" style="background:#f0f4f0;color:#2d6a2d;border-color:#2d6a2d" onclick="clToggleDetail('${detailId}', this)">👁 View</button>
+            ${editBtn}${deleteBtn ? ' ' + deleteBtn : ''}
+          </div>
+        </div>
+        <div id="${detailId}" style="display:none;margin-top:10px;border-top:1.5px solid #eee;padding-top:10px">
+          <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Full Health Check</div>
+          ${detailRows}
+        </div>
       </div>`;
     }).join('');
 
@@ -2829,12 +2860,20 @@ function renderChecklistHistory() {
 }
 
 function clToggleDay(id) {
-  const body   = document.getElementById(id);
+  const body    = document.getElementById(id);
   const chevron = document.getElementById('chev_' + id);
   if (!body) return;
   const isOpen = body.classList.contains('open');
   body.classList.toggle('open', !isOpen);
   if (chevron) chevron.classList.toggle('open', !isOpen);
+}
+
+function clToggleDetail(id, btn) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? '👁 View' : '🔼 Hide';
 }
 
 function clEditRecord(clId) {
