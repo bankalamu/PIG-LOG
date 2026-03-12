@@ -3337,8 +3337,12 @@ function _clCheckSectionComplete() {
   ];
   secs.forEach(sec => {
     const allAnswered = sec.keys.every(k => clState[k] !== null && clState[k] !== undefined);
-    if (allAnswered && !clSecTimes[sec.key]) {
-      clSecTimes[sec.key] = _clNowTime();
+    if (allAnswered) {
+      // Stamp on completion — keep existing time if already stamped
+      if (!clSecTimes[sec.key]) clSecTimes[sec.key] = _clNowTime();
+    } else {
+      // Any item deselected — clear the timestamp so it re-stamps fresh on next completion
+      clSecTimes[sec.key] = '';
     }
     _clRenderSecBadge(sec.badgeId, clSecTimes[sec.key]);
   });
