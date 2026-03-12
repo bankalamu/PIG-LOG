@@ -773,6 +773,10 @@
             <label>Pen No. <span id="clPenHint" style="font-weight:400;color:#666;font-size:11px">(1–<span id="clMaxPenLabel">50</span>)</span></label>
             <input type="number" id="clPen" min="1" max="50" placeholder="1" style="font-weight:700" oninput="this.style.border='';this.style.background=''">
           </div>
+          <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
+            <label>Pigs in Pen</label>
+            <input type="number" id="clPigCount" min="0" placeholder="0" style="font-weight:700" oninput="this.style.border='';this.style.background=''">
+          </div>
           <div style="display:flex;align-items:flex-end">
             <button class="btn-primary btn-green" onclick="clStartRecord()" style="white-space:nowrap;padding:8px 18px">Start ▶</button>
           </div>
@@ -807,10 +811,17 @@
 
       <!-- Checklist body — hidden until date+pen confirmed -->
       <div id="clBody" style="display:none">
-        <div class="checklist-meta" style="grid-template-columns:1fr">
+        <div class="checklist-meta" style="grid-template-columns:1fr 1fr;gap:10px">
           <div>
             <label>Checked by</label>
             <input type="text" id="clCheckedBy" placeholder="Your name" oninput="this.style.border='';this.style.background=''">
+          </div>
+          <div>
+            <label style="display:flex;align-items:center;gap:6px">
+              🐷 Total pigs today
+              <span style="font-size:10px;font-weight:400;color:#666">(all pens)</span>
+            </label>
+            <div id="clDayTotal" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:8px 12px;font-size:20px;font-weight:900;color:#2d6a2d;text-align:center;min-height:38px;line-height:1.2">—</div>
           </div>
         </div>
 
@@ -2638,6 +2649,26 @@ function _clShowSetup() {
   document.getElementById('clSetupError').style.display = 'none';
 }
 
+// Sums PigCount across all records for the current form date, including
+// the value currently typed in clPigCount (live update).
+function clUpdateDayTotal() {
+  const date      = document.getElementById('clDate')?.value;
+  const currentPen = String(parseInt(document.getElementById('clPen')?.value||'0',10)||0);
+  const currentCount = parseInt(document.getElementById('clPigCount')?.value||'0', 10) || 0;
+  const el = document.getElementById('clDayTotal');
+  if (!el) return;
+  if (!date) { el.textContent = '—'; return; }
+
+  // Sum all other records for this date (excluding the pen being edited right now)
+  const othersTotal = (allChecklists||[]).filter(r =>
+    String(r.Date||'').trim() === date &&
+    String(r.Pen||'').trim() !== currentPen
+  ).reduce((sum, r) => sum + (parseInt(r.PigCount||'0', 10) || 0), 0);
+
+  const total = othersTotal + currentCount;
+  el.textContent = total > 0 ? total : '—';
+}
+
 async function clStartRecord() {
   const date   = document.getElementById('clDate').value;
   const penRaw = document.getElementById('clPen').value.trim();
@@ -2695,6 +2726,10 @@ async function clStartRecord() {
   document.getElementById('clLockedSub').textContent       = existing ? '(existing record)' : '(new record)';
   document.getElementById('clBody').style.display          = 'block';
   clLockForm(locked);
+  clUpdateDayTotal();
+  // Wire live update on pig count input
+  const pcEl = document.getElementById('clPigCount');
+  if (pcEl) pcEl.oninput = () => { pcEl.style.border=''; pcEl.style.background=''; clUpdateDayTotal(); };
 }
 
 function clIsLocked(dateStr) {
@@ -2709,7 +2744,7 @@ function clLockForm(lock) {
     b.style.pointerEvents = lock ? 'none' : '';
     b.style.opacity       = lock ? '0.5'  : '';
   });
-  ['clCheckedBy','clNotes'].forEach(id => {
+  ['clCheckedBy','clNotes','clPigCount'].forEach(id => {
     const el = document.getElementById(id); if(el) el.disabled = lock;
   });
   const saveBtn = document.getElementById('btnSaveChecklist');
@@ -2719,6 +2754,8 @@ function clLockForm(lock) {
 function _populateClForm(rec) {
   document.getElementById('clCheckedBy').value = rec.CheckedBy || '';
   document.getElementById('clNotes').value     = rec.Notes     || '';
+  const pcEl = document.getElementById('clPigCount');
+  if (pcEl) pcEl.value = rec.PigCount || '';
   CL_KEYS.forEach(k => {
     clState[k] = rec[k] || null;
     const items = document.querySelectorAll('#clBody .check-item[data-key="' + k + '"] .toggle-btn');
@@ -2753,6 +2790,8 @@ function resetChecklist() {
   document.getElementById('clCheckedBy').value = '';
   document.getElementById('clDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('clPen').value  = '';
+  const pcEl = document.getElementById('clPigCount'); if (pcEl) pcEl.value = '';
+  const dtEl = document.getElementById('clDayTotal'); if (dtEl) dtEl.textContent = '—';
   clEditId = null;
   allChecklists = [];
   clPhotoClear();
@@ -2787,10 +2826,12 @@ async function saveChecklist() {
     showToast('Past records are locked -- admin access required', true); return;
   }
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
+  const pigCount = parseInt(document.getElementById('clPigCount')?.value||'0', 10) || 0;
   const data = {
     Date: date, Pen: pen, CheckedBy: checkedBy,
     Notes: notes, Concerns: concerns.join(','),
-    Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK'
+    Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK',
+    PigCount: pigCount
   };
   CL_KEYS.forEach(k => { data[k] = clState[k] || ''; });
 
@@ -2832,6 +2873,7 @@ async function saveChecklist() {
     const b = document.getElementById('clExistingBanner');
     if(b) { b.textContent = '✅ Saved — you can keep updating this record.'; b.style.display='block'; }
     document.getElementById('clLockedSub').textContent = '(saved)';
+    clUpdateDayTotal();
     // Upload photo if one was selected (non-blocking)
     if (clPhotoData) clUploadPhoto(clEditId);
   } else {
@@ -2975,6 +3017,7 @@ function renderChecklistHistory() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
           <div>
             <span style="font-size:14px;font-weight:800;color:#000">Pen ${rec.Pen||'—'}</span>
+            ${rec.PigCount ? `<span style="font-size:12px;font-weight:700;color:#2d6a2d;margin-left:6px">🐷 ${rec.PigCount}</span>` : ''}
             <span style="font-size:11px;color:#666;margin-left:8px">By: ${rec.CheckedBy||'—'}</span>
             ${lockNote}
             ${rec.PhotoUrl ? '<span style="font-size:11px;color:#2d6a2d;margin-left:6px">📷</span>' : ''}
@@ -2998,11 +3041,12 @@ function renderChecklistHistory() {
       </div>`;
     }).join('');
 
+    const dayPigTotal = recs.reduce((s, r) => s + (parseInt(r.PigCount||'0',10)||0), 0);
     return `<div class="cl-day-folder">
       <div class="cl-day-header ${isToday?'today':''}" onclick="clToggleDay('clDay_${di}')">
         <div>
           <div class="cl-day-title">${dateLabel}</div>
-          <div class="cl-day-meta">${totalPens} pen record${totalPens>1?'s':''} · ${concerns>0?concerns+' concern(s)':'All OK'}</div>
+          <div class="cl-day-meta">${totalPens} pen record${totalPens>1?'s':''} · ${dayPigTotal>0?'🐷 '+dayPigTotal+' pigs · ':''}${concerns>0?concerns+' concern(s)':'All OK'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <div class="cl-day-badges">${todayBadge}${countBadge}${concernBadge}</div>

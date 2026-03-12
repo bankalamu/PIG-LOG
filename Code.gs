@@ -307,7 +307,7 @@ const CL_SHEET = "DailyChecklist";
 const CL_KEYS_GS = ['tail','eyes','stool','posture','skin','breathing',
                     'appetite','water','feed','smell',
                     'pinch','belly','limbs','injuries','temp'];
-const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes","PhotoUrl",
+const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes","PhotoUrl","PigCount",
                     ...CL_KEYS_GS];
 
 function getClSheet() {
