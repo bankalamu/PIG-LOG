@@ -775,7 +775,7 @@
           </div>
           <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
             <label>Pigs in Pen</label>
-            <input type="number" id="clPigCount" min="1" placeholder="0" style="font-weight:700" oninput="this.style.border='';this.style.background='';if(this.value!==''&&parseInt(this.value,10)<1){this.value=1;}">
+            <input type="number" id="clPigCount" min="1" step="1" placeholder="1" style="font-weight:700" oninput="this.style.border='';this.style.background='';const v=parseInt(this.value,10);if(this.value!==''&&(isNaN(v)||v<1)){this.value=Math.max(1,v||1);}">
           </div>
           <div style="display:flex;align-items:flex-end">
             <button class="btn-primary btn-green" onclick="clStartRecord()" style="white-space:nowrap;padding:8px 18px">Start ▶</button>
@@ -2826,11 +2826,12 @@ async function saveChecklist() {
     showToast('Past records are locked -- admin access required', true); return;
   }
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
-  const pigCount = parseInt(document.getElementById('clPigCount')?.value||'0', 10) || 0;
-  if (pigCount < 1) {
+  const pigCountRaw = document.getElementById('clPigCount')?.value || '';
+  const pigCount = parseInt(pigCountRaw, 10);
+  if (!pigCountRaw || isNaN(pigCount) || pigCount !== parseFloat(pigCountRaw) || pigCount < 1) {
     const pcEl = document.getElementById('clPigCount');
     if (pcEl) { pcEl.style.border = '2px solid #c0392b'; pcEl.style.background = '#fde8e8'; pcEl.focus(); }
-    showToast('Number of pigs must be greater than 0', true); return;
+    showToast('Number of pigs must be a whole number greater than 0', true); return;
   }
   const data = {
     Date: date, Pen: pen, CheckedBy: checkedBy,
