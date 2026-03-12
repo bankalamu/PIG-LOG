@@ -775,7 +775,7 @@
           </div>
           <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
             <label>Pigs in Pen</label>
-            <input type="number" id="clPigCount" min="1" step="1" placeholder="1" style="font-weight:700" oninput="this.style.border='';this.style.background='';const v=parseInt(this.value,10);if(this.value!==''&&(isNaN(v)||v<1)){this.value=Math.max(1,v||1);}">
+            <input type="number" id="clPigCount" min="1" step="1" placeholder="1" style="font-weight:700" oninput="this.style.border='';this.style.background='';const _v=Number(this.value);if(this.value!==''&&(!Number.isInteger(_v)||_v<1)){this.value=Math.max(1,Math.floor(_v)||1);}">
           </div>
           <div style="display:flex;align-items:flex-end">
             <button class="btn-primary btn-green" onclick="clStartRecord()" style="white-space:nowrap;padding:8px 18px">Start ▶</button>
@@ -818,10 +818,14 @@
           </div>
           <div>
             <label style="display:flex;align-items:center;gap:6px">
-              🐷 Total pigs today
-              <span style="font-size:10px;font-weight:400;color:#666">(all pens)</span>
+              🐷 Pigs
+              <span style="font-size:10px;font-weight:400;color:#666">(this pen / day total)</span>
             </label>
-            <div id="clDayTotal" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:8px 12px;font-size:20px;font-weight:900;color:#2d6a2d;text-align:center;min-height:38px;line-height:1.2">—</div>
+            <div id="clDayTotal" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;color:#2d6a2d;min-height:38px;display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px;font-weight:900" id="clPenCountDisplay">—</span>
+              <span style="color:#aaa;font-size:15px">|</span>
+              <span style="font-size:11px;color:#555;font-weight:600">Total: <span id="clDayTotalNum" style="font-size:16px;font-weight:900;color:#2d6a2d">—</span></span>
+            </div>
           </div>
         </div>
 
@@ -2652,21 +2656,27 @@ function _clShowSetup() {
 // Sums PigCount across all records for the current form date, including
 // the value currently typed in clPigCount (live update).
 function clUpdateDayTotal() {
-  const date      = document.getElementById('clDate')?.value;
-  const currentPen = String(parseInt(document.getElementById('clPen')?.value||'0',10)||0);
-  const currentCount = parseInt(document.getElementById('clPigCount')?.value||'0', 10) || 0;
-  const el = document.getElementById('clDayTotal');
-  if (!el) return;
-  if (!date) { el.textContent = '—'; return; }
+  const date        = document.getElementById('clDate')?.value;
+  const currentPen  = String(parseInt(document.getElementById('clPen')?.value||'0', 10) || 0);
+  const rawVal      = (document.getElementById('clPigCount')?.value || '').trim();
+  const currentCount = (rawVal !== '' && Number.isInteger(Number(rawVal)) && Number(rawVal) >= 1)
+                       ? Number(rawVal) : 0;
 
-  // Sum all other records for this date (excluding the pen being edited right now)
+  const penDisp   = document.getElementById('clPenCountDisplay');
+  const totalDisp = document.getElementById('clDayTotalNum');
+  if (!penDisp || !totalDisp) return;
+
+  if (!date) { penDisp.textContent = '—'; totalDisp.textContent = '—'; return; }
+
+  // Sum all OTHER saved records for this date (not the pen currently being edited)
   const othersTotal = (allChecklists||[]).filter(r =>
     String(r.Date||'').trim() === date &&
     String(r.Pen||'').trim() !== currentPen
   ).reduce((sum, r) => sum + (parseInt(r.PigCount||'0', 10) || 0), 0);
 
-  const total = othersTotal + currentCount;
-  el.textContent = total > 0 ? total : '—';
+  const dayTotal = othersTotal + currentCount;
+  penDisp.textContent   = currentCount > 0 ? currentCount : '—';
+  totalDisp.textContent = dayTotal > 0 ? dayTotal : '—';
 }
 
 async function clStartRecord() {
@@ -2791,7 +2801,8 @@ function resetChecklist() {
   document.getElementById('clDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('clPen').value  = '';
   const pcEl = document.getElementById('clPigCount'); if (pcEl) pcEl.value = '';
-  const dtEl = document.getElementById('clDayTotal'); if (dtEl) dtEl.textContent = '—';
+  const penDisp = document.getElementById('clPenCountDisplay'); if (penDisp) penDisp.textContent = '—';
+  const totDisp = document.getElementById('clDayTotalNum');     if (totDisp) totDisp.textContent = '—';
   clEditId = null;
   allChecklists = [];
   clPhotoClear();
@@ -2826,12 +2837,13 @@ async function saveChecklist() {
     showToast('Past records are locked -- admin access required', true); return;
   }
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
-  const pigCountRaw = document.getElementById('clPigCount')?.value || '';
-  const pigCount = parseInt(pigCountRaw, 10);
-  if (!pigCountRaw || isNaN(pigCount) || pigCount !== parseFloat(pigCountRaw) || pigCount < 1) {
+  const pigCountRaw = (document.getElementById('clPigCount')?.value || '').trim();
+  const pigCount = Number(pigCountRaw);
+  const pigCountValid = pigCountRaw !== '' && Number.isInteger(pigCount) && pigCount >= 1;
+  if (!pigCountValid) {
     const pcEl = document.getElementById('clPigCount');
-    if (pcEl) { pcEl.style.border = '2px solid #c0392b'; pcEl.style.background = '#fde8e8'; pcEl.focus(); }
-    showToast('Number of pigs must be a whole number greater than 0', true); return;
+    if (pcEl) { pcEl.value = ''; pcEl.style.border = '2px solid #c0392b'; pcEl.style.background = '#fde8e8'; pcEl.focus(); }
+    showToast('Number of pigs must be a whole number of 1 or more', true); return;
   }
   const data = {
     Date: date, Pen: pen, CheckedBy: checkedBy,
