@@ -3,6 +3,12 @@
 //  Paste this entire file into your Apps Script project
 // ============================================================
 
+// Required OAuth scopes (Apps Script reads these comments to request permissions):
+// @ts-nocheck
+/* global DriveApp, SpreadsheetApp, Utilities, Session, ContentService */
+// The following directive tells Apps Script to request Drive access:
+// drive: https://www.googleapis.com/auth/drive
+
 const SHEET_NAME = "PigLog";
 const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "Weight", "Dewormed", "Pen", "Notes", "Available"];
 
@@ -463,9 +469,12 @@ function clSavePhoto(clId, photoBase64, mimeType) {
   }
 }
 
-// ============================================================
-//  SOW & LITTER — Sheet: SowLitter
-// ============================================================
+// Run this function ONCE manually in the Apps Script editor to grant Drive permission.
+// Click the ▶ Run button next to "testDriveAccess" in the editor.
+function testDriveAccess() {
+  const folder = DriveApp.getRootFolder();
+  Logger.log("Drive access OK. Root folder: " + folder.getName());
+}
 
 const SL_SHEET = "SowLitter";
 const SL_TASK_COLS = ['sow_antiinflam','sow_mma_ab','sow_oxytocin',
