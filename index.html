@@ -775,7 +775,7 @@
           </div>
           <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
             <label>Pigs in Pen</label>
-            <input type="number" id="clPigCount" min="0" placeholder="0" style="font-weight:700" oninput="this.style.border='';this.style.background=''">
+            <input type="number" id="clPigCount" min="0" placeholder="0" style="font-weight:700" oninput="this.style.border='';this.style.background='';if(this.value!==''&&parseInt(this.value,10)<0){this.value=0;}">
           </div>
           <div style="display:flex;align-items:flex-end">
             <button class="btn-primary btn-green" onclick="clStartRecord()" style="white-space:nowrap;padding:8px 18px">Start ▶</button>
@@ -2827,6 +2827,11 @@ async function saveChecklist() {
   }
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
   const pigCount = parseInt(document.getElementById('clPigCount')?.value||'0', 10) || 0;
+  if (pigCount < 0) {
+    const pcEl = document.getElementById('clPigCount');
+    if (pcEl) { pcEl.value = 0; pcEl.style.border = '2px solid #c0392b'; pcEl.style.background = '#fde8e8'; pcEl.focus(); }
+    showToast('Number of pigs cannot be negative', true); return;
+  }
   const data = {
     Date: date, Pen: pen, CheckedBy: checkedBy,
     Notes: notes, Concerns: concerns.join(','),
