@@ -3093,7 +3093,7 @@ function renderChecklistHistory() {
             { label:'1️⃣ Morning Check', time: rec.Sec1Time },
             { label:'2️⃣ Feeding Check', time: rec.Sec2Time },
             { label:'3️⃣ Afternoon Check', time: rec.Sec3Time }
-          ].filter(s => s.time).map(s =>
+          ].filter(s => s.time && /^\d{1,2}:\d{2}$/.test(String(s.time).trim())).map(s =>
             `<div style="font-size:11px;color:#2d6a2d;font-weight:700;margin-bottom:4px">${s.label} <span style="background:#e8f5e8;border:1px solid #2d6a2d;border-radius:10px;padding:1px 7px;font-size:10px">✓ ${s.time}</span></div>`
           ).join('')}
           ${detailRows}
@@ -3369,9 +3369,10 @@ function _clRenderSecBadge(badgeId, time) {
 }
 
 function _clRestoreSectionTimestamps(rec) {
-  clSecTimes.sec1 = rec.Sec1Time || '';
-  clSecTimes.sec2 = rec.Sec2Time || '';
-  clSecTimes.sec3 = rec.Sec3Time || '';
+  const valid = t => t && /^\d{1,2}:\d{2}$/.test(String(t).trim());
+  clSecTimes.sec1 = valid(rec.Sec1Time) ? rec.Sec1Time : '';
+  clSecTimes.sec2 = valid(rec.Sec2Time) ? rec.Sec2Time : '';
+  clSecTimes.sec3 = valid(rec.Sec3Time) ? rec.Sec3Time : '';
   _clRenderSecBadge('clSec1Badge', clSecTimes.sec1);
   _clRenderSecBadge('clSec2Badge', clSecTimes.sec2);
   _clRenderSecBadge('clSec3Badge', clSecTimes.sec3);

@@ -352,15 +352,23 @@ const CL_TIME_COLS = ["PhotoTime","Sec1Time","Sec2Time","Sec3Time"];
 function rowToClRecord(row) {
   const rec = {};
   CL_HEADERS.forEach((h,i) => {
-    if (row[i] instanceof Date) {
-      if (CL_TIME_COLS.includes(h)) {
-        // Format as HH:mm — Sheets stored "07:45" as a time serial
-        rec[h] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "HH:mm");
+    const v = row[i];
+    if (CL_TIME_COLS.includes(h)) {
+      // Time columns: only pass through valid HH:mm strings; discard everything else
+      if (v instanceof Date) {
+        // Sheets parsed "07:45" as a time serial — reformat as HH:mm
+        // But if the date component is 1899-12-30 (epoch) it's a genuine time value
+        const formatted = Utilities.formatDate(v, Session.getScriptTimeZone(), "HH:mm");
+        rec[h] = formatted;
+      } else if (typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v.trim())) {
+        rec[h] = v.trim(); // already a clean HH:mm string
       } else {
-        rec[h] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
+        rec[h] = ''; // corrupt / unparseable — discard
       }
+    } else if (v instanceof Date) {
+      rec[h] = Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd");
     } else {
-      rec[h] = row[i];
+      rec[h] = v;
     }
   });
   return rec;
