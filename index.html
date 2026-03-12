@@ -1015,10 +1015,12 @@
       <div style="margin-bottom:12px;padding:12px 14px;background:#f8f9fa;border:1.5px solid var(--border);border-radius:10px">
         <div style="font-size:11px;font-weight:800;color:#333;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">📷 Pen Photo <span style="font-weight:400;font-size:10px;color:#666;text-transform:none">(optional)</span></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <label style="display:inline-flex;align-items:center;gap:6px;background:#2d6a2d;color:#fff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+          <label for="clPhotoInput" style="display:inline-flex;align-items:center;gap:6px;background:#2d6a2d;color:#fff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none">
             📷 Take / Choose Photo
-            <input type="file" id="clPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="clPhotoSelected(this)">
           </label>
+          <input type="file" id="clPhotoInput" accept="image/*" capture="environment"
+                 style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1"
+                 onchange="clPhotoSelected(this)">
           <button id="clPhotoClearBtn" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear()">✕ Remove</button>
           <span id="clPhotoStatus" style="font-size:11px;color:#666"></span>
         </div>
@@ -2959,11 +2961,14 @@ function renderChecklistHistory() {
 
       // Photo upload button — only for editable records (today or admin)
       const canAddPhoto = canEdit;
+      const photoInputId = `clPhotoFile_${rec.CL_ID}`;
       const photoBtn = canAddPhoto
-        ? `<label style="display:inline-flex;align-items:center;gap:5px;background:#f0f4f0;color:#2d6a2d;border:1.5px solid #2d6a2d;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+        ? `<label for="${photoInputId}" style="display:inline-flex;align-items:center;gap:5px;background:#f0f4f0;color:#2d6a2d;border:1.5px solid #2d6a2d;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none">
              📷 ${rec.PhotoUrl ? 'Replace Photo' : 'Add Photo'}
-             <input type="file" accept="image/*" capture="environment" style="display:none" onchange="clHistoryPhotoSelected(this,'${rec.CL_ID}')">
-           </label>`
+           </label>
+           <input type="file" id="${photoInputId}" accept="image/*" capture="environment"
+                  style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1"
+                  onchange="clHistoryPhotoSelected(this,'${rec.CL_ID}')">`
         : '';
 
       return `<div class="cl-pen-card">
