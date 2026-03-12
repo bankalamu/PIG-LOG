@@ -1039,8 +1039,9 @@
           <button id="clPhotoClearBtn" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear()">✕ Remove</button>
           <span id="clPhotoStatus" style="font-size:11px;color:#666"></span>
         </div>
-        <div id="clPhotoPreview" style="display:none;margin-top:10px">
-          <img id="clPhotoPreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover" src="" alt="Pen photo preview">
+        <div id="clPhotoPreview" style="display:none;margin-top:10px;position:relative;display:none">
+          <img id="clPhotoPreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover;display:block" src="" alt="Pen photo preview">
+          <div id="clPhotoTimestamp" style="display:none;position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.62);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:0.03em"></div>
         </div>
       </div>
 
@@ -3041,12 +3042,15 @@ function renderChecklistHistory() {
       const detailId = `clDetail_${rec.CL_ID}`;
       const photoThumb = rec.PhotoUrl
         ? `<div style="margin-top:10px">
-             <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">📷 Pen Photo${rec.PhotoTime ? ` <span style="font-weight:600;color:#2d6a2d;font-size:10px;text-transform:none">· ${rec.PhotoTime}</span>` : ''}</div>
-             <a href="${rec.PhotoUrl}" target="_blank" rel="noopener">
-               <img src="https://drive.google.com/thumbnail?id=${rec.PhotoUrl.match(/\/d\/([^/]+)/)?.[1]||''}&sz=w400"
-                    style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover;display:block"
-                    onerror="this.style.display='none'" alt="Pen photo">
-             </a>
+             <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">📷 Pen Photo</div>
+             <div style="position:relative;display:inline-block;max-width:100%">
+               <a href="${rec.PhotoUrl}" target="_blank" rel="noopener">
+                 <img src="https://drive.google.com/thumbnail?id=${rec.PhotoUrl.match(/\/d\/([^/]+)/)?.[1]||''}&sz=w400"
+                      style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover;display:block"
+                      onerror="this.style.display='none'" alt="Pen photo">
+               </a>
+               ${rec.PhotoTime ? `<div style="position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.62);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:0.03em">📷 ${rec.PhotoTime}</div>` : ''}
+             </div>
              <div style="font-size:10px;color:#666;margin-top:4px"><a href="${rec.PhotoUrl}" target="_blank" rel="noopener" style="color:#2d6a2d">🔗 Open full photo</a></div>
            </div>`
         : '';
@@ -3155,9 +3159,12 @@ function clPhotoSelected(input) {
     const stat = document.getElementById('clPhotoStatus');
     const clrBtn = document.getElementById('clPhotoClearBtn');
     if (img)   img.src = dataUrl;
-    if (prev)  prev.style.display = 'block';
+    if (prev)  { prev.style.display = 'block'; }
     if (stat)  stat.textContent   = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
     if (clrBtn) clrBtn.style.display = 'inline-flex';
+    // Stamp the time on the preview
+    const tsEl = document.getElementById('clPhotoTimestamp');
+    if (tsEl) { tsEl.textContent = '📷 ' + _clNowTime(); tsEl.style.display = 'block'; }
   };
   reader.readAsDataURL(file);
 }
@@ -3173,6 +3180,8 @@ function clPhotoClear() {
   if (img)    img.src        = '';
   if (prev)   prev.style.display  = 'none';
   if (stat)   stat.textContent    = '';
+  const tsEl = document.getElementById('clPhotoTimestamp');
+  if (tsEl) { tsEl.textContent = ''; tsEl.style.display = 'none'; }
   if (clrBtn) clrBtn.style.display = 'none';
 }
 
