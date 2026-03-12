@@ -93,7 +93,7 @@ function doPost(e) {
     if (action === "clUpsert")    return corsRespond(clUpsert(payload.data));
     if (action === "clUpdate")    return corsRespond(clUpdate(payload.id, payload.data));
     if (action === "clDelete")    return corsRespond(clDelete(payload.id));
-    if (action === "clSavePhoto") return corsRespond(clSavePhoto(payload.clId, payload.photoBase64, payload.mimeType));
+    if (action === "clSavePhoto") return corsRespond(clSavePhoto(payload.clId, payload.photoBase64, payload.mimeType, payload.photoTime));
     if (action === "slAdd")    return corsRespond(slAdd(payload.data));
     if (action === "slUpsert") return corsRespond(slUpsert(payload.data));
     if (action === "slUpdate") return corsRespond(slUpdate(payload.id, payload.data));
@@ -307,7 +307,8 @@ const CL_SHEET = "DailyChecklist";
 const CL_KEYS_GS = ['tail','eyes','stool','posture','skin','breathing',
                     'appetite','water','feed','smell',
                     'pinch','belly','limbs','injuries','temp'];
-const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes","PhotoUrl","PigCount",
+const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes","PhotoUrl","PhotoTime","PigCount",
+                    "Sec1Time","Sec2Time","Sec3Time",
                     ...CL_KEYS_GS];
 
 function getClSheet() {
@@ -438,7 +439,7 @@ function clDelete(clId) {
   return { success: true };
 }
 
-function clSavePhoto(clId, photoBase64, mimeType) {
+function clSavePhoto(clId, photoBase64, mimeType, photoTime) {
   try {
     if (!clId || !photoBase64) return { success: false, error: "Missing clId or photo data" };
 
@@ -459,8 +460,10 @@ function clSavePhoto(clId, photoBase64, mimeType) {
     const viewUrl = "https://drive.google.com/file/d/" + fileId + "/view";
     const thumbUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w400";
 
-    // Update the PhotoUrl column in the sheet
-    const result = clUpdate(clId, { PhotoUrl: viewUrl });
+    // Update the PhotoUrl and PhotoTime columns in the sheet
+    const updateData = { PhotoUrl: viewUrl };
+    if (photoTime) updateData.PhotoTime = photoTime;
+    const result = clUpdate(clId, updateData);
     if (!result.success) return { success: false, error: "Photo saved to Drive but sheet update failed: " + result.error };
 
     return { success: true, viewUrl, thumbUrl, fileId };

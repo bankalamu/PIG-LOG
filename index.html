@@ -831,7 +831,7 @@
 
       <!-- SECTION 1: Morning -->
       <div class="check-section">
-        <div class="check-section-title">1️⃣ Morning Check — Before Feeding</div>
+        <div class="check-section-title">1️⃣ Morning Check — Before Feeding <span id="clSec1Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
         <div class="check-item" data-key="tail">
           <div class="check-item-text">
             <span class="check-item-label">Tail &amp; Hindquarters</span>
@@ -902,7 +902,7 @@
 
       <!-- SECTION 2: Feeding -->
       <div class="check-section">
-        <div class="check-section-title">2️⃣ Feeding Check — At Each Meal</div>
+        <div class="check-section-title">2️⃣ Feeding Check — At Each Meal <span id="clSec2Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
         <div class="check-item" data-key="appetite">
           <div class="check-item-text">
             <span class="check-item-label">Appetite</span>
@@ -951,7 +951,7 @@
 
       <!-- SECTION 3: Afternoon -->
       <div class="check-section">
-        <div class="check-section-title">3️⃣ Afternoon Check — End of Day</div>
+        <div class="check-section-title">3️⃣ Afternoon Check — End of Day <span id="clSec3Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
         <div class="check-item" data-key="pinch">
           <div class="check-item-text">
             <span class="check-item-label">Skin Pinch Test</span>
@@ -2602,6 +2602,17 @@ let clView = 'form';
 let allChecklists = [];
 let clEditId = null;
 let clCurrentPigCount = 0; // stored at Start time; used by saveChecklist
+let clSecTimes = { sec1: '', sec2: '', sec3: '' }; // timestamps per section
+
+// Section key membership
+const CL_SEC1_KEYS = ['tail','eyes','stool','posture','skin','breathing'];
+const CL_SEC2_KEYS = ['appetite','water','feed','smell'];
+const CL_SEC3_KEYS = ['pinch','belly','limbs','injuries','temp'];
+
+function _clNowTime() {
+  const d = new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
 
 function initChecklist() {
   CL_KEYS.forEach(k => { clState[k] = null; });
@@ -2777,6 +2788,7 @@ function _populateClForm(rec) {
   document.getElementById('clNotes').value     = rec.Notes     || '';
   const pcEl = document.getElementById('clPigCount');
   if (pcEl) pcEl.value = rec.PigCount || '';
+  _clRestoreSectionTimestamps(rec);
   CL_KEYS.forEach(k => {
     clState[k] = rec[k] || null;
     const items = document.querySelectorAll('#clBody .check-item[data-key="' + k + '"] .toggle-btn');
@@ -2813,6 +2825,10 @@ function resetChecklist() {
   document.getElementById('clPen').value  = '';
   const pcEl = document.getElementById('clPigCount'); if (pcEl) pcEl.value = '';
   clCurrentPigCount = 0;
+  clSecTimes = { sec1: '', sec2: '', sec3: '' };
+  ['clSec1Badge','clSec2Badge','clSec3Badge'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
   const penDisp = document.getElementById('clPenCountDisplay'); if (penDisp) penDisp.textContent = '—';
   const totDisp = document.getElementById('clDayTotalNum');     if (totDisp) totDisp.textContent = '—';
   clEditId = null;
@@ -2862,7 +2878,10 @@ async function saveChecklist() {
     Date: date, Pen: pen, CheckedBy: checkedBy,
     Notes: notes, Concerns: concerns.join(','),
     Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK',
-    PigCount: pigCount
+    PigCount: pigCount,
+    Sec1Time: clSecTimes.sec1 || '',
+    Sec2Time: clSecTimes.sec2 || '',
+    Sec3Time: clSecTimes.sec3 || ''
   };
   CL_KEYS.forEach(k => { data[k] = clState[k] || ''; });
 
@@ -3022,7 +3041,7 @@ function renderChecklistHistory() {
       const detailId = `clDetail_${rec.CL_ID}`;
       const photoThumb = rec.PhotoUrl
         ? `<div style="margin-top:10px">
-             <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">📷 Pen Photo</div>
+             <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">📷 Pen Photo${rec.PhotoTime ? ` <span style="font-weight:600;color:#2d6a2d;font-size:10px;text-transform:none">· ${rec.PhotoTime}</span>` : ''}</div>
              <a href="${rec.PhotoUrl}" target="_blank" rel="noopener">
                <img src="https://drive.google.com/thumbnail?id=${rec.PhotoUrl.match(/\/d\/([^/]+)/)?.[1]||''}&sz=w400"
                     style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover;display:block"
@@ -3066,6 +3085,13 @@ function renderChecklistHistory() {
         </div>
         <div id="${detailId}" style="display:none;margin-top:10px;border-top:1.5px solid #eee;padding-top:10px">
           <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Full Health Check</div>
+          ${[
+            { label:'1️⃣ Morning Check', time: rec.Sec1Time },
+            { label:'2️⃣ Feeding Check', time: rec.Sec2Time },
+            { label:'3️⃣ Afternoon Check', time: rec.Sec3Time }
+          ].filter(s => s.time).map(s =>
+            `<div style="font-size:11px;color:#2d6a2d;font-weight:700;margin-bottom:4px">${s.label} <span style="background:#e8f5e8;border:1px solid #2d6a2d;border-radius:10px;padding:1px 7px;font-size:10px">✓ ${s.time}</span></div>`
+          ).join('')}
           ${detailRows}
           ${photoThumb}
         </div>
@@ -3157,17 +3183,18 @@ async function clHistoryPhotoSelected(input, clId) {
     showToast('Photo too large (max 5 MB)', true); input.value = ''; return;
   }
   const mime = file.type || 'image/jpeg';
+  const photoTime = _clNowTime();
   const reader = new FileReader();
   reader.onload = async e => {
     const base64 = e.target.result.split(',')[1];
     showToast('⬆️ Uploading photo…');
     try {
-      const result = await apiPost({ action: 'clSavePhoto', clId, photoBase64: base64, mimeType: mime });
+      const result = await apiPost({ action: 'clSavePhoto', clId, photoBase64: base64, mimeType: mime, photoTime });
       if (result && result.success) {
         showToast('✅ Photo uploaded');
         // Update in-memory record and re-render
         const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
-        if (idx !== -1) { allChecklists[idx].PhotoUrl = result.viewUrl; allChecklists[idx].ThumbUrl = result.thumbUrl; }
+        if (idx !== -1) { allChecklists[idx].PhotoUrl = result.viewUrl; allChecklists[idx].ThumbUrl = result.thumbUrl; allChecklists[idx].PhotoTime = photoTime; }
         renderChecklistHistory();
       } else {
         showToast(result?.error || 'Photo upload failed', true);
@@ -3181,12 +3208,14 @@ async function clUploadPhoto(clId) {
   if (!clPhotoData || !clId) return;
   const stat = document.getElementById('clPhotoStatus');
   if (stat) stat.textContent = '⬆️ Uploading photo…';
+  const photoTime = _clNowTime();
   try {
     const result = await apiPost({
       action: 'clSavePhoto',
       clId:       clId,
       photoBase64: clPhotoData,
-      mimeType:    clPhotoMime || 'image/jpeg'
+      mimeType:    clPhotoMime || 'image/jpeg',
+      photoTime:   photoTime
     });
     if (result && result.success) {
       if (stat) stat.textContent = '✅ Photo uploaded';
@@ -3194,6 +3223,7 @@ async function clUploadPhoto(clId) {
       const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
       if (idx !== -1) {
         allChecklists[idx].PhotoUrl  = result.viewUrl;
+        allChecklists[idx].PhotoTime = photoTime;
         allChecklists[idx].ThumbUrl  = result.thumbUrl;
       }
       clPhotoClear();
@@ -3294,7 +3324,44 @@ function toggleCheck(btn, key, val) {
       item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
     }
+    // Auto-stamp section when all its keys are answered
+    _clCheckSectionComplete();
   }
+}
+
+function _clCheckSectionComplete() {
+  const secs = [
+    { key: 'sec1', keys: CL_SEC1_KEYS, badgeId: 'clSec1Badge' },
+    { key: 'sec2', keys: CL_SEC2_KEYS, badgeId: 'clSec2Badge' },
+    { key: 'sec3', keys: CL_SEC3_KEYS, badgeId: 'clSec3Badge' }
+  ];
+  secs.forEach(sec => {
+    const allAnswered = sec.keys.every(k => clState[k] !== null && clState[k] !== undefined);
+    if (allAnswered && !clSecTimes[sec.key]) {
+      clSecTimes[sec.key] = _clNowTime();
+    }
+    _clRenderSecBadge(sec.badgeId, clSecTimes[sec.key]);
+  });
+}
+
+function _clRenderSecBadge(badgeId, time) {
+  const el = document.getElementById(badgeId);
+  if (!el) return;
+  if (time) {
+    el.textContent = '✓ ' + time;
+    el.style.display = 'inline-block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function _clRestoreSectionTimestamps(rec) {
+  clSecTimes.sec1 = rec.Sec1Time || '';
+  clSecTimes.sec2 = rec.Sec2Time || '';
+  clSecTimes.sec3 = rec.Sec3Time || '';
+  _clRenderSecBadge('clSec1Badge', clSecTimes.sec1);
+  _clRenderSecBadge('clSec2Badge', clSecTimes.sec2);
+  _clRenderSecBadge('clSec3Badge', clSecTimes.sec3);
 }
 
 // ══════════════════════════════════════════════════
