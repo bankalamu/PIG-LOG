@@ -327,6 +327,15 @@ function getClSheet() {
     sheet.setColumnWidth(6, 180);
     sheet.setColumnWidth(7, 300);
   }
+  // Always ensure time columns are formatted as plain text (@ format)
+  // so Sheets never auto-converts "07:45" into a time serial number
+  CL_TIME_COLS.forEach(colName => {
+    const colIdx = CL_HEADERS.indexOf(colName);
+    if (colIdx >= 0) {
+      const lastRow = Math.max(sheet.getLastRow(), 1);
+      sheet.getRange(2, colIdx + 1, Math.max(lastRow, 2), 1).setNumberFormat("@");
+    }
+  });
   return sheet;
 }
 
@@ -338,11 +347,18 @@ function getNextClId(sheet) {
   return Math.max(...ids.map(Number)) + 1;
 }
 
+const CL_TIME_COLS = ["PhotoTime","Sec1Time","Sec2Time","Sec3Time"];
+
 function rowToClRecord(row) {
   const rec = {};
   CL_HEADERS.forEach((h,i) => {
     if (row[i] instanceof Date) {
-      rec[h] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
+      if (CL_TIME_COLS.includes(h)) {
+        // Format as HH:mm — Sheets stored "07:45" as a time serial
+        rec[h] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "HH:mm");
+      } else {
+        rec[h] = Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
+      }
     } else {
       rec[h] = row[i];
     }
@@ -407,7 +423,9 @@ function clAdd(data) {
   const newId = getNextClId(sheet);
   const row = CL_HEADERS.map(h => {
     if (h === "CL_ID") return newId;
-    return data[h] !== undefined ? data[h] : "";
+    const v = data[h] !== undefined ? data[h] : "";
+    // Force time columns to plain string so Sheets doesn't parse "07:45" as a time serial
+    return CL_TIME_COLS.includes(h) ? String(v) : v;
   });
   sheet.appendRow(row);
   return { success: true, cl_id: newId };
@@ -423,7 +441,10 @@ function clUpdate(clId, data) {
   const sheetRow = rowIndex + 2;
   CL_HEADERS.forEach((h, colIndex) => {
     if (h === "CL_ID") return;
-    if (data[h] !== undefined) sheet.getRange(sheetRow, colIndex+1).setValue(data[h]);
+    if (data[h] !== undefined) {
+      const v = CL_TIME_COLS.includes(h) ? String(data[h]) : data[h];
+      sheet.getRange(sheetRow, colIndex+1).setValue(v);
+    }
   });
   return { success: true };
 }
