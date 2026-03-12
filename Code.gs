@@ -83,10 +83,11 @@ function doPost(e) {
     if (action === "add")      return corsRespond(addRecord(payload.data));
     if (action === "update")   return corsRespond(updateRecord(payload.id, payload.data));
     if (action === "delete")   return corsRespond(deleteRecord(payload.id));
-    if (action === "clAdd")    return corsRespond(clAdd(payload.data));
-    if (action === "clUpsert") return corsRespond(clUpsert(payload.data));
-    if (action === "clUpdate") return corsRespond(clUpdate(payload.id, payload.data));
-    if (action === "clDelete") return corsRespond(clDelete(payload.id));
+    if (action === "clAdd")       return corsRespond(clAdd(payload.data));
+    if (action === "clUpsert")    return corsRespond(clUpsert(payload.data));
+    if (action === "clUpdate")    return corsRespond(clUpdate(payload.id, payload.data));
+    if (action === "clDelete")    return corsRespond(clDelete(payload.id));
+    if (action === "clSavePhoto") return corsRespond(clSavePhoto(payload.clId, payload.photoBase64, payload.mimeType));
     if (action === "slAdd")    return corsRespond(slAdd(payload.data));
     if (action === "slUpsert") return corsRespond(slUpsert(payload.data));
     if (action === "slUpdate") return corsRespond(slUpdate(payload.id, payload.data));
@@ -300,7 +301,7 @@ const CL_SHEET = "DailyChecklist";
 const CL_KEYS_GS = ['tail','eyes','stool','posture','skin','breathing',
                     'appetite','water','feed','smell',
                     'pinch','belly','limbs','injuries','temp'];
-const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes",
+const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes","PhotoUrl",
                     ...CL_KEYS_GS];
 
 function getClSheet() {
@@ -429,6 +430,37 @@ function clDelete(clId) {
   if (rowIndex === -1) return { success: false, error: "Record not found" };
   sheet.deleteRow(rowIndex + 2);
   return { success: true };
+}
+
+function clSavePhoto(clId, photoBase64, mimeType) {
+  try {
+    if (!clId || !photoBase64) return { success: false, error: "Missing clId or photo data" };
+
+    // Get or create PigLog Photos folder in Drive
+    const folderName = "PigLog_Photos";
+    const folders = DriveApp.getFoldersByName(folderName);
+    const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+
+    // Decode base64 and save file
+    const ext  = (mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+    const blob = Utilities.newBlob(Utilities.base64Decode(photoBase64), mimeType || 'image/jpeg',
+                                   'pen_photo_cl' + clId + '_' + new Date().getTime() + '.' + ext);
+    const file = folder.createFile(blob);
+
+    // Make file publicly viewable (anyone with link)
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    const fileId  = file.getId();
+    const viewUrl = "https://drive.google.com/file/d/" + fileId + "/view";
+    const thumbUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w400";
+
+    // Update the PhotoUrl column in the sheet
+    const result = clUpdate(clId, { PhotoUrl: viewUrl });
+    if (!result.success) return { success: false, error: "Photo saved to Drive but sheet update failed: " + result.error };
+
+    return { success: true, viewUrl, thumbUrl, fileId };
+  } catch(e) {
+    return { success: false, error: "Photo save failed: " + e.message };
+  }
 }
 
 // ============================================================
@@ -575,8 +607,22 @@ function wkGetAll() {
 }
 
 function wkAdd(data) {
-  const sheet = getWkSheet();
-  const ids = sheet.getLastRow() <= 1 ? [] : sheet.getRange(2,1,sheet.getLastRow()-1,1).getValues().flat().filter(v=>v!=="");
+  const sheet   = getWkSheet();
+  const lastRow = sheet.getLastRow();
+  // Server-side duplicate guard: same WeekKey + Pen
+  if (lastRow > 1) {
+    const wkKeyIdx = WK_HEADERS_GS.indexOf("WeekKey");
+    const penIdx   = WK_HEADERS_GS.indexOf("Pen");
+    const allData  = sheet.getRange(2, 1, lastRow - 1, WK_HEADERS_GS.length).getValues();
+    const inKey    = String(data.WeekKey || '').trim();
+    const inPen    = String(data.Pen     || '').trim().toLowerCase();
+    const dup = allData.find(r =>
+      String(r[wkKeyIdx]||'').trim() === inKey &&
+      String(r[penIdx]  ||'').trim().toLowerCase() === inPen
+    );
+    if (dup) return { success: false, error: `Pen ${data.Pen} already has a record for ${data.WeekKey}. Use update instead.` };
+  }
+  const ids   = lastRow <= 1 ? [] : sheet.getRange(2,1,lastRow-1,1).getValues().flat().filter(v=>v!=="");
   const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
   sheet.appendRow(WK_HEADERS_GS.map(h => h==="WK_ID" ? newId : (data[h]!==undefined ? data[h] : "")));
   return { success: true, wk_id: newId };

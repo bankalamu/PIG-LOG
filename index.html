@@ -1011,6 +1011,22 @@
         <textarea id="clNotes" placeholder="Record anything unusual observed today…"></textarea>
       </div>
 
+      <!-- Photo capture -->
+      <div style="margin-bottom:12px;padding:12px 14px;background:#f8f9fa;border:1.5px solid var(--border);border-radius:10px">
+        <div style="font-size:11px;font-weight:800;color:#333;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">📷 Pen Photo <span style="font-weight:400;font-size:10px;color:#666;text-transform:none">(optional)</span></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label style="display:inline-flex;align-items:center;gap:6px;background:#2d6a2d;color:#fff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+            📷 Take / Choose Photo
+            <input type="file" id="clPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="clPhotoSelected(this)">
+          </label>
+          <button id="clPhotoClearBtn" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear()">✕ Remove</button>
+          <span id="clPhotoStatus" style="font-size:11px;color:#666"></span>
+        </div>
+        <div id="clPhotoPreview" style="display:none;margin-top:10px">
+          <img id="clPhotoPreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover" src="" alt="Pen photo preview">
+        </div>
+      </div>
+
       <!-- Reminder -->
       <div class="checklist-reminder">⚠️ Key Reminder: A WET TAIL = Investigate Immediately. Early action saves pigs.</div>
 
@@ -1559,7 +1575,7 @@
         </div>
       </div>
 
-      <div id="moLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Record older than 3 months — admin access required to edit.</div>
+      <div id="moLockedBanner" style="display:none;padding:9px 14px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">🔒 Past month — record is closed. Admin access required to edit.</div>
       <div id="moExistingBanner" style="display:none;padding:9px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:9px;font-size:12px;font-weight:700;color:#1a4a1a;margin-bottom:10px">✅ Existing record loaded — saving will update it.</div>
 
       <!-- Growth & Records -->
@@ -2737,6 +2753,7 @@ function resetChecklist() {
   document.getElementById('clPen').value  = '';
   clEditId = null;
   allChecklists = [];
+  clPhotoClear();
   _clShowSetup();
 }
 
@@ -2813,6 +2830,8 @@ async function saveChecklist() {
     const b = document.getElementById('clExistingBanner');
     if(b) { b.textContent = '✅ Saved — you can keep updating this record.'; b.style.display='block'; }
     document.getElementById('clLockedSub').textContent = '(saved)';
+    // Upload photo if one was selected (non-blocking)
+    if (clPhotoData) clUploadPhoto(clEditId);
   } else {
     showToast(result?.error || 'Save failed', true);
     btn.textContent = clEditId ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST';
@@ -2926,26 +2945,50 @@ function renderChecklistHistory() {
       }).join('');
 
       const detailId = `clDetail_${rec.CL_ID}`;
+      const photoThumb = rec.PhotoUrl
+        ? `<div style="margin-top:10px">
+             <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">📷 Pen Photo</div>
+             <a href="${rec.PhotoUrl}" target="_blank" rel="noopener">
+               <img src="https://drive.google.com/thumbnail?id=${rec.PhotoUrl.match(/\/d\/([^/]+)/)?.[1]||''}&sz=w400"
+                    style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover;display:block"
+                    onerror="this.style.display='none'" alt="Pen photo">
+             </a>
+             <div style="font-size:10px;color:#666;margin-top:4px"><a href="${rec.PhotoUrl}" target="_blank" rel="noopener" style="color:#2d6a2d">🔗 Open full photo</a></div>
+           </div>`
+        : '';
+
+      // Photo upload button — only for editable records (today or admin)
+      const canAddPhoto = canEdit;
+      const photoBtn = canAddPhoto
+        ? `<label style="display:inline-flex;align-items:center;gap:5px;background:#f0f4f0;color:#2d6a2d;border:1.5px solid #2d6a2d;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+             📷 ${rec.PhotoUrl ? 'Replace Photo' : 'Add Photo'}
+             <input type="file" accept="image/*" capture="environment" style="display:none" onchange="clHistoryPhotoSelected(this,'${rec.CL_ID}')">
+           </label>`
+        : '';
+
       return `<div class="cl-pen-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
           <div>
             <span style="font-size:14px;font-weight:800;color:#000">Pen ${rec.Pen||'—'}</span>
             <span style="font-size:11px;color:#666;margin-left:8px">By: ${rec.CheckedBy||'—'}</span>
             ${lockNote}
+            ${rec.PhotoUrl ? '<span style="font-size:11px;color:#2d6a2d;margin-left:6px">📷</span>' : ''}
           </div>
           ${badge}
         </div>
         ${hasConcerns ? `<div style="font-size:11px;color:#c0392b;margin-bottom:5px">⚠ Concerns: ${concernList.join(', ')}</div>` : ''}
         ${rec.Notes ? `<div style="font-size:11px;color:#444;font-style:italic;margin-bottom:6px">"${rec.Notes}"</div>` : ''}
         <div class="cl-record-actions" style="justify-content:space-between;align-items:center">
-          <div style="display:flex;gap:6px;align-items:center">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
             <button class="btn-edit" style="background:#f0f4f0;color:#2d6a2d;border-color:#2d6a2d" onclick="clToggleDetail('${detailId}', this)">👁 View</button>
             ${editBtn}${deleteBtn ? ' ' + deleteBtn : ''}
+            ${photoBtn}
           </div>
         </div>
         <div id="${detailId}" style="display:none;margin-top:10px;border-top:1.5px solid #eee;padding-top:10px">
           <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Full Health Check</div>
           ${detailRows}
+          ${photoThumb}
         </div>
       </div>`;
     }).join('');
@@ -2981,6 +3024,106 @@ function clToggleDetail(id, btn) {
   const isOpen = panel.style.display !== 'none';
   panel.style.display = isOpen ? 'none' : 'block';
   btn.textContent = isOpen ? '👁 View' : '🔼 Hide';
+}
+
+// ── Photo capture ────────────────────────────────────────────
+let clPhotoData   = null;  // base64 string (no prefix)
+let clPhotoMime   = null;  // e.g. 'image/jpeg'
+
+function clPhotoSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  // Limit to 5 MB
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Photo is too large (max 5 MB). Please use a smaller image.', true);
+    input.value = ''; return;
+  }
+  clPhotoMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    clPhotoData   = dataUrl.split(',')[1]; // strip data:...;base64, prefix
+    // Show preview
+    const prev = document.getElementById('clPhotoPreview');
+    const img  = document.getElementById('clPhotoPreviewImg');
+    const stat = document.getElementById('clPhotoStatus');
+    const clrBtn = document.getElementById('clPhotoClearBtn');
+    if (img)   img.src = dataUrl;
+    if (prev)  prev.style.display = 'block';
+    if (stat)  stat.textContent   = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+    if (clrBtn) clrBtn.style.display = 'inline-flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clPhotoClear() {
+  clPhotoData = null; clPhotoMime = null;
+  const input  = document.getElementById('clPhotoInput');
+  const prev   = document.getElementById('clPhotoPreview');
+  const img    = document.getElementById('clPhotoPreviewImg');
+  const stat   = document.getElementById('clPhotoStatus');
+  const clrBtn = document.getElementById('clPhotoClearBtn');
+  if (input)  input.value   = '';
+  if (img)    img.src        = '';
+  if (prev)   prev.style.display  = 'none';
+  if (stat)   stat.textContent    = '';
+  if (clrBtn) clrBtn.style.display = 'none';
+}
+
+async function clHistoryPhotoSelected(input, clId) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Photo too large (max 5 MB)', true); input.value = ''; return;
+  }
+  const mime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const base64 = e.target.result.split(',')[1];
+    showToast('⬆️ Uploading photo…');
+    try {
+      const result = await apiPost({ action: 'clSavePhoto', clId, photoBase64: base64, mimeType: mime });
+      if (result && result.success) {
+        showToast('✅ Photo uploaded');
+        // Update in-memory record and re-render
+        const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
+        if (idx !== -1) { allChecklists[idx].PhotoUrl = result.viewUrl; allChecklists[idx].ThumbUrl = result.thumbUrl; }
+        renderChecklistHistory();
+      } else {
+        showToast(result?.error || 'Photo upload failed', true);
+      }
+    } catch(e) { showToast('Photo upload failed', true); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function clUploadPhoto(clId) {
+  if (!clPhotoData || !clId) return;
+  const stat = document.getElementById('clPhotoStatus');
+  if (stat) stat.textContent = '⬆️ Uploading photo…';
+  try {
+    const result = await apiPost({
+      action: 'clSavePhoto',
+      clId:       clId,
+      photoBase64: clPhotoData,
+      mimeType:    clPhotoMime || 'image/jpeg'
+    });
+    if (result && result.success) {
+      if (stat) stat.textContent = '✅ Photo uploaded';
+      // Update in-memory record with the photo URL
+      const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
+      if (idx !== -1) {
+        allChecklists[idx].PhotoUrl  = result.viewUrl;
+        allChecklists[idx].ThumbUrl  = result.thumbUrl;
+      }
+      clPhotoClear();
+    } else {
+      if (stat) stat.textContent = '⚠️ Photo upload failed — record saved without photo';
+      showToast(result?.error || 'Photo upload failed', true);
+    }
+  } catch(e) {
+    if (stat) stat.textContent = '⚠️ Photo upload failed';
+  }
 }
 
 function clEditRecord(clId) {
@@ -3637,13 +3780,8 @@ function _moCurrentKey() {
 
 function moIsLocked(monthKey) {
   if (!monthKey) return false;
-  // Locked if older than 3 months
-  const [yr, mo] = monthKey.split('-').map(Number);
-  const recDate  = new Date(yr, mo - 1, 1); // first of that month
-  const cutoff   = new Date();
-  cutoff.setMonth(cutoff.getMonth() - 3);
-  cutoff.setDate(1);
-  return recDate < cutoff;
+  // Locked as soon as the month ends — any month before the current month is locked
+  return monthKey < _moCurrentKey();
 }
 
 // Populate the month dropdown — last 12 months + current + next 1
@@ -3815,7 +3953,7 @@ async function saveMonthly() {
   }
 
   if (moIsLocked(monthKey) && !isAdminEnabled()) {
-    showToast('This record is older than 3 months — admin access required.', true); return;
+    showToast('Past month — record is closed. Admin access required.', true); return;
   }
 
   const today = new Date().toISOString().split('T')[0];
@@ -4006,7 +4144,7 @@ function moEditRecord(moId) {
   const rec = allMonthly.find(r => String(r.MO_ID) === String(moId));
   if (!rec) { showToast('Record not found', true); return; }
   if (moIsLocked(String(rec.Month||'').substring(0,7)) && !isAdminEnabled()) {
-    showToast('This record is older than 3 months — admin access required', true); return;
+    showToast('Past month — admin access required to edit', true); return;
   }
 
   // Switch to form tab WITHOUT clearing allMonthly (don't call setMoView)
