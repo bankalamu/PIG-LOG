@@ -309,6 +309,7 @@ const CL_KEYS_GS = ['tail','eyes','stool','posture','skin','breathing',
                     'pinch','belly','limbs','injuries','temp'];
 const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes","PhotoUrl","PhotoTime","PigCount",
                     "Sec1Time","Sec2Time","Sec3Time",
+                    "cl_nursing","cl_weaklings","cl_lightest_today","cl_heaviest_today",
                     ...CL_KEYS_GS];
 
 function getClSheet() {

@@ -1020,6 +1020,29 @@
         <div class="scours-step" style="font-weight:800;color:#8b0000"><span>6.</span><span>No improvement in 12–24 hrs? CALL VET</span></div>
       </div>
 
+      <!-- Daily Nursing Status -->
+      <div class="check-section" style="background:#e3f2fd;border-color:#1565c0">
+        <div class="check-section-title" style="background:#1565c0;color:#fff">📊 Daily Nursing Status</div>
+        <div style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;font-weight:800;color:#0d47a1">Actively Nursing</label>
+            <input type="number" id="cl_nursing" min="0" placeholder="0" style="width:100%;padding:7px 10px;border:1.5px solid #90caf9;border-radius:7px;font-size:14px;font-weight:700;color:#000">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:800;color:#0d47a1">Weaklings / Runts</label>
+            <input type="number" id="cl_weaklings" min="0" placeholder="0" style="width:100%;padding:7px 10px;border:1.5px solid #90caf9;border-radius:7px;font-size:14px;font-weight:700;color:#000">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:800;color:#0d47a1">Lightest Today (kg)</label>
+            <input type="number" id="cl_lightest_today" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:7px 10px;border:1.5px solid #90caf9;border-radius:7px;font-size:14px;font-weight:700;color:#000">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:800;color:#0d47a1">Heaviest Today (kg)</label>
+            <input type="number" id="cl_heaviest_today" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:7px 10px;border:1.5px solid #90caf9;border-radius:7px;font-size:14px;font-weight:700;color:#000">
+          </div>
+        </div>
+      </div>
+
       <!-- Notes -->
       <div class="checklist-notes">
         <label>📝 Notes / Observations Today</label>
@@ -1137,20 +1160,6 @@
       </div>
 
       <!-- Daily nursing check -->
-      <div class="sl-section">
-        <div class="sl-section-title blue">📊 Daily Nursing Status (update each day)</div>
-        <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
-          <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
-          <input type="text" id="slBy_nursing" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
-        </div>
-        <div class="sl-num-grid">
-          <div class="sl-num-field"><label>Actively Nursing</label><input type="number" id="sl_nursing" min="0" placeholder="0"></div>
-          <div class="sl-num-field"><label>Weaklings / Runts</label><input type="number" id="sl_weaklings" min="0" placeholder="0"></div>
-          <div class="sl-num-field"><label>Lightest Today (kg)</label><input type="number" id="sl_lightest_today" min="0" step="0.01" placeholder="0.00"></div>
-          <div class="sl-num-field"><label>Heaviest Today (kg)</label><input type="number" id="sl_heaviest_today" min="0" step="0.01" placeholder="0.00"></div>
-        </div>
-      </div>
-
       <!-- ── SOW TREATMENTS ── -->
       <div class="sl-section">
         <div class="sl-section-title pink">💊 Sow Treatments — Days 0–5</div>
@@ -2777,7 +2786,7 @@ function clLockForm(lock) {
     b.style.pointerEvents = lock ? 'none' : '';
     b.style.opacity       = lock ? '0.5'  : '';
   });
-  ['clCheckedBy','clNotes','clPigCount'].forEach(id => {
+  ['clCheckedBy','clNotes','clPigCount','cl_nursing','cl_weaklings','cl_lightest_today','cl_heaviest_today'].forEach(id => {
     const el = document.getElementById(id); if(el) el.disabled = lock;
   });
   const saveBtn = document.getElementById('btnSaveChecklist');
@@ -2790,6 +2799,9 @@ function _populateClForm(rec) {
   const pcEl = document.getElementById('clPigCount');
   if (pcEl) pcEl.value = rec.PigCount || '';
   _clRestoreSectionTimestamps(rec);
+  ['cl_nursing','cl_weaklings','cl_lightest_today','cl_heaviest_today'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = rec[id] || '';
+  });
   CL_KEYS.forEach(k => {
     clState[k] = rec[k] || null;
     const items = document.querySelectorAll('#clBody .check-item[data-key="' + k + '"] .toggle-btn');
@@ -2826,6 +2838,9 @@ function resetChecklist() {
   document.getElementById('clPen').value  = '';
   const pcEl = document.getElementById('clPigCount'); if (pcEl) pcEl.value = '';
   clCurrentPigCount = 0;
+  ['cl_nursing','cl_weaklings','cl_lightest_today','cl_heaviest_today'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   clSecTimes = { sec1: '', sec2: '', sec3: '' };
   ['clSec1Badge','clSec2Badge','clSec3Badge'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
@@ -2882,7 +2897,11 @@ async function saveChecklist() {
     PigCount: pigCount,
     Sec1Time: clSecTimes.sec1 || '',
     Sec2Time: clSecTimes.sec2 || '',
-    Sec3Time: clSecTimes.sec3 || ''
+    Sec3Time: clSecTimes.sec3 || '',
+    cl_nursing:        document.getElementById('cl_nursing')?.value        || '',
+    cl_weaklings:      document.getElementById('cl_weaklings')?.value      || '',
+    cl_lightest_today: document.getElementById('cl_lightest_today')?.value || '',
+    cl_heaviest_today: document.getElementById('cl_heaviest_today')?.value || ''
   };
   CL_KEYS.forEach(k => { data[k] = clState[k] || ''; });
 
@@ -3097,6 +3116,16 @@ function renderChecklistHistory() {
             `<div style="font-size:11px;color:#2d6a2d;font-weight:700;margin-bottom:4px">${s.label} <span style="background:#e8f5e8;border:1px solid #2d6a2d;border-radius:10px;padding:1px 7px;font-size:10px">✓ ${s.time}</span></div>`
           ).join('')}
           ${detailRows}
+          ${(rec.cl_nursing||rec.cl_weaklings||rec.cl_lightest_today||rec.cl_heaviest_today) ? `
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid #eee">
+            <div style="font-size:11px;font-weight:800;color:#1565c0;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">📊 Daily Nursing Status</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+              ${rec.cl_nursing      ? `<div style="font-size:12px"><span style="color:#555">Nursing:</span> <strong>${rec.cl_nursing}</strong></div>` : ''}
+              ${rec.cl_weaklings    ? `<div style="font-size:12px"><span style="color:#555">Weaklings:</span> <strong>${rec.cl_weaklings}</strong></div>` : ''}
+              ${rec.cl_lightest_today ? `<div style="font-size:12px"><span style="color:#555">Lightest:</span> <strong>${rec.cl_lightest_today} kg</strong></div>` : ''}
+              ${rec.cl_heaviest_today ? `<div style="font-size:12px"><span style="color:#555">Heaviest:</span> <strong>${rec.cl_heaviest_today} kg</strong></div>` : ''}
+            </div>
+          </div>` : ''}
           ${photoThumb}
         </div>
       </div>`;
@@ -4454,8 +4483,7 @@ function _populateSlForm(rec) {
     if (el) el.textContent = slTaskState[t] ? '✓' : '';
   });
   ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt',
-   'sl_lightest','sl_heaviest','sl_nursing','sl_weaklings',
-   'sl_lightest_today','sl_heaviest_today','sl_castrated',
+   'sl_lightest','sl_heaviest','sl_castrated',
    'sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'
   ].forEach(id => {
     const el = document.getElementById(id);
@@ -4471,8 +4499,7 @@ function _clearSlTasks() {
     if (el) { el.className = 'sl-task-check'; el.textContent = ''; }
   });
   ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt',
-   'sl_lightest','sl_heaviest','sl_nursing','sl_weaklings',
-   'sl_lightest_today','sl_heaviest_today','sl_castrated',
+   'sl_lightest','sl_heaviest','sl_castrated',
    'sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt','sl_date_weaned'
   ].forEach(id => {
     const el = document.getElementById(id);
@@ -4486,7 +4513,7 @@ function toggleSlTask(taskKey) {
   if (el) el.textContent = slTaskState[taskKey] ? '✓' : '';
 }
 
-function setSlView(view) {
+function setSlView(view, resetForm) {
   document.getElementById('slFormView')   && (document.getElementById('slFormView').style.display    = view==='form'    ? 'block' : 'none');
   document.getElementById('slActiveView') && (document.getElementById('slActiveView').style.display  = view==='active'  ? 'block' : 'none');
   document.getElementById('slHistoryView')&& (document.getElementById('slHistoryView').style.display = view==='history' ? 'block' : 'none');
@@ -4494,8 +4521,14 @@ function setSlView(view) {
     const tab = document.getElementById(id);
     if (tab) tab.className = 'cl-tab' + (id === 'slTab'+view.charAt(0).toUpperCase()+view.slice(1) ? ' active' : '');
   });
+  if (view === 'form' && resetForm) resetSowLitter();
   if (view === 'active')  { loadSlActive(); }
   if (view === 'history') { allSlRecords=[]; loadSlHistory(); }
+}
+
+function cancelSowLitter() {
+  resetSowLitter();
+  setSlView('active');
 }
 
 function resetSowLitter() {
@@ -4590,9 +4623,13 @@ function renderSlActive() {
   container.innerHTML = active.map(rec => {
     const farrow = new Date(rec.FarrowDate||'');
     const days   = isNaN(farrow) ? '?' : Math.floor((today - farrow)/86400000);
+    const deleteBtn = isAdminEnabled()
+      ? ' <button class="btn-delete" onclick="event.stopPropagation();slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
+      : '';
     return '<div class="cl-record-card" style="cursor:pointer" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">'
       + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + (rec.SowId||'-') + ' · Day ' + days + '</div></div>'
       + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + '</div>'
+      + (deleteBtn ? '<div class="cl-record-actions">' + deleteBtn + '</div>' : '')
       + '</div>';
   }).join('');
 }
@@ -4651,6 +4688,7 @@ async function slDeleteRecord(slId) {
   if (result && result.success) {
     showToast('Record deleted');
     allSlRecords = allSlRecords.filter(r => String(r.SL_ID) !== String(slId));
+    renderSlActive();
     renderSlHistory();
   } else {
     showToast(result?.error || 'Delete failed', true);
