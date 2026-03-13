@@ -1113,32 +1113,38 @@
       <div id="slValidationError" style="display:none;padding:10px 14px;background:#ffebee;border:2px solid #c0392b;border-radius:10px;font-size:13px;font-weight:700;color:#8b0000;margin-bottom:12px"></div>
 
       <!-- Sow ID + Farrow Date header -->
-      <div class="checklist-date-bar" style="flex-wrap:wrap;gap:10px">
-        <div style="display:flex;flex-direction:column;flex:1;min-width:120px">
-          <label class="form-label">Sow ID</label>
-          <select id="slSowId" class="form-input" onchange="slLookupExisting()" style="font-weight:700;color:#000">
-            <option value="">— Select Sow —</option>
-          </select>
-          <datalist id="slSowOptions"></datalist>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+        <!-- Row 1: Sow ID · Farrow Date · Pen No. -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;flex:0 1 130px;min-width:100px">
+            <label class="form-label">Sow ID</label>
+            <select id="slSowId" class="form-input" onchange="slLookupExisting()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
+              <option value="">— Select —</option>
+            </select>
+            <datalist id="slSowOptions"></datalist>
+          </div>
+          <div style="display:flex;flex-direction:column;flex:0 1 150px;min-width:130px">
+            <label class="form-label">Farrow Date</label>
+            <input type="date" id="slFarrowDate" class="form-input" style="font-size:13px;padding:6px 8px" onchange="slLookupExisting()">
+          </div>
+          <div style="display:flex;flex-direction:column;flex:0 1 100px;min-width:80px">
+            <label class="form-label">Pen No.</label>
+            <input type="text" id="slPen" placeholder="Pen" class="form-input" style="font-size:13px;padding:6px 8px" oninput="slLookupExisting();slCalcTotalPiglets()">
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;flex:1;min-width:140px">
-          <label class="form-label">Farrow Date</label>
-          <input type="date" id="slFarrowDate" class="form-input" onchange="slLookupExisting()">
+        <!-- Row 2: Foster Piglets · Total Piglets -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;flex:0 1 150px;min-width:120px">
+            <label class="form-label">Foster Piglets <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
+            <input type="number" id="slFoster" min="0" max="20" step="1" placeholder="0" class="form-input" style="font-weight:700;font-size:13px;padding:6px 8px" oninput="slCalcTotalPiglets()">
+          </div>
+          <div style="display:flex;flex-direction:column;flex:0 1 200px;min-width:160px">
+            <label class="form-label">Total Piglets <span style="font-size:10px;font-weight:400;color:#666">(Foster + Pen pigs − 1 sow)</span></label>
+            <div id="slTotalPiglets" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:7px 12px;font-size:20px;font-weight:900;color:#2d6a2d;text-align:center;min-height:36px;line-height:1.2">—</div>
+          </div>
         </div>
         <div id="slExistingBanner" style="display:none;width:100%;padding:8px 12px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;font-size:12px;font-weight:700;color:#1a4a1a">
           ✅ Existing record loaded — your changes will update it, not create a new one.
-        </div>
-        <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
-          <label class="form-label">Pen No.</label>
-          <input type="text" id="slPen" placeholder="Pen" class="form-input" oninput="slLookupExisting();slCalcTotalPiglets()">
-        </div>
-        <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
-          <label class="form-label">Foster Piglets <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
-          <input type="number" id="slFoster" min="0" max="20" step="1" placeholder="0" class="form-input" style="font-weight:700" oninput="slCalcTotalPiglets()">
-        </div>
-        <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
-          <label class="form-label">Total Piglets <span style="font-size:10px;font-weight:400;color:#666">(auto)</span></label>
-          <div id="slTotalPiglets" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:8px 10px;font-size:18px;font-weight:900;color:#2d6a2d;text-align:center;min-height:38px">—</div>
         </div>
       </div>
       <div id="slDayBanner" style="display:none" class="sl-today-banner">📅 <span id="slDayText">Day 0</span> &nbsp;·&nbsp; 🗓️ Wean by: <strong id="slWeanByDate">—</strong></div>
@@ -4546,50 +4552,57 @@ function _slColorHeaders(days) {
 async function slCalcTotalPiglets() {
   const foster = parseInt(document.getElementById('slFoster')?.value || '0', 10) || 0;
   const pen    = (document.getElementById('slPen')?.value || '').trim();
-  const today  = new Date().toISOString().split('T')[0];
   const el     = document.getElementById('slTotalPiglets');
   if (!el) return;
 
-  let penPigs = 0;
-  if (pen) {
-    // Always fetch fresh from API to ensure we have today's data
-    // (allChecklists may be empty or stale when on Sow & Litter page)
-    try {
-      const r = await apiGet({ action: 'clGetAll' });
-      if (r && r.success) {
-        const recs = r.records || [];
-        const clRec = recs.find(rec =>
-          String(rec.Date||'').trim() === today &&
-          String(rec.Pen||'').trim()  === String(pen).trim()
-        );
-        if (clRec) {
-          const raw = parseInt(clRec.PigCount || '0', 10) || 0;
-          penPigs = Math.max(0, raw - 1); // subtract 1 for the sow
-        }
-      }
-    } catch(e) { /* silently fail — total stays as foster only */ }
-  }
+  // Use local date (not UTC) to match GAS-formatted yyyy-MM-dd
+  const now    = new Date();
+  const today  = now.getFullYear() + '-'
+               + String(now.getMonth()+1).padStart(2,'0') + '-'
+               + String(now.getDate()).padStart(2,'0');
 
-  const total = foster + penPigs;
-  el.textContent = total > 0 ? String(total) : (foster > 0 ? String(foster) : '—');
-  el.dataset.value = total > 0 ? String(total) : '';
-
-  // Show a small note about what was found
+  // Ensure note element exists
   const noteId = 'slTotalNote';
   let note = document.getElementById(noteId);
   if (!note) {
     note = document.createElement('div');
     note.id = noteId;
-    note.style.cssText = 'font-size:10px;color:#555;margin-top:3px;text-align:center';
+    note.style.cssText = 'font-size:10px;color:#666;margin-top:3px;text-align:center;min-height:14px';
     el.parentElement.appendChild(note);
   }
-  if (pen && penPigs > 0) {
-    note.textContent = `Foster ${foster} + Pen ${pen} pigs ${penPigs} (${penPigs+1}−1 sow)`;
-  } else if (pen && foster > 0) {
-    note.textContent = `No checklist entry for Pen ${pen} today`;
+
+  let penPigs = 0;
+  let noteText = '';
+
+  if (pen) {
+    try {
+      const r = await apiGet({ action: 'clGetAll' });
+      if (r && r.success) {
+        const recs = r.records || [];
+        // Find today's entry for this pen — normalise both sides
+        const clRec = recs.find(rec =>
+          String(rec.Date||'').trim().slice(0,10) === today &&
+          String(rec.Pen||'').trim().toLowerCase() === pen.toLowerCase()
+        );
+        if (clRec) {
+          const raw = parseInt(clRec.PigCount || '0', 10) || 0;
+          penPigs = Math.max(0, raw - 1); // subtract 1 for the sow
+          noteText = `Foster ${foster} + Pen ${pen}: ${raw} pigs − 1 sow = ${penPigs}`;
+        } else {
+          noteText = `No Daily Checklist for Pen ${pen} today — enter pen first`;
+        }
+      }
+    } catch(e) {
+      noteText = 'Could not fetch checklist data';
+    }
   } else {
-    note.textContent = '';
+    noteText = pen === '' ? 'Enter Pen No. to include pen pig count' : '';
   }
+
+  const total = foster + penPigs;
+  el.textContent   = total > 0 ? String(total) : '—';
+  el.dataset.value = total > 0 ? String(total) : '';
+  note.textContent = noteText;
 }
 
 async function slLookupExisting() {
@@ -4722,7 +4735,7 @@ function slRefreshColors() {
   _slColorHeaders(Math.floor((today - farrow) / 86400000));
 }
 
-function toggleSlTask(taskKey) {
+function slToggleTask(taskKey) {
   slTaskState[taskKey] = !slTaskState[taskKey];
   const el = document.getElementById('chk_' + taskKey);
   if (el) el.textContent = slTaskState[taskKey] ? '✓' : '';
@@ -4743,7 +4756,8 @@ function setSlView(view, resetForm) {
     const tab = document.getElementById(id);
     if (tab) tab.className = 'cl-tab' + (id === 'slTab'+view.charAt(0).toUpperCase()+view.slice(1) ? ' active' : '');
   });
-  if (view === 'form' && resetForm) resetSowLitter();
+  if (view === 'form' && resetForm) { resetSowLitter(); }
+  if (view === 'form') { setTimeout(slRefreshColors, 50); }
   if (view === 'active')  { loadSlActive(); }
   if (view === 'history') { allSlRecords=[]; loadSlHistory(); }
 }
@@ -4958,12 +4972,18 @@ function slOpenRecord(slId) {
   const rec = allSlRecords.find(r => String(r.SL_ID) === String(slId));
   if (!rec) return;
   slEditId = rec.SL_ID;
+
+  // Show form FIRST so elements are visible before populating
+  setSlView('form');
+
   const sowSel = document.getElementById('slSowId');
   if (sowSel) sowSel.value = rec.SowId || '';
   const fd = document.getElementById('slFarrowDate');
   if (fd) fd.value = rec.FarrowDate || '';
   _populateSlForm(rec);
-  setSlView('form');
+
+  // Force colour refresh after render
+  setTimeout(slRefreshColors, 50);
 
   const isClosed = slIsClosed(rec);
   const banner   = document.getElementById('slExistingBanner');
@@ -4971,7 +4991,6 @@ function slOpenRecord(slId) {
   const slError  = document.getElementById('slValidationError');
 
   if (isClosed && !isAdminEnabled()) {
-    // Auto-closed and not admin — read-only view
     if (slError) {
       const farrow = new Date(rec.FarrowDate||''); farrow.setHours(0,0,0,0);
       const today  = new Date(); today.setHours(0,0,0,0);
