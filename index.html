@@ -1135,11 +1135,11 @@
         <!-- Row 2: Foster Piglets · Total Piglets -->
         <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
           <div style="display:flex;flex-direction:column;flex:0 1 150px;min-width:120px">
-            <label class="form-label">Foster Piglets <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
+            <label class="form-label">Foster <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
             <input type="number" id="slFoster" min="0" max="20" step="1" placeholder="0" class="form-input" style="font-weight:700;font-size:13px;padding:6px 8px" oninput="slCalcTotalPiglets()">
           </div>
           <div style="display:flex;flex-direction:column;flex:0 1 200px;min-width:160px">
-            <label class="form-label">Total Piglets <span style="font-size:10px;font-weight:400;color:#666">(Foster + Pen pigs − 1 sow)</span></label>
+            <label class="form-label">Total <span style="font-size:10px;font-weight:400;color:#666">(Foster + Nursing)</span></label>
             <div id="slTotalPiglets" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:7px 12px;font-size:20px;font-weight:900;color:#2d6a2d;text-align:center;min-height:36px;line-height:1.2">—</div>
           </div>
         </div>
@@ -1147,7 +1147,7 @@
           ✅ Existing record loaded — your changes will update it, not create a new one.
         </div>
       </div>
-      <div id="slDayBanner" style="display:none" class="sl-today-banner">📅 <span id="slDayText">Day 0</span> &nbsp;·&nbsp; 🗓️ Wean by: <strong id="slWeanByDate">—</strong></div>
+      <div id="slDayBanner" style="display:none" class="sl-today-banner">📅 <span id="slDayText">Day 0</span> &nbsp;·&nbsp; 🗓️ Wean by: <strong id="slWeanByDate" style="margin-left:4px">—</strong></div>
       <!-- Admin: weaning period setting -->
       <div id="slAdminSettings" style="display:none;background:#fff9c4;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px">
         <span style="font-weight:800;color:#78350f">⚙️ Admin — Weaning Period:</span>
@@ -1356,7 +1356,7 @@
           </div>
           <div class="sl-num-grid">
             <div class="sl-num-field"><label>Number Weaned</label><input type="number" id="sl_num_weaned" min="0" placeholder="0"></div>
-            <div class="sl-num-field"><label>Date Weaned</label><input type="date" id="sl_date_weaned"></div>
+            <div class="sl-num-field"><label>Date Weaned</label><input type="date" id="sl_date_weaned" oninput="slUpdateDayInfo()"></div>
             <div class="sl-num-field"><label>Avg Wean Weight (kg)</label><input type="number" id="sl_wean_wt" min="0" step="0.01" placeholder="0.00"></div>
           </div>
         </div>
@@ -4435,6 +4435,14 @@ async function populateSlSowDropdown() {
   sel.onchange = prev;
 }
 
+async function saveWeaningPeriod() {
+  const val = parseInt(document.getElementById('slWeaningWeeks')?.value || '5', 10);
+  if (isNaN(val) || val < 1 || val > 12) { showToast('Enter a value between 1 and 12 weeks', true); return; }
+  const r = await apiPost({ action: 'setSetting', key: 'weaningWeeks', value: String(val) });
+  if (r && r.success) { showToast('✓ Weaning period saved (' + val + ' weeks)'); }
+  else showToast('Save failed', true);
+}
+
 function initSowLitter() {
   SL_TASKS.forEach(t => { slTaskState[t] = false; });
   const today = new Date().toISOString().split('T')[0];
@@ -4446,19 +4454,52 @@ function initSowLitter() {
 
 function slUpdateDayInfo() {
   const fd = document.getElementById('slFarrowDate')?.value;
-  const dayText   = document.getElementById('slDayText');
-  const dayBanner = document.getElementById('slDayBanner');
+  const dayText    = document.getElementById('slDayText');
+  const dayBanner  = document.getElementById('slDayBanner');
+  const weanByEl   = document.getElementById('slWeanByDate');
+
   if (!fd) {
     if (dayBanner) dayBanner.style.display = 'none';
     _slColorHeaders(-1);
     return;
   }
+
   const farrow = new Date(fd);
   const today  = new Date();
   today.setHours(0,0,0,0); farrow.setHours(0,0,0,0);
   const days = Math.floor((today - farrow) / 86400000);
-  if (dayText)   dayText.textContent = days >= 0 ? 'Day ' + days : 'Future date';
+
+  if (dayText) dayText.textContent = days >= 0 ? 'Day ' + days : 'Future date';
   if (dayBanner) dayBanner.style.display = 'block';
+
+  // Wean-by = farrow + 35 days
+  const weanDate = new Date(farrow);
+  weanDate.setDate(weanDate.getDate() + 35);
+  const weanStr = weanDate.getFullYear() + '-'
+                + String(weanDate.getMonth()+1).padStart(2,'0') + '-'
+                + String(weanDate.getDate()).padStart(2,'0');
+  const weanDisplay = weanDate.toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' });
+
+  if (weanByEl) {
+    weanByEl.textContent = weanDisplay;
+    // Red if: today is past wean-by AND date_weaned is empty
+    const dateWeanedEl = document.getElementById('sl_date_weaned');
+    const dateWeanedVal = dateWeanedEl ? dateWeanedEl.value : '';
+    const isOverdue = days > 35 && !dateWeanedVal;
+    const isLate    = dateWeanedVal && dateWeanedVal > weanStr; // weaned after deadline
+    if (isOverdue || isLate) {
+      weanByEl.style.color      = '#b71c1c';
+      weanByEl.style.background = '#ffebee';
+      weanByEl.style.padding    = '1px 6px';
+      weanByEl.style.borderRadius = '6px';
+    } else {
+      weanByEl.style.color      = '';
+      weanByEl.style.background = '';
+      weanByEl.style.padding    = '';
+      weanByEl.style.borderRadius = '';
+    }
+  }
+
   _slColorHeaders(days < 0 ? -1 : days);
   slCalcTotalPiglets();
 }
@@ -4548,58 +4589,53 @@ function _slColorHeaders(days) {
   });
 }
 
-// Auto-calculate Total Piglets = Foster + (PigCount from today's DailyChecklist for this pen - 1 for the sow)
+// Total = Foster + cl_nursing (Actively Nursing) from today's DailyChecklist for this pen
 async function slCalcTotalPiglets() {
   const foster = parseInt(document.getElementById('slFoster')?.value || '0', 10) || 0;
   const pen    = (document.getElementById('slPen')?.value || '').trim();
   const el     = document.getElementById('slTotalPiglets');
   if (!el) return;
 
-  // Use local date (not UTC) to match GAS-formatted yyyy-MM-dd
-  const now    = new Date();
-  const today  = now.getFullYear() + '-'
-               + String(now.getMonth()+1).padStart(2,'0') + '-'
-               + String(now.getDate()).padStart(2,'0');
+  // Local date to match GAS yyyy-MM-dd
+  const now   = new Date();
+  const today = now.getFullYear() + '-'
+              + String(now.getMonth()+1).padStart(2,'0') + '-'
+              + String(now.getDate()).padStart(2,'0');
 
-  // Ensure note element exists
-  const noteId = 'slTotalNote';
-  let note = document.getElementById(noteId);
+  let note = document.getElementById('slTotalNote');
   if (!note) {
     note = document.createElement('div');
-    note.id = noteId;
+    note.id = 'slTotalNote';
     note.style.cssText = 'font-size:10px;color:#666;margin-top:3px;text-align:center;min-height:14px';
     el.parentElement.appendChild(note);
   }
 
-  let penPigs = 0;
+  let nursing  = 0;
   let noteText = '';
 
   if (pen) {
     try {
       const r = await apiGet({ action: 'clGetAll' });
       if (r && r.success) {
-        const recs = r.records || [];
-        // Find today's entry for this pen — normalise both sides
-        const clRec = recs.find(rec =>
+        const clRec = (r.records || []).find(rec =>
           String(rec.Date||'').trim().slice(0,10) === today &&
           String(rec.Pen||'').trim().toLowerCase() === pen.toLowerCase()
         );
         if (clRec) {
-          const raw = parseInt(clRec.PigCount || '0', 10) || 0;
-          penPigs = Math.max(0, raw - 1); // subtract 1 for the sow
-          noteText = `Foster ${foster} + Pen ${pen}: ${raw} pigs − 1 sow = ${penPigs}`;
+          nursing  = parseInt(clRec.cl_nursing || '0', 10) || 0;
+          noteText = `Foster ${foster} + Nursing ${nursing} (Pen ${pen} today)`;
         } else {
-          noteText = `No Daily Checklist for Pen ${pen} today — enter pen first`;
+          noteText = `No Daily Checklist for Pen ${pen} today`;
         }
       }
     } catch(e) {
       noteText = 'Could not fetch checklist data';
     }
   } else {
-    noteText = pen === '' ? 'Enter Pen No. to include pen pig count' : '';
+    noteText = 'Enter Pen No. to include nursing count';
   }
 
-  const total = foster + penPigs;
+  const total = foster + nursing;
   el.textContent   = total > 0 ? String(total) : '—';
   el.dataset.value = total > 0 ? String(total) : '';
   note.textContent = noteText;
