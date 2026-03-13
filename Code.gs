@@ -309,7 +309,7 @@ const CL_KEYS_GS = ['tail','eyes','stool','posture','skin','breathing',
                     'pinch','belly','limbs','injuries','temp'];
 const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes","PhotoUrl","PhotoTime","PigCount",
                     "Sec1Time","Sec2Time","Sec3Time",
-                    "cl_nursing","cl_weaklings","cl_lightest_today","cl_heaviest_today",
+                    "cl_lactating","cl_nursing","cl_weaklings","cl_lightest_today","cl_heaviest_today",
                     ...CL_KEYS_GS];
 
 function getClSheet() {
@@ -518,7 +518,7 @@ const SL_TASK_COLS = ['sow_antiinflam','sow_mma_ab','sow_oxytocin',
   'indiv_weigh','health_d14','mma_d14',
   'vax','weaner_feed','weaner_pen','prev_meds','weaned'];
 const SL_HEADERS_GS = ["SL_ID","SowId","FarrowDate","Pen","Notes",
-  "sl_foster","sl_total_piglets",
+  "sl_foster","sl_total_piglets","sl_mortality",
   "ByLitter","ByNursing","BySowTreat","ByMilestones",
   "ByD01","ByD23","ByD57","ByD710","ByD14","ByD2128",
   "sl_born_alive","sl_stillborn","sl_mummified","sl_total_birth_wt",
