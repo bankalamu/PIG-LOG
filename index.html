@@ -1130,7 +1130,7 @@
         </div>
         <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
           <label class="form-label">Pen No.</label>
-          <input type="text" id="slPen" placeholder="Pen" class="form-input" oninput="slCalcTotalPiglets()">
+          <input type="text" id="slPen" placeholder="Pen" class="form-input" oninput="slLookupExisting();slCalcTotalPiglets()">
         </div>
         <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
           <label class="form-label">Foster Piglets <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
@@ -1152,15 +1152,15 @@
 
       <!-- ── SOW WELFARE — numeric fields ── -->
       <div class="sl-section">
-        <div class="sl-section-title pink">🐷 Litter Summary — At Farrowing</div>
+        <div class="sl-section-title pink" id="shdr_litter">🐷 Litter Summary — At Farrowing</div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
           <input type="text" id="slBy_litter" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
         </div>
         <div class="sl-num-grid">
-          <div class="sl-num-field"><label>Born Alive</label><input type="number" id="sl_born_alive" min="0" placeholder="0"></div>
-          <div class="sl-num-field"><label>Stillborn</label><input type="number" id="sl_stillborn" min="0" placeholder="0"></div>
-          <div class="sl-num-field"><label>Mummified</label><input type="number" id="sl_mummified" min="0" placeholder="0"></div>
+          <div class="sl-num-field"><label>Born Alive</label><input type="number" id="sl_born_alive" min="0" placeholder="0" oninput="slRefreshColors()"></div>
+          <div class="sl-num-field"><label>Stillborn</label><input type="number" id="sl_stillborn" min="0" placeholder="0" oninput="slRefreshColors()"></div>
+          <div class="sl-num-field"><label>Mummified</label><input type="number" id="sl_mummified" min="0" placeholder="0" oninput="slRefreshColors()"></div>
           <div class="sl-num-field"><label>Total Birth Wt (kg)</label><input type="number" id="sl_total_birth_wt" min="0" step="0.1" placeholder="0.0"></div>
           <div class="sl-num-field"><label>Lightest Piglet (kg)</label><input type="number" id="sl_lightest" min="0" step="0.01" placeholder="0.00"></div>
           <div class="sl-num-field"><label>Heaviest Piglet (kg)</label><input type="number" id="sl_heaviest" min="0" step="0.01" placeholder="0.00"></div>
@@ -1170,7 +1170,7 @@
       <!-- Daily nursing check -->
       <!-- ── SOW TREATMENTS ── -->
       <div class="sl-section">
-        <div class="sl-section-title pink">💊 Sow Treatments — Days 0–5</div>
+        <div class="sl-section-title pink" id="shdr_sowtreat">💊 Sow Treatments — Days 0–5</div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
           <input type="text" id="slBy_sowtreat" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
@@ -1308,8 +1308,8 @@
             <div class="sl-task-label">Individual weights recorded<span class="sl-task-note">Weigh each piglet and record</span></div>
           </div>
           <div class="sl-num-grid">
-            <div class="sl-num-field"><label>Avg Weight Day 14 (kg)</label><input type="number" id="sl_wt_d14" min="0" step="0.01" placeholder="0.00"></div>
-            <div class="sl-num-field"><label>Number Still Alive</label><input type="number" id="sl_alive_d14" min="0" placeholder="0"></div>
+            <div class="sl-num-field"><label>Avg Weight Day 14 (kg)</label><input type="number" id="sl_wt_d14" min="0" step="0.01" placeholder="0.00" oninput="slRefreshColors()"></div>
+            <div class="sl-num-field"><label>Number Still Alive</label><input type="number" id="sl_alive_d14" min="0" placeholder="0" oninput="slRefreshColors()"></div>
           </div>
           <div class="sl-task">
             <div class="sl-task-check" id="chk_health_d14" onclick="slToggleTask('health_d14',14)"></div>
@@ -4440,51 +4440,109 @@ function initSowLitter() {
 
 function slUpdateDayInfo() {
   const fd = document.getElementById('slFarrowDate')?.value;
-  const label = document.getElementById('slDayLabel');
-  if (!fd) { if(label) label.textContent=''; _slColorHeaders(-1); return; }
+  const dayText   = document.getElementById('slDayText');
+  const dayBanner = document.getElementById('slDayBanner');
+  if (!fd) {
+    if (dayBanner) dayBanner.style.display = 'none';
+    _slColorHeaders(-1);
+    return;
+  }
   const farrow = new Date(fd);
   const today  = new Date();
   today.setHours(0,0,0,0); farrow.setHours(0,0,0,0);
   const days = Math.floor((today - farrow) / 86400000);
-  if (label) label.textContent = days >= 0 ? 'Day ' + days : '(future date)';
-  _slColorHeaders(days);
+  if (dayText)   dayText.textContent = days >= 0 ? 'Day ' + days : 'Future date';
+  if (dayBanner) dayBanner.style.display = 'block';
+  _slColorHeaders(days < 0 ? -1 : days);
   slCalcTotalPiglets();
 }
 
-// Colour milestone section headers based on day count
-// orange = within range, red = past max, default = not yet reached
+// ── Section header colour coding ──────────────────────────────────────────
+// Rule:
+//   days < min              → DEFAULT (not yet reached)
+//   days >= min && <= max   → ORANGE  (action due now)
+//   days > max AND filled   → DEFAULT (done on time or caught up — green would be ideal but default keeps it clean)
+//   days > max AND empty    → RED     (missed / overdue)
+//
+// "filled" = at least one task in the section is ticked OR a key numeric field has a value
+// shdr_litter uses numeric fields; others use task keys from slTaskState
+
 const SL_HEADER_RANGES = {
-  mhdr_d01:   [0,  1],
-  mhdr_d23:   [2,  3],
-  mhdr_d57:   [5,  7],
-  mhdr_d710:  [7,  10],
-  mhdr_d14:   [14, 14],
-  mhdr_d2128: [21, 28]
+  shdr_litter:   { min:0,  max:0,  defBg:'#fce4ec', defColor:'#880e4f', defBorder:'#f8bbd0',
+                   numFields:['sl_born_alive','sl_stillborn','sl_mummified'] },
+  shdr_sowtreat: { min:0,  max:5,  defBg:'#fce4ec', defColor:'#880e4f', defBorder:'#f8bbd0',
+                   tasks:['sow_antiinflam','sow_mma_ab','sow_oxytocin'], byField:'slBy_sowtreat' },
+  mhdr_d01:      { min:0,  max:1,  defBg:'', defColor:'', defBorder:'',
+                   tasks:['iodine','colostrum','teat_order','heat_lamp','litter_weigh'] },
+  mhdr_d23:      { min:2,  max:3,  defBg:'', defColor:'', defBorder:'',
+                   tasks:['iron','tail_dock','teeth','navel_check'] },
+  mhdr_d57:      { min:5,  max:7,  defBg:'', defColor:'', defBorder:'',
+                   tasks:['multivit','creep','navel_healed'] },
+  mhdr_d710:     { min:7,  max:10, defBg:'', defColor:'', defBorder:'',
+                   tasks:['castration','ear_notch','coccidiostat'] },
+  mhdr_d14:      { min:14, max:14, defBg:'', defColor:'', defBorder:'',
+                   tasks:['indiv_weigh','health_d14','mma_d14'],
+                   numFields:['sl_wt_d14','sl_alive_d14'] },
+  mhdr_d2128:    { min:21, max:28, defBg:'', defColor:'', defBorder:'',
+                   tasks:['vax','weaner_feed','weaner_pen','prev_meds','weaned'] },
 };
+
+const _SL_HDR_ORANGE = { bg:'#fff3e0', color:'#e65100', border:'2px solid #ff9800' };
+const _SL_HDR_RED    = { bg:'#ffebee', color:'#b71c1c', border:'2px solid #ef5350' };
+
+function _slSectionFilled(cfg) {
+  // Check numeric fields (any value entered)
+  if (cfg.numFields) {
+    const hasNum = cfg.numFields.some(id => {
+      const el = document.getElementById(id);
+      return el && el.value !== '' && el.value !== null;
+    });
+    if (hasNum) return true;
+  }
+  // Check task checkboxes (any ticked)
+  if (cfg.tasks) {
+    const hasTask = cfg.tasks.some(t => slTaskState[t] === true);
+    if (hasTask) return true;
+  }
+  // Check "Completed by" field as fallback for sow treat section
+  if (cfg.byField) {
+    const el = document.getElementById(cfg.byField);
+    if (el && el.value.trim() !== '') return true;
+  }
+  return false;
+}
+
 function _slColorHeaders(days) {
-  Object.entries(SL_HEADER_RANGES).forEach(([id, [min, max]]) => {
+  Object.entries(SL_HEADER_RANGES).forEach(([id, cfg]) => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.style.background = '';
-    el.style.color      = '';
-    el.style.borderBottom = '';
-    if (days < 0) return; // no farrow date yet
-    if (days >= min && days <= max) {
-      // Within range — orange
-      el.style.background  = '#fff3e0';
-      el.style.color       = '#e65100';
-      el.style.borderBottom = '2px solid #ff9800';
-    } else if (days > max) {
-      // Past range — red
-      el.style.background  = '#ffebee';
-      el.style.color       = '#b71c1c';
-      el.style.borderBottom = '2px solid #ef5350';
+
+    let bg, color, border;
+
+    if (days < 0 || days < cfg.min) {
+      // Before range or no date — always default
+      bg = cfg.defBg; color = cfg.defColor;
+      border = cfg.defBorder ? '1.5px solid ' + cfg.defBorder : '';
+    } else if (days >= cfg.min && days <= cfg.max) {
+      // Within range — ORANGE (action due)
+      bg = _SL_HDR_ORANGE.bg; color = _SL_HDR_ORANGE.color; border = _SL_HDR_ORANGE.border;
+    } else {
+      // Past upper bound — RED if empty, DEFAULT if filled
+      if (_slSectionFilled(cfg)) {
+        bg = cfg.defBg; color = cfg.defColor;
+        border = cfg.defBorder ? '1.5px solid ' + cfg.defBorder : '';
+      } else {
+        bg = _SL_HDR_RED.bg; color = _SL_HDR_RED.color; border = _SL_HDR_RED.border;
+      }
     }
-    // else: future — default style
+
+    el.style.background   = bg;
+    el.style.color        = color;
+    el.style.borderBottom = border;
   });
 }
 
-// Auto-calculate Total Piglets = Foster + today's pen PigCount from DailyChecklist
+// Auto-calculate Total Piglets = Foster + (PigCount from today's DailyChecklist for this pen - 1 for the sow)
 async function slCalcTotalPiglets() {
   const foster = parseInt(document.getElementById('slFoster')?.value || '0', 10) || 0;
   const pen    = (document.getElementById('slPen')?.value || '').trim();
@@ -4494,22 +4552,44 @@ async function slCalcTotalPiglets() {
 
   let penPigs = 0;
   if (pen) {
-    // Look up today's DailyChecklist entry for this pen
-    if (allChecklists.length === 0) {
+    // Always fetch fresh from API to ensure we have today's data
+    // (allChecklists may be empty or stale when on Sow & Litter page)
+    try {
       const r = await apiGet({ action: 'clGetAll' });
-      if (r && r.success) allChecklists = r.records || [];
-    }
-    const clRec = allChecklists.find(r =>
-      String(r.Date||'').trim() === today &&
-      String(r.Pen||'').trim()  === String(pen).trim()
-    );
-    penPigs = parseInt(clRec?.PigCount || '0', 10) || 0;
+      if (r && r.success) {
+        const recs = r.records || [];
+        const clRec = recs.find(rec =>
+          String(rec.Date||'').trim() === today &&
+          String(rec.Pen||'').trim()  === String(pen).trim()
+        );
+        if (clRec) {
+          const raw = parseInt(clRec.PigCount || '0', 10) || 0;
+          penPigs = Math.max(0, raw - 1); // subtract 1 for the sow
+        }
+      }
+    } catch(e) { /* silently fail — total stays as foster only */ }
   }
 
   const total = foster + penPigs;
-  el.textContent = total > 0 ? total : '—';
-  // Store for save
-  el.dataset.value = String(total);
+  el.textContent = total > 0 ? String(total) : (foster > 0 ? String(foster) : '—');
+  el.dataset.value = total > 0 ? String(total) : '';
+
+  // Show a small note about what was found
+  const noteId = 'slTotalNote';
+  let note = document.getElementById(noteId);
+  if (!note) {
+    note = document.createElement('div');
+    note.id = noteId;
+    note.style.cssText = 'font-size:10px;color:#555;margin-top:3px;text-align:center';
+    el.parentElement.appendChild(note);
+  }
+  if (pen && penPigs > 0) {
+    note.textContent = `Foster ${foster} + Pen ${pen} pigs ${penPigs} (${penPigs+1}−1 sow)`;
+  } else if (pen && foster > 0) {
+    note.textContent = `No checklist entry for Pen ${pen} today`;
+  } else {
+    note.textContent = '';
+  }
 }
 
 async function slLookupExisting() {
@@ -4517,11 +4597,20 @@ async function slLookupExisting() {
   const sowId      = (document.getElementById('slSowId')?.value||'').trim();
   const farrowDate = document.getElementById('slFarrowDate')?.value;
   const banner     = document.getElementById('slExistingBanner');
+  const slError    = document.getElementById('slValidationError');
+  const hideSlErr  = () => { if(slError) slError.style.display='none'; };
+  hideSlErr();
   if (!sowId || !farrowDate) { if(banner) banner.style.display='none'; return; }
   if (allSlRecords.length === 0) {
     const r = await apiGet({ action: 'slGetAll' });
     if (r && r.success) allSlRecords = r.records || [];
   }
+
+  const pen     = (document.getElementById('slPen')?.value || '').trim();
+  const newDate = new Date(farrowDate);
+  newDate.setHours(0,0,0,0);
+
+  // Check for exact match (editing existing)
   const existing = allSlRecords.find(r =>
     String(r.SowId||'').trim().toLowerCase() === sowId.toLowerCase() &&
     String(r.FarrowDate||'').trim() === farrowDate
@@ -4530,11 +4619,51 @@ async function slLookupExisting() {
     slEditId = existing.SL_ID;
     _populateSlForm(existing);
     if(banner) banner.style.display = 'block';
+    document.getElementById('btnSaveSl').disabled = false;
     document.getElementById('btnSaveSl').textContent = 'UPDATE RECORD';
-  } else {
-    if (slEditId) { slEditId = null; _clearSlTasks(); document.getElementById('btnSaveSl').textContent = 'SAVE RECORD'; }
-    if(banner) banner.style.display = 'none';
+    return;
   }
+
+  // Check SOW + Pen combination already open (active, not closed)
+  if (pen) {
+    const sowPenConflict = allSlRecords.find(r => {
+      if (String(r.SL_ID) === String(slEditId)) return false; // skip self
+      if (String(r.SowId||'').trim().toLowerCase() !== sowId.toLowerCase()) return false;
+      if (String(r.Pen||'').trim() !== pen) return false;
+      return !slIsClosed(r); // only block if that record is still open
+    });
+    if (sowPenConflict) {
+      const msg = `⚠️ Sow ${sowId} already has an open record in Pen ${pen} (Farrow: ${sowPenConflict.FarrowDate}). Only one open record per Sow + Pen combination is allowed.`;
+      if (slError) { slError.textContent = msg; slError.style.display = 'block'; }
+      document.getElementById('btnSaveSl').disabled = true;
+      document.getElementById('btnSaveSl').textContent = 'BLOCKED — Duplicate';
+      return;
+    }
+  }
+
+  // Check 5-month gap rule (150 days) — only against open records
+  const conflict = allSlRecords.find(r => {
+    if (String(r.SowId||'').trim().toLowerCase() !== sowId.toLowerCase()) return false;
+    const existDate = new Date(r.FarrowDate||'');
+    if (isNaN(existDate)) return false;
+    existDate.setHours(0,0,0,0);
+    const gap = Math.abs(newDate - existDate) / 86400000;
+    return gap < 150;
+  });
+  if (conflict) {
+    const gapDays = Math.round(Math.abs(newDate - new Date(conflict.FarrowDate)) / 86400000);
+    const msg = `⚠️ Sow ${sowId} already has a litter record dated ${conflict.FarrowDate} (${gapDays} days apart). A new record requires at least 5 months (150 days) between farrow dates.`;
+    if (slError) { slError.textContent = msg; slError.style.display = 'block'; }
+    document.getElementById('btnSaveSl').disabled = true;
+    document.getElementById('btnSaveSl').textContent = 'BLOCKED — Too soon';
+    return;
+  }
+
+  // No conflict — new record
+  if (slEditId) { slEditId = null; _clearSlTasks(); }
+  document.getElementById('btnSaveSl').disabled = false;
+  document.getElementById('btnSaveSl').textContent = 'SAVE RECORD';
+  if(banner) banner.style.display = 'none';
 }
 
 function _populateSlForm(rec) {
@@ -4585,10 +4714,25 @@ function _clearSlTasks() {
   if (totalEl) { totalEl.textContent = '—'; totalEl.dataset.value = ''; }
 }
 
+function slRefreshColors() {
+  const fd = document.getElementById('slFarrowDate')?.value;
+  if (!fd) return;
+  const farrow = new Date(fd); farrow.setHours(0,0,0,0);
+  const today  = new Date();   today.setHours(0,0,0,0);
+  _slColorHeaders(Math.floor((today - farrow) / 86400000));
+}
+
 function toggleSlTask(taskKey) {
   slTaskState[taskKey] = !slTaskState[taskKey];
   const el = document.getElementById('chk_' + taskKey);
   if (el) el.textContent = slTaskState[taskKey] ? '✓' : '';
+  // Refresh header colours so "filled" state updates immediately
+  const fd = document.getElementById('slFarrowDate')?.value;
+  if (fd) {
+    const farrow = new Date(fd); farrow.setHours(0,0,0,0);
+    const today  = new Date();   today.setHours(0,0,0,0);
+    _slColorHeaders(Math.floor((today - farrow) / 86400000));
+  }
 }
 
 function setSlView(view, resetForm) {
@@ -4616,13 +4760,13 @@ function resetSowLitter() {
   ['slSowId','slPen','slNotes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   const slErr = document.getElementById('slValidationError');
   if (slErr) slErr.style.display = 'none';
+  const btn = document.getElementById('btnSaveSl');
+  if (btn) { btn.disabled = false; btn.textContent = 'SAVE RECORD'; }
   _slColorHeaders(-1);
   const fd = document.getElementById('slFarrowDate');
   if (fd) fd.value = today;
   const banner = document.getElementById('slExistingBanner');
   if(banner) banner.style.display = 'none';
-  const btn = document.getElementById('btnSaveSl');
-  if(btn) btn.textContent = 'SAVE RECORD';
   allSlRecords = [];
   slUpdateDayInfo();
 }
@@ -4640,6 +4784,35 @@ async function saveSowLitter() {
   hideSlErr();
   if (!sowId)      { showSlErr('⚠️ Please select a Sow ID before saving.'); return; }
   if (!farrowDate) { showSlErr('⚠️ Please enter a Farrow Date before saving.'); return; }
+
+  // SOW + Pen open-record uniqueness guard
+  if (!slEditId && pen) {
+    const sowPenConflict = allSlRecords.find(r => {
+      if (String(r.SowId||'').trim().toLowerCase() !== sowId.toLowerCase()) return false;
+      if (String(r.Pen||'').trim() !== pen) return false;
+      return !slIsClosed(r);
+    });
+    if (sowPenConflict) {
+      showSlErr(`⚠️ Cannot save — Sow ${sowId} already has an open record in Pen ${pen} (Farrow: ${sowPenConflict.FarrowDate}). Close or wean that litter first.`);
+      return;
+    }
+  }
+
+  // 5-month gap guard (skip if editing existing record)
+  if (!slEditId) {
+    const newDate = new Date(farrowDate); newDate.setHours(0,0,0,0);
+    const conflict = allSlRecords.find(r => {
+      if (String(r.SowId||'').trim().toLowerCase() !== sowId.toLowerCase()) return false;
+      const ed = new Date(r.FarrowDate||''); if (isNaN(ed)) return false;
+      ed.setHours(0,0,0,0);
+      return Math.abs(newDate - ed) / 86400000 < 150;
+    });
+    if (conflict) {
+      const gapDays = Math.round(Math.abs(newDate - new Date(conflict.FarrowDate)) / 86400000);
+      showSlErr(`⚠️ Cannot save — Sow ${sowId} already has a record dated ${conflict.FarrowDate} (${gapDays} days ago). Minimum 5 months (150 days) between litters.`);
+      return;
+    }
+  }
   const fosterRaw = document.getElementById('slFoster')?.value?.trim();
   if (fosterRaw !== '' && fosterRaw !== undefined) {
     const fv = parseInt(fosterRaw, 10);
@@ -4707,25 +4880,37 @@ async function loadSlActive() {
   }
 }
 
+// A record is "closed" if: weaned date set, OR weaned task done, OR today > farrowDate + 35 days
+function slIsClosed(rec) {
+  if (rec['sl_date_weaned'] && rec['sl_date_weaned'] !== '') return true;
+  if (rec['weaned'] === 'done') return true;
+  if (rec.FarrowDate) {
+    const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
+    const today  = new Date(); today.setHours(0,0,0,0);
+    if ((today - farrow) / 86400000 > 35) return true;
+  }
+  return false;
+}
+
 function renderSlActive() {
   const container = document.getElementById('slActiveContainer');
   if (!container) return;
   const today = new Date(); today.setHours(0,0,0,0);
-  const active = allSlRecords.filter(rec => {
-    if (rec['sl_date_weaned'] && rec['sl_date_weaned'] !== '') return false;
-    if (rec['weaned'] === 'done') return false;
-    return true;
-  });
+  const active = allSlRecords.filter(rec => !slIsClosed(rec));
   if (!active.length) { container.innerHTML = '<div class="empty-state">No active litters.</div>'; return; }
   container.innerHTML = active.map(rec => {
     const farrow = new Date(rec.FarrowDate||'');
     const days   = isNaN(farrow) ? '?' : Math.floor((today - farrow)/86400000);
+    const daysLeft = typeof days === 'number' ? (35 - days) : '?';
+    const urgentBadge = typeof days === 'number' && daysLeft <= 5 && daysLeft >= 0
+      ? `<span style="background:#ff9800;color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:2px 7px;margin-left:6px">⏰ ${daysLeft}d left</span>`
+      : '';
     const deleteBtn = isAdminEnabled()
       ? ' <button class="btn-delete" onclick="event.stopPropagation();slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
       : '';
     return '<div class="cl-record-card" style="cursor:pointer" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">'
-      + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + (rec.SowId||'-') + ' · Day ' + days + '</div></div>'
-      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + '</div>'
+      + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + (rec.SowId||'-') + ' · Day ' + days + urgentBadge + '</div></div>'
+      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + ' · Wean by Day 35</div>'
       + (deleteBtn ? '<div class="cl-record-actions">' + deleteBtn + '</div>' : '')
       + '</div>';
   }).join('');
@@ -4747,16 +4932,22 @@ async function loadSlHistory() {
 function renderSlHistory() {
   const container = document.getElementById('slHistoryContainer');
   if (!container) return;
-  const history = allSlRecords.filter(rec =>
-    rec['sl_date_weaned'] && rec['sl_date_weaned'] !== '' || rec['weaned'] === 'done'
-  );
+  const history = allSlRecords.filter(rec => slIsClosed(rec));
   if (!history.length) { container.innerHTML = '<div class="empty-state">No closed litters yet.</div>'; return; }
+  const today = new Date(); today.setHours(0,0,0,0);
   container.innerHTML = history.slice().reverse().map(rec => {
     const adminAct = isAdminEnabled()
       ? '<button class="btn-edit" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">Edit</button> <button class="btn-delete" onclick="slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
       : '';
+    // Determine close reason for badge
+    let closeBadge = '<span class="cl-ok-badge">✅ Weaned</span>';
+    if (!rec['sl_date_weaned'] && rec['weaned'] !== 'done' && rec.FarrowDate) {
+      const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
+      const days = Math.floor((today - farrow) / 86400000);
+      if (days > 35) closeBadge = '<span style="background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">🔒 Day ' + days + ' — Auto-closed</span>';
+    }
     return '<div class="cl-record-card">'
-      + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + (rec.SowId||'-') + '</div><span class="cl-ok-badge">✅ Weaned</span></div>'
+      + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + (rec.SowId||'-') + '</div>' + closeBadge + '</div>'
       + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + '</div>'
       + (adminAct ? '<div class="cl-record-actions">' + adminAct + '</div>' : '')
       + '</div>';
@@ -4773,9 +4964,34 @@ function slOpenRecord(slId) {
   if (fd) fd.value = rec.FarrowDate || '';
   _populateSlForm(rec);
   setSlView('form');
-  document.getElementById('btnSaveSl').textContent = 'UPDATE RECORD';
-  const banner = document.getElementById('slExistingBanner');
-  if(banner) banner.style.display = 'block';
+
+  const isClosed = slIsClosed(rec);
+  const banner   = document.getElementById('slExistingBanner');
+  const btn      = document.getElementById('btnSaveSl');
+  const slError  = document.getElementById('slValidationError');
+
+  if (isClosed && !isAdminEnabled()) {
+    // Auto-closed and not admin — read-only view
+    if (slError) {
+      const farrow = new Date(rec.FarrowDate||''); farrow.setHours(0,0,0,0);
+      const today  = new Date(); today.setHours(0,0,0,0);
+      const days   = Math.floor((today - farrow) / 86400000);
+      const reason = rec['sl_date_weaned'] ? 'weaned on ' + rec['sl_date_weaned']
+                   : rec['weaned'] === 'done' ? 'weaning task completed'
+                   : 'Day ' + days + ' — exceeded 35-day limit';
+      slError.textContent = '🔒 This record is closed (' + reason + '). Admin access required to edit.';
+      slError.style.display = 'block';
+      slError.style.background = '#fff8e1';
+      slError.style.borderColor = '#f59e0b';
+      slError.style.color = '#78350f';
+    }
+    if (btn) { btn.disabled = true; btn.textContent = '🔒 Record Closed'; }
+    if (banner) banner.style.display = 'none';
+  } else {
+    if (slError) slError.style.display = 'none';
+    if (btn) { btn.disabled = false; btn.textContent = 'UPDATE RECORD'; }
+    if (banner) banner.style.display = 'block';
+  }
 }
 
 async function slDeleteRecord(slId) {
