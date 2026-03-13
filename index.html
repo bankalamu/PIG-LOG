@@ -1130,7 +1130,15 @@
         </div>
         <div style="display:flex;flex-direction:column;flex:1;min-width:100px">
           <label class="form-label">Pen No.</label>
-          <input type="text" id="slPen" placeholder="Pen" class="form-input">
+          <input type="text" id="slPen" placeholder="Pen" class="form-input" oninput="slCalcTotalPiglets()">
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
+          <label class="form-label">Foster Piglets <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
+          <input type="number" id="slFoster" min="0" max="20" step="1" placeholder="0" class="form-input" style="font-weight:700" oninput="slCalcTotalPiglets()">
+        </div>
+        <div style="display:flex;flex-direction:column;flex:1;min-width:90px">
+          <label class="form-label">Total Piglets <span style="font-size:10px;font-weight:400;color:#666">(auto)</span></label>
+          <div id="slTotalPiglets" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:8px 10px;font-size:18px;font-weight:900;color:#2d6a2d;text-align:center;min-height:38px">—</div>
         </div>
       </div>
       <div id="slDayBanner" style="display:none" class="sl-today-banner">📅 <span id="slDayText">Day 0</span> &nbsp;·&nbsp; 🗓️ Wean by: <strong id="slWeanByDate">—</strong></div>
@@ -4433,12 +4441,75 @@ function initSowLitter() {
 function slUpdateDayInfo() {
   const fd = document.getElementById('slFarrowDate')?.value;
   const label = document.getElementById('slDayLabel');
-  if (!fd) { if(label) label.textContent=''; return; }
+  if (!fd) { if(label) label.textContent=''; _slColorHeaders(-1); return; }
   const farrow = new Date(fd);
   const today  = new Date();
   today.setHours(0,0,0,0); farrow.setHours(0,0,0,0);
   const days = Math.floor((today - farrow) / 86400000);
   if (label) label.textContent = days >= 0 ? 'Day ' + days : '(future date)';
+  _slColorHeaders(days);
+  slCalcTotalPiglets();
+}
+
+// Colour milestone section headers based on day count
+// orange = within range, red = past max, default = not yet reached
+const SL_HEADER_RANGES = {
+  mhdr_d01:   [0,  1],
+  mhdr_d23:   [2,  3],
+  mhdr_d57:   [5,  7],
+  mhdr_d710:  [7,  10],
+  mhdr_d14:   [14, 14],
+  mhdr_d2128: [21, 28]
+};
+function _slColorHeaders(days) {
+  Object.entries(SL_HEADER_RANGES).forEach(([id, [min, max]]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.background = '';
+    el.style.color      = '';
+    el.style.borderBottom = '';
+    if (days < 0) return; // no farrow date yet
+    if (days >= min && days <= max) {
+      // Within range — orange
+      el.style.background  = '#fff3e0';
+      el.style.color       = '#e65100';
+      el.style.borderBottom = '2px solid #ff9800';
+    } else if (days > max) {
+      // Past range — red
+      el.style.background  = '#ffebee';
+      el.style.color       = '#b71c1c';
+      el.style.borderBottom = '2px solid #ef5350';
+    }
+    // else: future — default style
+  });
+}
+
+// Auto-calculate Total Piglets = Foster + today's pen PigCount from DailyChecklist
+async function slCalcTotalPiglets() {
+  const foster = parseInt(document.getElementById('slFoster')?.value || '0', 10) || 0;
+  const pen    = (document.getElementById('slPen')?.value || '').trim();
+  const today  = new Date().toISOString().split('T')[0];
+  const el     = document.getElementById('slTotalPiglets');
+  if (!el) return;
+
+  let penPigs = 0;
+  if (pen) {
+    // Look up today's DailyChecklist entry for this pen
+    if (allChecklists.length === 0) {
+      const r = await apiGet({ action: 'clGetAll' });
+      if (r && r.success) allChecklists = r.records || [];
+    }
+    const clRec = allChecklists.find(r =>
+      String(r.Date||'').trim() === today &&
+      String(r.Pen||'').trim()  === String(pen).trim()
+    );
+    penPigs = parseInt(clRec?.PigCount || '0', 10) || 0;
+  }
+
+  const total = foster + penPigs;
+  el.textContent = total > 0 ? total : '—';
+  // Store for save
+  el.dataset.value = String(total);
 }
 
 async function slLookupExisting() {
@@ -4489,7 +4560,10 @@ function _populateSlForm(rec) {
     const el = document.getElementById(id);
     if (el) { el.value = rec[id] || ''; el.disabled = false; }
   });
-  slUpdateDayInfo();
+  // Foster & Total Piglets
+  const fosterEl = document.getElementById('slFoster');
+  if (fosterEl) fosterEl.value = rec['sl_foster'] || '';
+  slUpdateDayInfo(); // recalcs total piglets too
 }
 
 function _clearSlTasks() {
@@ -4505,6 +4579,10 @@ function _clearSlTasks() {
     const el = document.getElementById(id);
     if (el) { el.value = ''; el.disabled = false; }
   });
+  const fosterEl = document.getElementById('slFoster');
+  if (fosterEl) fosterEl.value = '';
+  const totalEl = document.getElementById('slTotalPiglets');
+  if (totalEl) { totalEl.textContent = '—'; totalEl.dataset.value = ''; }
 }
 
 function toggleSlTask(taskKey) {
@@ -4536,6 +4614,9 @@ function resetSowLitter() {
   _clearSlTasks();
   const today = new Date().toISOString().split('T')[0];
   ['slSowId','slPen','slNotes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  const slErr = document.getElementById('slValidationError');
+  if (slErr) slErr.style.display = 'none';
+  _slColorHeaders(-1);
   const fd = document.getElementById('slFarrowDate');
   if (fd) fd.value = today;
   const banner = document.getElementById('slExistingBanner');
@@ -4551,16 +4632,31 @@ async function saveSowLitter() {
   const farrowDate = document.getElementById('slFarrowDate')?.value;
   const pen        = (document.getElementById('slPen')?.value||'').trim();
   const notes      = (document.getElementById('slNotes')?.value||'').trim();
-  if (!sowId)      { showToast('Please select Sow ID', true); return; }
-  if (!farrowDate) { showToast('Please enter farrow date', true); return; }
+
+  // ── Validation ──
+  const slError = document.getElementById('slValidationError');
+  const showSlErr = msg => { if(slError){slError.textContent=msg;slError.style.display='block';} showToast(msg,true); };
+  const hideSlErr = () => { if(slError) slError.style.display='none'; };
+  hideSlErr();
+  if (!sowId)      { showSlErr('⚠️ Please select a Sow ID before saving.'); return; }
+  if (!farrowDate) { showSlErr('⚠️ Please enter a Farrow Date before saving.'); return; }
+  const fosterRaw = document.getElementById('slFoster')?.value?.trim();
+  if (fosterRaw !== '' && fosterRaw !== undefined) {
+    const fv = parseInt(fosterRaw, 10);
+    if (isNaN(fv) || fv < 0 || fv > 20 || !Number.isInteger(fv)) {
+      showSlErr('⚠️ Foster Piglets must be a whole number between 0 and 20.'); return;
+    }
+  }
 
   const numFields = ['sl_born_alive','sl_stillborn','sl_mummified','sl_total_birth_wt',
-    'sl_lightest','sl_heaviest','sl_nursing','sl_weaklings',
-    'sl_lightest_today','sl_heaviest_today','sl_castrated',
+    'sl_lightest','sl_heaviest','sl_castrated',
     'sl_wt_d14','sl_alive_d14','sl_num_weaned','sl_wean_wt'];
   const g = id => document.getElementById(id)?.value?.trim() || '';
+  const totalPigletsEl = document.getElementById('slTotalPiglets');
   const data = {
     SowId: sowId, FarrowDate: farrowDate, Pen: pen, Notes: notes,
+    sl_foster:       fosterRaw || '',
+    sl_total_piglets: totalPigletsEl?.dataset?.value || '',
     ByLitter:     g('slBy_litter'),     ByNursing:    g('slBy_nursing'),
     BySowTreat:   g('slBy_sowtreat'),   ByMilestones: g('slBy_milestones'),
     ByD01:        g('slBy_d01'),        ByD23:        g('slBy_d23'),
@@ -4585,6 +4681,7 @@ async function saveSowLitter() {
 
   btn.disabled = false;
   if (result && result.success) {
+    hideSlErr();
     if (result.sl_id) slEditId = result.sl_id;
     showToast(slEditId ? '✓ Record updated!' : '✓ Sow & litter saved!');
     btn.textContent = 'UPDATE RECORD';

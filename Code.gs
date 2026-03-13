@@ -518,6 +518,7 @@ const SL_TASK_COLS = ['sow_antiinflam','sow_mma_ab','sow_oxytocin',
   'indiv_weigh','health_d14','mma_d14',
   'vax','weaner_feed','weaner_pen','prev_meds','weaned'];
 const SL_HEADERS_GS = ["SL_ID","SowId","FarrowDate","Pen","Notes",
+  "sl_foster","sl_total_piglets",
   "ByLitter","ByNursing","BySowTreat","ByMilestones",
   "ByD01","ByD23","ByD57","ByD710","ByD14","ByD2128",
   "sl_born_alive","sl_stillborn","sl_mummified","sl_total_birth_wt",
