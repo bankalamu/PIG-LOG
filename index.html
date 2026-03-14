@@ -1142,7 +1142,7 @@
         <!-- Row 2: Pen No. · Foster -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Pen No.</label>
-          <input type="text" id="slPen" placeholder="Pen" class="form-input" style="font-size:13px;padding:6px 8px" oninput="slLookupExisting();slCalcTotalPiglets()">
+          <input type="number" id="slPen" min="1" max="999" placeholder="1" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700" oninput="slLookupExisting();slCalcTotalPiglets()">
         </div>
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Foster <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
@@ -2623,6 +2623,13 @@ async function deleteRecord(dbId) {
 // ── Toast ─────────────────────────────────────────
 
 let toastTimer;
+// Sort records by pen number ascending (all pens are numeric)
+function _sortByPen(arr, penField) {
+  return arr.slice().sort((a, b) =>
+    (parseFloat(a[penField]) || 0) - (parseFloat(b[penField]) || 0)
+  );
+}
+
 function showToast(msg, isError = false) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -3073,7 +3080,7 @@ function renderChecklistHistory() {
   const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
   container.innerHTML = sortedDates.map((date, di) => {
-    const recs      = byDate[date];
+    const recs      = _sortByPen(byDate[date], 'Pen');
     const isToday   = date === today;
     const isPast    = date < today;
     const concerns  = recs.filter(r => r.Status === 'CONCERNS').length;
@@ -3894,7 +3901,7 @@ function renderWeeklyHistory() {
     const concernBadge = concerns > 0 ? `<span class="cl-concern-badge">⚠ ${concerns} concern${concerns>1?'s':''}</span>` : '';
 
     // Pen cards inside week folder
-    const penCards = recs.map(rec => {
+    const penCards = _sortByPen(recs, 'Pen').map(rec => {
       const hasConcerns = rec.Status === 'CONCERNS';
       const concernList = (rec.Concerns||'').split(',').filter(Boolean);
       const badge = hasConcerns
@@ -5124,7 +5131,7 @@ function renderSlActive() {
   const today = new Date(); today.setHours(0,0,0,0);
   const active = allSlRecords.filter(rec => !slIsClosed(rec));
   if (!active.length) { container.innerHTML = '<div class="empty-state">No active litters.</div>'; return; }
-  container.innerHTML = active.map(rec => {
+  container.innerHTML = _sortByPen(active, 'Pen').map(rec => {
     const farrow = new Date(rec.FarrowDate||'');
     const days   = isNaN(farrow) ? '?' : Math.floor((today - farrow)/86400000);
     const daysLeft = typeof days === 'number' ? (35 - days) : '?';
@@ -5161,7 +5168,7 @@ function renderSlHistory() {
   const history = allSlRecords.filter(rec => slIsClosed(rec));
   if (!history.length) { container.innerHTML = '<div class="empty-state">No closed litters yet.</div>'; return; }
   const today = new Date(); today.setHours(0,0,0,0);
-  container.innerHTML = history.slice().reverse().map(rec => {
+  container.innerHTML = _sortByPen(history, 'Pen').map(rec => {
     const adminAct = isAdminEnabled()
       ? '<button class="btn-edit" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">Edit</button> <button class="btn-delete" onclick="slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
       : '';
