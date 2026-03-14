@@ -1040,20 +1040,16 @@ function migrateAllSheetHeaders() {
     // Identify orphan columns (exist in sheet but not in correct spec)
     const orphanHeaders = currentHdr.filter(h => h && !headers.includes(h));
     orphanHeaders.forEach(h => {
-      log.push('  → Orphan column "' + h + '" moved to far right (after blank separator)');
+      log.push('  → Orphan "' + h + '" moved to far right (after blank separator)');
     });
 
-    // Build new data array: correct columns first, then blank separator, then orphans
-    const totalCols = headers.length + (orphanHeaders.length > 0 ? 1 + orphanHeaders.length : 0);
-
+    // Build remapped data rows: spec columns in order, then blank, then orphan columns
     const newData = dataRows.map(row => {
-      // Correct columns in spec order
       const specCells = headers.map(h => {
         const oldIdx = oldColIdx[h];
         return oldIdx !== undefined ? row[oldIdx] : '';
       });
       if (orphanHeaders.length === 0) return specCells;
-      // Blank separator + orphan data
       const orphanCells = orphanHeaders.map(h => {
         const oldIdx = oldColIdx[h];
         return oldIdx !== undefined ? row[oldIdx] : '';
@@ -1061,62 +1057,73 @@ function migrateAllSheetHeaders() {
       return [...specCells, '', ...orphanCells];
     });
 
-    // Build full header row: spec headers + blank + orphan headers
-    const fullHeaderRow = orphanHeaders.length > 0
-      ? [...headers, '— ORPHAN COLUMNS (not in spec) —', ...orphanHeaders]
-      : [...headers];
-
     // --- REBUILD THE SHEET ---
-    // 1. Ensure enough columns exist
-    const currentCols = sheet.getMaxColumns();
-    if (currentCols < totalCols) {
-      sheet.insertColumnsAfter(currentCols, totalCols - currentCols);
+
+    // Step 1: Resolve spec headers as a plain array
+    const specHeaders = headers.slice();
+    const totalCols   = specHeaders.length + (orphanHeaders.length > 0 ? 1 + orphanHeaders.length : 0);
+
+    // Step 2: Ensure the grid has enough columns
+    const gridCols = sheet.getMaxColumns();
+    if (gridCols < totalCols) {
+      sheet.insertColumnsAfter(gridCols, totalCols - gridCols);
     }
 
-    // 2. Clear everything
-    sheet.clearContents();
+    // Step 3: Clear ALL content across the entire used range
+    const fullClearCols = Math.max(sheet.getMaxColumns(), totalCols);
+    sheet.getRange(1, 1, Math.max(lastRow, 1), fullClearCols).clearContent();
 
-    // 3. Write header row (spec + optional orphan section)
-    sheet.getRange(1, 1, 1, fullHeaderRow.length).setValues([fullHeaderRow]);
+    // Step 4: Write spec header row
+    sheet.getRange(1, 1, 1, specHeaders.length).setValues([specHeaders]);
 
-    // 4. Write data rows
+    // Step 5: Write data rows aligned to spec
     if (newData.length > 0) {
+      // newData rows are already totalCols wide
       sheet.getRange(2, 1, newData.length, totalCols).setValues(newData);
     }
 
-    // 5. Clear any columns beyond what we wrote
-    if (currentCols > totalCols) {
-      sheet.getRange(1, totalCols + 1, Math.max(lastRow, 1), currentCols - totalCols).clearContent();
+    // Step 6: Write orphan separator + orphan headers
+    if (orphanHeaders.length > 0) {
+      sheet.getRange(1, specHeaders.length + 1).setValue('— ORPHAN (not in spec) —');
+      orphanHeaders.forEach((h, i) => {
+        sheet.getRange(1, specHeaders.length + 2 + i).setValue(h);
+      });
     }
 
-    // 6. Format spec header row in sheet colour
-    sheet.getRange(1, 1, 1, headers.length)
+    // Step 7: Physically delete columns beyond what we wrote (removes old stray columns)
+    const usedGridCols = sheet.getMaxColumns();
+    if (usedGridCols > totalCols) {
+      sheet.deleteColumns(totalCols + 1, usedGridCols - totalCols);
+    }
+
+    // Step 8: Format spec header row in sheet colour
+    sheet.getRange(1, 1, 1, specHeaders.length)
       .setFontWeight('bold').setBackground(bg).setFontColor(fg);
 
-    // 7. Format orphan header separator + orphan headers in grey (visually distinct)
+    // Step 9: Format orphan section header in grey
     if (orphanHeaders.length > 0) {
-      sheet.getRange(1, headers.length + 1, 1, 1 + orphanHeaders.length)
+      sheet.getRange(1, specHeaders.length + 1, 1, 1 + orphanHeaders.length)
         .setFontWeight('bold').setBackground('#b0bec5').setFontColor('#000000');
     }
 
     sheet.setFrozenRows(1);
 
-    // 8. Re-apply plain-text format to time columns
+    // Step 10: Re-apply plain-text format to time columns
     const timeColsMap = name === CL_SHEET ? CL_TIME_COLS
                       : name === SL_SHEET ? SL_TIME_COLS
                       : [];
     if (timeColsMap.length > 0 && newData.length > 0) {
       timeColsMap.forEach(colName => {
-        const col = headers.indexOf(colName) + 1;
+        const col = specHeaders.indexOf(colName) + 1;
         if (col > 0) {
           sheet.getRange(2, col, newData.length, 1).setNumberFormat('@');
         }
       });
     }
 
-    log.push('  ✓ Rebuilt — ' + newData.length + ' rows · '
-      + headers.length + ' spec cols'
-      + (orphanHeaders.length > 0 ? ' + ' + orphanHeaders.length + ' orphan cols preserved at right' : ''));
+    log.push('  ✓ Rebuilt — ' + newData.length + ' data rows · '
+      + specHeaders.length + ' spec cols'
+      + (orphanHeaders.length > 0 ? ' · ' + orphanHeaders.length + ' orphan col(s) at right' : ''));
   });
 
   const report = '=== MIGRATION REPORT ===\n\n' + log.join('\n');
