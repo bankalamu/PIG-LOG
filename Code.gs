@@ -966,24 +966,25 @@ function saveSetting(key, value) {
 //
 //  HOW TO RUN:
 //    1. Open Apps Script editor (Extensions → Apps Script)
-//    2. Select "migrateAllSheetHeaders" from the function dropdown
-//    3. Click ▶ Run
-//    4. Check the Execution Log for a summary of changes made
+//    2. Paste this entire Code.gs (replace existing)
+//    3. Select "migrateAllSheetHeaders" from the function dropdown
+//    4. Click ▶ Run — grant permissions if prompted
+//    5. A popup shows a full report of every change made per sheet
 //
-//  What it does:
-//    • Reads the CURRENT header row of each sheet
-//    • Compares it to the CORRECT header list defined in this file
-//    • Inserts blank columns wherever a header is missing (preserving all existing data)
-//    • Removes or flags any unrecognised columns (logged — not deleted automatically)
-//    • Rewrites the header row with correct names and formatting
-//    • Safe to run multiple times — skips sheets that are already correct
+//  Strategy — REBUILD each sheet:
+//    1. Read the full sheet (headers + all data rows)
+//    2. Map every column by its CURRENT header name
+//    3. Write a brand-new sheet in CORRECT column order:
+//         - Columns that exist → their data moves to the right slot
+//         - Columns that are new/missing → blank cells
+//    4. Reformat header row with correct colours
+//    Safe to run multiple times — sheets already correct are skipped.
 // ============================================================
 
 function migrateAllSheetHeaders() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
   const log = [];
 
-  // Each entry: { name, headers, bg, fg }
   const sheets = [
     { name: SHEET_NAME,  headers: HEADERS,       bg: '#c9a84c', fg: '#000000' },
     { name: CL_SHEET,    headers: CL_HEADERS,    bg: '#2d6a2d', fg: '#ffffff' },
@@ -999,112 +1000,128 @@ function migrateAllSheetHeaders() {
       return;
     }
 
-    const lastCol    = sheet.getLastColumn();
-    const lastRow    = sheet.getLastRow();
-    const currentHdr = lastCol > 0
-      ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim())
-      : [];
+    const lastCol = sheet.getLastColumn();
+    const lastRow = sheet.getLastRow();
 
-    // Check if already correct
-    const alreadyOk = headers.length === currentHdr.length &&
-      headers.every((h, i) => h === currentHdr[i]);
+    // Nothing in the sheet yet — just write headers
+    if (lastRow === 0) {
+      sheet.appendRow(headers);
+      sheet.getRange(1, 1, 1, headers.length)
+        .setFontWeight('bold').setBackground(bg).setFontColor(fg);
+      log.push('CREATED headers — ' + name);
+      return;
+    }
+
+    // Read current headers
+    const currentHdr = sheet.getRange(1, 1, 1, lastCol)
+      .getValues()[0].map(v => String(v).trim());
+
+    // Check if already perfectly correct
+    const alreadyOk = headers.length === currentHdr.length
+      && headers.every((h, i) => h === currentHdr[i]);
     if (alreadyOk) {
       log.push('OK (no changes) — ' + name);
       return;
     }
 
-    log.push('Migrating: ' + name);
-    log.push('  Current cols: ' + currentHdr.length + ' | Expected cols: ' + headers.length);
+    log.push('Rebuilding: ' + name);
+    log.push('  Current cols (' + currentHdr.length + '): ' + currentHdr.join(', '));
+    log.push('  Correct cols (' + headers.length + '): ' + headers.join(', '));
 
-    // Build a map of existing column positions: header name → 1-based col index
-    const existingPos = {};
-    currentHdr.forEach((h, i) => { if (h) existingPos[h] = i + 1; });
+    // Build map: existing header name → 0-based column index in currentHdr
+    const oldColIdx = {};
+    currentHdr.forEach((h, i) => { if (h) oldColIdx[h] = i; });
 
-    // Work left-to-right through the CORRECT header list.
-    // For each correct header, ensure it exists at exactly the right column position.
-    // We rebuild by inserting missing columns in the right spots.
-    let offset = 0; // tracks columns we've inserted so far (shifts subsequent positions)
+    // Read all data rows (skip header)
+    const dataRows = lastRow > 1
+      ? sheet.getRange(2, 1, lastRow - 1, lastCol).getValues()
+      : [];
 
-    headers.forEach((correctHeader, targetIdx) => {
-      const targetCol = targetIdx + 1; // 1-based desired column
-      const existsAt  = existingPos[correctHeader]; // 1-based current position (before offset)
-
-      if (existsAt !== undefined) {
-        // Column exists — check if it's already in the right place
-        const existsAtAdjusted = existsAt + offset;
-        if (existsAtAdjusted !== targetCol) {
-          // It's in the wrong column — move it by inserting a blank column at targetCol
-          // and copying data across, then deleting the original
-          // (simpler: we only insert missing ones and rely on reorder below)
-        }
-        // Already accounted for — nothing to insert
-      } else {
-        // Column is MISSING — insert a blank column at targetCol
-        sheet.insertColumnBefore(targetCol + offset);
-        // Initialise header cell immediately so it's recognised in subsequent iterations
-        sheet.getRange(1, targetCol + offset).setValue(correctHeader);
-        // Update existingPos for all headers that shifted right
-        Object.keys(existingPos).forEach(k => {
-          if (existingPos[k] >= targetCol) existingPos[k]++;
-        });
-        existingPos[correctHeader] = targetCol;
-        offset++;
-        log.push('  + Inserted column "' + correctHeader + '" at position ' + targetCol);
-      }
+    // Identify orphan columns (exist in sheet but not in correct spec)
+    const orphanHeaders = currentHdr.filter(h => h && !headers.includes(h));
+    orphanHeaders.forEach(h => {
+      log.push('  → Orphan column "' + h + '" moved to far right (after blank separator)');
     });
 
-    // Re-read the header row after insertions
-    const newLastCol  = sheet.getLastColumn();
-    const updatedHdrs = sheet.getRange(1, 1, 1, newLastCol).getValues()[0].map(v => String(v).trim());
+    // Build new data array: correct columns first, then blank separator, then orphans
+    const totalCols = headers.length + (orphanHeaders.length > 0 ? 1 + orphanHeaders.length : 0);
 
-    // Log any unrecognised columns (don't auto-delete — admin should review)
-    updatedHdrs.forEach((h, i) => {
-      if (h && !headers.includes(h)) {
-        log.push('  ? Unrecognised column "' + h + '" at position ' + (i+1) + ' — review manually');
-      }
+    const newData = dataRows.map(row => {
+      // Correct columns in spec order
+      const specCells = headers.map(h => {
+        const oldIdx = oldColIdx[h];
+        return oldIdx !== undefined ? row[oldIdx] : '';
+      });
+      if (orphanHeaders.length === 0) return specCells;
+      // Blank separator + orphan data
+      const orphanCells = orphanHeaders.map(h => {
+        const oldIdx = oldColIdx[h];
+        return oldIdx !== undefined ? row[oldIdx] : '';
+      });
+      return [...specCells, '', ...orphanCells];
     });
 
-    // Rewrite the header row with correct names for the known columns
-    headers.forEach((correctHeader, idx) => {
-      const col = updatedHdrs.indexOf(correctHeader) + 1;
-      if (col > 0) sheet.getRange(1, col).setValue(correctHeader);
-    });
+    // Build full header row: spec headers + blank + orphan headers
+    const fullHeaderRow = orphanHeaders.length > 0
+      ? [...headers, '— ORPHAN COLUMNS (not in spec) —', ...orphanHeaders]
+      : [...headers];
 
-    // Reformat the header row
-    const finalColCount = sheet.getLastColumn();
-    sheet.getRange(1, 1, 1, finalColCount)
-      .setFontWeight('bold')
-      .setBackground(bg)
-      .setFontColor(fg);
+    // --- REBUILD THE SHEET ---
+    // 1. Ensure enough columns exist
+    const currentCols = sheet.getMaxColumns();
+    if (currentCols < totalCols) {
+      sheet.insertColumnsAfter(currentCols, totalCols - currentCols);
+    }
 
-    // Re-apply plain-text format to SL time columns
-    if (name === SL_SHEET) {
-      SL_TIME_COLS.forEach(colName => {
+    // 2. Clear everything
+    sheet.clearContents();
+
+    // 3. Write header row (spec + optional orphan section)
+    sheet.getRange(1, 1, 1, fullHeaderRow.length).setValues([fullHeaderRow]);
+
+    // 4. Write data rows
+    if (newData.length > 0) {
+      sheet.getRange(2, 1, newData.length, totalCols).setValues(newData);
+    }
+
+    // 5. Clear any columns beyond what we wrote
+    if (currentCols > totalCols) {
+      sheet.getRange(1, totalCols + 1, Math.max(lastRow, 1), currentCols - totalCols).clearContent();
+    }
+
+    // 6. Format spec header row in sheet colour
+    sheet.getRange(1, 1, 1, headers.length)
+      .setFontWeight('bold').setBackground(bg).setFontColor(fg);
+
+    // 7. Format orphan header separator + orphan headers in grey (visually distinct)
+    if (orphanHeaders.length > 0) {
+      sheet.getRange(1, headers.length + 1, 1, 1 + orphanHeaders.length)
+        .setFontWeight('bold').setBackground('#b0bec5').setFontColor('#000000');
+    }
+
+    sheet.setFrozenRows(1);
+
+    // 8. Re-apply plain-text format to time columns
+    const timeColsMap = name === CL_SHEET ? CL_TIME_COLS
+                      : name === SL_SHEET ? SL_TIME_COLS
+                      : [];
+    if (timeColsMap.length > 0 && newData.length > 0) {
+      timeColsMap.forEach(colName => {
         const col = headers.indexOf(colName) + 1;
-        if (col > 0 && lastRow > 1) {
-          sheet.getRange(2, col, Math.max(lastRow - 1, 1), 1).setNumberFormat('@');
-        }
-      });
-    }
-    // Re-apply plain-text format to CL time columns
-    if (name === CL_SHEET) {
-      CL_TIME_COLS.forEach(colName => {
-        const col = CL_HEADERS.indexOf(colName) + 1;
-        if (col > 0 && lastRow > 1) {
-          sheet.getRange(2, col, Math.max(lastRow - 1, 1), 1).setNumberFormat('@');
+        if (col > 0) {
+          sheet.getRange(2, col, newData.length, 1).setNumberFormat('@');
         }
       });
     }
 
-    log.push('  Done: ' + name);
+    log.push('  ✓ Rebuilt — ' + newData.length + ' rows · '
+      + headers.length + ' spec cols'
+      + (orphanHeaders.length > 0 ? ' + ' + orphanHeaders.length + ' orphan cols preserved at right' : ''));
   });
 
-  // Print full log to execution console
-  Logger.log('\n=== HEADER MIGRATION REPORT ===\n' + log.join('\n'));
-  SpreadsheetApp.getUi().alert(
-    'Migration Complete',
-    log.join('\n'),
-    SpreadsheetApp.getUi().ButtonSet.OK
-  );
+  const report = '=== MIGRATION REPORT ===\n\n' + log.join('\n');
+  Logger.log(report);
+  SpreadsheetApp.getUi().alert('Migration Complete', report, SpreadsheetApp.getUi().ButtonSet.OK);
 }
+
 
