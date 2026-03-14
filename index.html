@@ -2625,9 +2625,11 @@ async function deleteRecord(dbId) {
 let toastTimer;
 // Sort records by pen number ascending (all pens are numeric)
 function _sortByPen(arr, penField) {
-  return arr.slice().sort((a, b) =>
-    (parseFloat(a[penField]) || 0) - (parseFloat(b[penField]) || 0)
-  );
+  return arr.slice().sort((a, b) => {
+    const pa = parseInt(String(a[penField]||'0').trim(), 10) || 0;
+    const pb = parseInt(String(b[penField]||'0').trim(), 10) || 0;
+    return pa - pb;
+  });
 }
 
 function showToast(msg, isError = false) {
@@ -3070,9 +3072,9 @@ function renderChecklistHistory() {
     return;
   }
 
-  // Group by date, newest first
+  // Group by date, newest first — pre-sort by pen so groups are pen-ordered
   const byDate = {};
-  list.forEach(r => {
+  _sortByPen(list, 'Pen').forEach(r => {
     const d = r.Date || 'Unknown';
     if (!byDate[d]) byDate[d] = [];
     byDate[d].push(r);
@@ -3080,7 +3082,7 @@ function renderChecklistHistory() {
   const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
   container.innerHTML = sortedDates.map((date, di) => {
-    const recs      = _sortByPen(byDate[date], 'Pen');
+    const recs      = byDate[date];
     const isToday   = date === today;
     const isPast    = date < today;
     const concerns  = recs.filter(r => r.Status === 'CONCERNS').length;
@@ -3870,9 +3872,9 @@ function renderWeeklyHistory() {
   );
   if (!list.length) { container.innerHTML = '<div class="empty-state">No weekly records found.</div>'; return; }
 
-  // Group by WeekKey, newest first
+  // Group by WeekKey, newest first — pre-sort by pen so groups are pen-ordered
   const byWeek = {};
-  list.forEach(r => {
+  _sortByPen(list, 'Pen').forEach(r => {
     const wk  = r.WeekNum  || (r.Date ? getISOWeek(new Date(r.Date)).week  : '?');
     const yr  = r.WeekYear || (r.Date ? getISOWeek(new Date(r.Date)).year  : '');
     const key = r.WeekKey  || (yr + '-W' + String(wk).padStart(2,'0'));
@@ -3901,7 +3903,7 @@ function renderWeeklyHistory() {
     const concernBadge = concerns > 0 ? `<span class="cl-concern-badge">⚠ ${concerns} concern${concerns>1?'s':''}</span>` : '';
 
     // Pen cards inside week folder
-    const penCards = _sortByPen(recs, 'Pen').map(rec => {
+    const penCards = recs.map(rec => {
       const hasConcerns = rec.Status === 'CONCERNS';
       const concernList = (rec.Concerns||'').split(',').filter(Boolean);
       const badge = hasConcerns
