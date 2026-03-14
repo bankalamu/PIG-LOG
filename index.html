@@ -4672,7 +4672,9 @@ function _slColorHeaders(days) {
 
 function _slNowTime() {
   const d = new Date();
-  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  const date = d.getDate() + ' ' + d.toLocaleString('default', { month: 'short' }) + ' ' + d.getFullYear();
+  const time = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  return date + ' ' + time;
 }
 
 // Update the timestamp for one header: stamp/re-stamp when filled, clear when not
@@ -4703,7 +4705,11 @@ function _slRenderSecBadge(headerId, time) {
 
 // Restore timestamps from a saved record
 function _slRestoreSecTimestamps(rec) {
-  const valid = t => t && /^\d{1,2}:\d{2}$/.test(String(t).trim());
+  // Accept "DD Mon YYYY HH:MM" (new) or legacy "HH:MM" (old records)
+  const valid = t => {
+    const s = String(t||'').trim();
+    return /^\d{1,2} \w+ \d{4} \d{2}:\d{2}$/.test(s) || /^\d{1,2}:\d{2}$/.test(s);
+  };
   Object.keys(SL_HEADER_RANGES).forEach(id => {
     const key = 'SlTime_' + id;
     slSecTimes[id] = valid(rec[key]) ? String(rec[key]).trim() : '';
