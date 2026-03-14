@@ -328,15 +328,19 @@ function getClSheet() {
     sheet.setColumnWidth(6, 180);
     sheet.setColumnWidth(7, 300);
   }
-  // Always ensure time columns are formatted as plain text (@ format)
-  // so Sheets never auto-converts "07:45" into a time serial number
-  CL_TIME_COLS.forEach(colName => {
-    const colIdx = CL_HEADERS.indexOf(colName);
-    if (colIdx >= 0) {
-      const lastRow = Math.max(sheet.getLastRow(), 1);
-      sheet.getRange(2, colIdx + 1, Math.max(lastRow, 2), 1).setNumberFormat("@");
-    }
-  });
+  // Always ensure time columns are formatted as plain text
+  // Look up position from ACTUAL sheet header row, not from CL_HEADERS constant
+  const lastRow = Math.max(sheet.getLastRow(), 2);
+  const lastCol = sheet.getLastColumn();
+  if (lastCol > 0) {
+    const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    CL_TIME_COLS.forEach(colName => {
+      const colIdx = hdrs.findIndex(h => String(h).trim() === colName);
+      if (colIdx >= 0) {
+        sheet.getRange(2, colIdx + 1, lastRow, 1).setNumberFormat("@");
+      }
+    });
+  }
   return sheet;
 }
 
@@ -350,26 +354,27 @@ function getNextClId(sheet) {
 
 const CL_TIME_COLS = ["PhotoTime","Sec1Time","Sec2Time","Sec3Time"];
 
-function rowToClRecord(row) {
+function rowToClRecord(row, sheetHeaders) {
+  // sheetHeaders: the actual header row from the sheet (may differ in order from CL_HEADERS)
+  // Build a map from header name → value for this row
+  const valueByName = {};
+  sheetHeaders.forEach((h, i) => { if (h) valueByName[String(h).trim()] = row[i]; });
+
   const rec = {};
-  CL_HEADERS.forEach((h,i) => {
-    const v = row[i];
+  CL_HEADERS.forEach(h => {
+    const v = valueByName.hasOwnProperty(h) ? valueByName[h] : '';
     if (CL_TIME_COLS.includes(h)) {
-      // Time columns: only pass through valid HH:mm strings; discard everything else
       if (v instanceof Date) {
-        // Sheets parsed "07:45" as a time serial — reformat as HH:mm
-        // But if the date component is 1899-12-30 (epoch) it's a genuine time value
-        const formatted = Utilities.formatDate(v, Session.getScriptTimeZone(), "HH:mm");
-        rec[h] = formatted;
+        rec[h] = Utilities.formatDate(v, Session.getScriptTimeZone(), "HH:mm");
       } else if (typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v.trim())) {
-        rec[h] = v.trim(); // already a clean HH:mm string
+        rec[h] = v.trim();
       } else {
-        rec[h] = ''; // corrupt / unparseable — discard
+        rec[h] = '';
       }
     } else if (v instanceof Date) {
       rec[h] = Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd");
     } else {
-      rec[h] = v;
+      rec[h] = v !== undefined && v !== null ? v : '';
     }
   });
   return rec;
@@ -381,30 +386,45 @@ function clGetAll() {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const lastCol = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
-  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  const records = data.filter(r => r[0] !== "" && r[0] !== null && r[0] !== undefined)
-                      .map(row => rowToClRecord(row));
+  // Read actual sheet headers from row 1 — use these for name-based mapping
+  const lastCol     = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
+  const sheetHdrs   = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
+  const data        = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const records     = data
+    .filter(r => r[0] !== "" && r[0] !== null && r[0] !== undefined)
+    .map(row => rowToClRecord(row, sheetHdrs));
   return { success: true, records };
 }
 
+// Returns a map of { headerName -> 1-based column index } from the actual sheet header row
+function _clSheetColMap(sheet) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return {};
+  const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const map  = {};
+  hdrs.forEach((h, i) => { if (h) map[String(h).trim()] = i + 1; });
+  return map;
+}
+
 function clUpsert(data) {
-  const sheet = getClSheet();
+  const sheet  = getClSheet();
+  const colMap = _clSheetColMap(sheet);
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) {
-    const dateIdx = CL_HEADERS.indexOf("Date");
-    const penIdx  = CL_HEADERS.indexOf("Pen");
-    const allData = sheet.getRange(2, 1, lastRow - 1, CL_HEADERS.length).getValues();
-    for (let i = 0; i < allData.length; i++) {
-      const rowDate = allData[i][dateIdx] instanceof Date
-        ? Utilities.formatDate(allData[i][dateIdx], Session.getScriptTimeZone(), "yyyy-MM-dd")
-        : String(allData[i][dateIdx] || '').trim();
-      const rowPen = String(allData[i][penIdx] || '').trim().toLowerCase();
-      const inPen  = String(data.Pen || '').trim().toLowerCase();
-      if (rowDate === String(data.Date || '').trim() && rowPen === inPen) {
-        const existingId = allData[i][0];
-        clUpdate(existingId, data);
-        return { success: true, cl_id: existingId, updated: true };
+    const dateCol = colMap["Date"]; const penCol = colMap["Pen"];
+    if (dateCol && penCol) {
+      const nCols  = sheet.getLastColumn();
+      const allData = sheet.getRange(2, 1, lastRow - 1, nCols).getValues();
+      for (let i = 0; i < allData.length; i++) {
+        const rowDate = allData[i][dateCol-1] instanceof Date
+          ? Utilities.formatDate(allData[i][dateCol-1], Session.getScriptTimeZone(), "yyyy-MM-dd")
+          : String(allData[i][dateCol-1] || '').trim();
+        const rowPen = String(allData[i][penCol-1] || '').trim().toLowerCase();
+        if (rowDate === String(data.Date || '').trim() && rowPen === String(data.Pen || '').trim().toLowerCase()) {
+          const existingId = allData[i][0];
+          clUpdate(existingId, data);
+          return { success: true, cl_id: existingId, updated: true };
+        }
       }
     }
   }
@@ -412,48 +432,55 @@ function clUpsert(data) {
 }
 
 function clAdd(data) {
-  const sheet = getClSheet();
-  // Server-side duplicate guard: reject if same Date+Pen already exists
+  const sheet   = getClSheet();
+  const colMap  = _clSheetColMap(sheet);
   const lastRow = sheet.getLastRow();
+  // Server-side duplicate guard
   if (lastRow > 1) {
-    const dateIdx = CL_HEADERS.indexOf("Date");
-    const penIdx  = CL_HEADERS.indexOf("Pen");
-    const allData = sheet.getRange(2, 1, lastRow - 1, CL_HEADERS.length).getValues();
-    const inDate  = String(data.Date || '').trim();
-    const inPen   = String(data.Pen  || '').trim().toLowerCase();
-    const dup = allData.find(r => {
-      const rowDate = r[dateIdx] instanceof Date
-        ? Utilities.formatDate(r[dateIdx], Session.getScriptTimeZone(), "yyyy-MM-dd")
-        : String(r[dateIdx] || '').trim();
-      return rowDate === inDate && String(r[penIdx] || '').trim().toLowerCase() === inPen;
-    });
-    if (dup) return { success: false, error: `Pen ${data.Pen} already has a record for ${data.Date}. Use update instead.` };
+    const dateCol = colMap["Date"]; const penCol = colMap["Pen"];
+    if (dateCol && penCol) {
+      const nCols  = sheet.getLastColumn();
+      const allData = sheet.getRange(2, 1, lastRow - 1, nCols).getValues();
+      const inDate  = String(data.Date || '').trim();
+      const inPen   = String(data.Pen  || '').trim().toLowerCase();
+      const dup = allData.find(r => {
+        const rowDate = r[dateCol-1] instanceof Date
+          ? Utilities.formatDate(r[dateCol-1], Session.getScriptTimeZone(), "yyyy-MM-dd")
+          : String(r[dateCol-1] || '').trim();
+        return rowDate === inDate && String(r[penCol-1] || '').trim().toLowerCase() === inPen;
+      });
+      if (dup) return { success: false, error: `Pen ${data.Pen} already has a record for ${data.Date}.` };
+    }
   }
   const newId = getNextClId(sheet);
-  const row = CL_HEADERS.map(h => {
-    if (h === "CL_ID") return newId;
-    const v = data[h] !== undefined ? data[h] : "";
-    // Force time columns to plain string so Sheets doesn't parse "07:45" as a time serial
-    return CL_TIME_COLS.includes(h) ? String(v) : v;
+  // Build row aligned to ACTUAL sheet column order
+  const nCols = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
+  const row   = new Array(nCols).fill('');
+  Object.entries(colMap).forEach(([h, col]) => {
+    if (h === "CL_ID") { row[col-1] = newId; return; }
+    const v = data[h] !== undefined ? data[h] : '';
+    row[col-1] = CL_TIME_COLS.includes(h) ? String(v) : v;
   });
+  if (colMap["CL_ID"]) row[colMap["CL_ID"]-1] = newId;
   sheet.appendRow(row);
   return { success: true, cl_id: newId };
 }
 
 function clUpdate(clId, data) {
-  const sheet = getClSheet();
+  const sheet   = getClSheet();
+  const colMap  = _clSheetColMap(sheet);
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records" };
-  const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat();
+  const ids = sheet.getRange(2, 1, lastRow-1, 1).getValues().flat();
   const rowIndex = ids.findIndex(id => Number(id) === Number(clId));
   if (rowIndex === -1) return { success: false, error: "Record not found" };
   const sheetRow = rowIndex + 2;
-  CL_HEADERS.forEach((h, colIndex) => {
-    if (h === "CL_ID") return;
-    if (data[h] !== undefined) {
-      const v = CL_TIME_COLS.includes(h) ? String(data[h]) : data[h];
-      sheet.getRange(sheetRow, colIndex+1).setValue(v);
-    }
+  // Write each field to its ACTUAL column position in the sheet
+  Object.keys(data).forEach(h => {
+    const col = colMap[h];
+    if (!col || h === "CL_ID") return;
+    const v = CL_TIME_COLS.includes(h) ? String(data[h]) : data[h];
+    sheet.getRange(sheetRow, col).setValue(v);
   });
   return { success: true };
 }
@@ -545,14 +572,16 @@ function getSlSheet() {
     sheet.getRange(1,1,1,SL_HEADERS_GS.length).setFontWeight("bold").setBackground("#880e4f").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
   }
-  // Ensure time columns are stored as plain text (prevent serial conversion)
+  // Ensure time columns are stored as plain text — look up from actual sheet headers
   const lastRow = Math.max(sheet.getLastRow(), 2);
-  SL_TIME_COLS.forEach(colName => {
-    const colIdx = SL_HEADERS_GS.indexOf(colName);
-    if (colIdx >= 0) {
-      sheet.getRange(2, colIdx + 1, lastRow, 1).setNumberFormat("@");
-    }
-  });
+  const lastCol = sheet.getLastColumn();
+  if (lastCol > 0) {
+    const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    SL_TIME_COLS.forEach(colName => {
+      const colIdx = hdrs.findIndex(h => String(h).trim() === colName);
+      if (colIdx >= 0) sheet.getRange(2, colIdx + 1, lastRow, 1).setNumberFormat("@");
+    });
+  }
   return sheet;
 }
 
@@ -560,25 +589,27 @@ function slGetAll() {
   const sheet = getSlSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const data = sheet.getRange(2,1,lastRow-1,SL_HEADERS_GS.length).getValues();
-  const validTime = t => /^\d{1,2}:\d{2}$/.test(String(t).trim());
+  const lastCol    = sheet.getLastColumn();
+  const sheetHdrs  = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
+  const data       = sheet.getRange(2, 1, lastRow-1, lastCol).getValues();
+  const validTime  = t => /^\d{1,2}:\d{2}$/.test(String(t).trim());
   const records = data.filter(r => r[0] !== '').map(row => {
+    // Build value-by-name from actual sheet columns
+    const byName = {};
+    sheetHdrs.forEach((h, i) => { if (h) byName[h] = row[i]; });
     const rec = {};
-    SL_HEADERS_GS.forEach((h,i) => {
+    SL_HEADERS_GS.forEach(h => {
+      const v = byName.hasOwnProperty(h) ? byName[h] : '';
       if (SL_TIME_COLS.includes(h)) {
-        // Return HH:MM string; discard Date objects or invalid values
-        const v = row[i];
         if (v instanceof Date) {
-          const hh = String(v.getHours()).padStart(2,'0');
-          const mm = String(v.getMinutes()).padStart(2,'0');
-          rec[h] = hh + ':' + mm;
+          rec[h] = String(v.getHours()).padStart(2,'0') + ':' + String(v.getMinutes()).padStart(2,'0');
         } else {
           rec[h] = validTime(v) ? String(v).trim() : '';
         }
       } else {
-        rec[h] = row[i] instanceof Date
-          ? Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd")
-          : row[i];
+        rec[h] = v instanceof Date
+          ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")
+          : (v !== undefined && v !== null ? v : '');
       }
     });
     return rec;
@@ -588,17 +619,19 @@ function slGetAll() {
 
 // Upsert: update if SowId+FarrowDate exists, otherwise insert
 function slUpsert(data) {
-  const sheet = getSlSheet();
+  const sheet  = getSlSheet();
+  const colMap = _slSheetColMap(sheet);
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) {
-    const allData = sheet.getRange(2, 1, lastRow-1, SL_HEADERS_GS.length).getValues();
-    const sowIdIdx  = SL_HEADERS_GS.indexOf("SowId");
-    const farrowIdx = SL_HEADERS_GS.indexOf("FarrowDate");
+    const sowCol    = colMap["SowId"];
+    const farrowCol = colMap["FarrowDate"];
+    const nCols     = sheet.getLastColumn();
+    const allData   = sheet.getRange(2, 1, lastRow-1, nCols).getValues();
     for (let i = 0; i < allData.length; i++) {
-      const rowSow    = String(allData[i][sowIdIdx]||'').trim().toLowerCase();
-      const rowFarrow = allData[i][farrowIdx] instanceof Date
-        ? Utilities.formatDate(allData[i][farrowIdx], Session.getScriptTimeZone(), "yyyy-MM-dd")
-        : String(allData[i][farrowIdx]||'').trim();
+      const rowSow    = sowCol    ? String(allData[i][sowCol-1]   ||'').trim().toLowerCase() : '';
+      const rowFarrow = farrowCol ? (allData[i][farrowCol-1] instanceof Date
+        ? Utilities.formatDate(allData[i][farrowCol-1], Session.getScriptTimeZone(), "yyyy-MM-dd")
+        : String(allData[i][farrowCol-1]||'').trim()) : '';
       if (rowSow === String(data.SowId||'').trim().toLowerCase() && rowFarrow === String(data.FarrowDate||'').trim()) {
         const existingId = allData[i][0];
         slUpdate(existingId, data);
@@ -609,33 +642,47 @@ function slUpsert(data) {
   return slAdd(data);
 }
 
+// Returns { headerName -> 1-based col } from actual sheet header row
+function _slSheetColMap(sheet) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return {};
+  const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const map  = {};
+  hdrs.forEach((h, i) => { if (h) map[String(h).trim()] = i + 1; });
+  return map;
+}
+
 function slAdd(data) {
-  const sheet = getSlSheet();
-  const ids = sheet.getLastRow() <= 1 ? [] : sheet.getRange(2,1,sheet.getLastRow()-1,1).getValues().flat().filter(v=>v!=="");
-  const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
-  const row = SL_HEADERS_GS.map(h => {
-    if (h === "SL_ID") return newId;
-    const v = data[h] !== undefined ? data[h] : "";
-    return SL_TIME_COLS.includes(h) ? String(v) : v;
+  const sheet  = getSlSheet();
+  const colMap = _slSheetColMap(sheet);
+  const ids    = sheet.getLastRow() <= 1 ? [] : sheet.getRange(2,1,sheet.getLastRow()-1,1).getValues().flat().filter(v=>v!=="");
+  const newId  = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
+  const nCols  = Math.max(sheet.getLastColumn(), SL_HEADERS_GS.length);
+  const row    = new Array(nCols).fill('');
+  Object.entries(colMap).forEach(([h, col]) => {
+    if (h === "SL_ID") { row[col-1] = newId; return; }
+    const v = data[h] !== undefined ? data[h] : '';
+    row[col-1] = SL_TIME_COLS.includes(h) ? String(v) : v;
   });
+  if (colMap["SL_ID"]) row[colMap["SL_ID"]-1] = newId;
   sheet.appendRow(row);
   return { success: true, sl_id: newId };
 }
 
 function slUpdate(slId, data) {
-  const sheet = getSlSheet();
+  const sheet  = getSlSheet();
+  const colMap = _slSheetColMap(sheet);
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records" };
   const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat();
   const rowIndex = ids.findIndex(id => Number(id) === Number(slId));
   if (rowIndex === -1) return { success: false, error: "Record not found" };
   const sheetRow = rowIndex + 2;
-  SL_HEADERS_GS.forEach((h, colIndex) => {
-    if (h === "SL_ID") return;
-    if (data[h] !== undefined) {
-      const v = SL_TIME_COLS.includes(h) ? String(data[h]) : data[h];
-      sheet.getRange(sheetRow, colIndex+1).setValue(v);
-    }
+  Object.keys(data).forEach(h => {
+    const col = colMap[h];
+    if (!col || h === "SL_ID") return;
+    const v = SL_TIME_COLS.includes(h) ? String(data[h]) : data[h];
+    sheet.getRange(sheetRow, col).setValue(v);
   });
   return { success: true };
 }
@@ -678,43 +725,75 @@ function wkGetAll() {
   const sheet = getWkSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const data = sheet.getRange(2,1,lastRow-1,WK_HEADERS_GS.length).getValues();
-  return { success: true, records: data.filter(r=>r[0]!=='').map(row => {
+  const lastCol  = sheet.getLastColumn();
+  const sheetHdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
+  const data = sheet.getRange(2, 1, lastRow-1, lastCol).getValues();
+  return { success: true, records: data.filter(r => r[0] !== '').map(row => {
+    const byName = {};
+    sheetHdrs.forEach((h, i) => { if (h) byName[h] = row[i]; });
     const rec = {};
-    WK_HEADERS_GS.forEach((h,i) => { rec[h] = row[i] instanceof Date ? Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd") : row[i]; });
+    WK_HEADERS_GS.forEach(h => {
+      const v = byName.hasOwnProperty(h) ? byName[h] : '';
+      rec[h] = v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd") : (v !== undefined && v !== null ? v : '');
+    });
     return rec;
   })};
 }
 
+function _wkSheetColMap(sheet) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return {};
+  const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const map = {};
+  hdrs.forEach((h, i) => { if (h) map[String(h).trim()] = i + 1; });
+  return map;
+}
+
 function wkAdd(data) {
   const sheet   = getWkSheet();
+  const colMap  = _wkSheetColMap(sheet);
   const lastRow = sheet.getLastRow();
   // Server-side duplicate guard: same WeekKey + Pen
   if (lastRow > 1) {
-    const wkKeyIdx = WK_HEADERS_GS.indexOf("WeekKey");
-    const penIdx   = WK_HEADERS_GS.indexOf("Pen");
-    const allData  = sheet.getRange(2, 1, lastRow - 1, WK_HEADERS_GS.length).getValues();
-    const inKey    = String(data.WeekKey || '').trim();
-    const inPen    = String(data.Pen     || '').trim().toLowerCase();
-    const dup = allData.find(r =>
-      String(r[wkKeyIdx]||'').trim() === inKey &&
-      String(r[penIdx]  ||'').trim().toLowerCase() === inPen
-    );
-    if (dup) return { success: false, error: `Pen ${data.Pen} already has a record for ${data.WeekKey}. Use update instead.` };
+    const wkKeyCol = colMap["WeekKey"]; const penCol = colMap["Pen"];
+    if (wkKeyCol && penCol) {
+      const nCols   = sheet.getLastColumn();
+      const allData = sheet.getRange(2, 1, lastRow - 1, nCols).getValues();
+      const inKey   = String(data.WeekKey || '').trim();
+      const inPen   = String(data.Pen     || '').trim().toLowerCase();
+      const dup = allData.find(r =>
+        String(r[wkKeyCol-1]||'').trim() === inKey &&
+        String(r[penCol-1]  ||'').trim().toLowerCase() === inPen
+      );
+      if (dup) return { success: false, error: `Pen ${data.Pen} already has a record for ${data.WeekKey}.` };
+    }
   }
   const ids   = lastRow <= 1 ? [] : sheet.getRange(2,1,lastRow-1,1).getValues().flat().filter(v=>v!=="");
   const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
-  sheet.appendRow(WK_HEADERS_GS.map(h => h==="WK_ID" ? newId : (data[h]!==undefined ? data[h] : "")));
+  const nCols = Math.max(sheet.getLastColumn(), WK_HEADERS_GS.length);
+  const row   = new Array(nCols).fill('');
+  Object.entries(colMap).forEach(([h, col]) => {
+    row[col-1] = h === "WK_ID" ? newId : (data[h] !== undefined ? data[h] : '');
+  });
+  if (colMap["WK_ID"]) row[colMap["WK_ID"]-1] = newId;
+  sheet.appendRow(row);
   return { success: true, wk_id: newId };
 }
 
 function wkUpdate(wkId, data) {
-  const sheet = getWkSheet(); const lastRow = sheet.getLastRow();
+  const sheet  = getWkSheet();
+  const colMap = _wkSheetColMap(sheet);
+  const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records" };
   const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat();
   const rowIndex = ids.findIndex(id => Number(id) === Number(wkId));
   if (rowIndex === -1) return { success: false, error: "Not found" };
-  WK_HEADERS_GS.forEach((h,i) => { if(h!=="WK_ID" && data[h]!==undefined) sheet.getRange(rowIndex+2,i+1).setValue(data[h]); });
+  const sheetRow = rowIndex + 2;
+  Object.keys(data).forEach(h => {
+    const col = colMap[h];
+    if (!col || h === "WK_ID") return;
+    sheet.getRange(sheetRow, col).setValue(data[h]);
+  });
   return { success: true };
 }
 
