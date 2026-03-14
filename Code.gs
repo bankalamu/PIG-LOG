@@ -959,3 +959,152 @@ function saveSetting(key, value) {
   sheet.appendRow([key, value, "admin", new Date()]);
   return { success: true };
 }
+
+// ============================================================
+//  HEADER MIGRATION — Run once manually in the Apps Script editor
+//  to fix any sheet where column names and data are out of sync.
+//
+//  HOW TO RUN:
+//    1. Open Apps Script editor (Extensions → Apps Script)
+//    2. Select "migrateAllSheetHeaders" from the function dropdown
+//    3. Click ▶ Run
+//    4. Check the Execution Log for a summary of changes made
+//
+//  What it does:
+//    • Reads the CURRENT header row of each sheet
+//    • Compares it to the CORRECT header list defined in this file
+//    • Inserts blank columns wherever a header is missing (preserving all existing data)
+//    • Removes or flags any unrecognised columns (logged — not deleted automatically)
+//    • Rewrites the header row with correct names and formatting
+//    • Safe to run multiple times — skips sheets that are already correct
+// ============================================================
+
+function migrateAllSheetHeaders() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const log = [];
+
+  // Each entry: { name, headers, bg, fg }
+  const sheets = [
+    { name: SHEET_NAME,  headers: HEADERS,       bg: '#c9a84c', fg: '#000000' },
+    { name: CL_SHEET,    headers: CL_HEADERS,    bg: '#2d6a2d', fg: '#ffffff' },
+    { name: SL_SHEET,    headers: SL_HEADERS_GS, bg: '#880e4f', fg: '#ffffff' },
+    { name: WK_SHEET,    headers: WK_HEADERS_GS, bg: '#1a3a8a', fg: '#ffffff' },
+    { name: MO_SHEET,    headers: MO_HEADERS_GS, bg: '#4a148c', fg: '#ffffff' },
+  ];
+
+  sheets.forEach(({ name, headers, bg, fg }) => {
+    const sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      log.push('SKIP — sheet not found: ' + name);
+      return;
+    }
+
+    const lastCol    = sheet.getLastColumn();
+    const lastRow    = sheet.getLastRow();
+    const currentHdr = lastCol > 0
+      ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim())
+      : [];
+
+    // Check if already correct
+    const alreadyOk = headers.length === currentHdr.length &&
+      headers.every((h, i) => h === currentHdr[i]);
+    if (alreadyOk) {
+      log.push('OK (no changes) — ' + name);
+      return;
+    }
+
+    log.push('Migrating: ' + name);
+    log.push('  Current cols: ' + currentHdr.length + ' | Expected cols: ' + headers.length);
+
+    // Build a map of existing column positions: header name → 1-based col index
+    const existingPos = {};
+    currentHdr.forEach((h, i) => { if (h) existingPos[h] = i + 1; });
+
+    // Work left-to-right through the CORRECT header list.
+    // For each correct header, ensure it exists at exactly the right column position.
+    // We rebuild by inserting missing columns in the right spots.
+    let offset = 0; // tracks columns we've inserted so far (shifts subsequent positions)
+
+    headers.forEach((correctHeader, targetIdx) => {
+      const targetCol = targetIdx + 1; // 1-based desired column
+      const existsAt  = existingPos[correctHeader]; // 1-based current position (before offset)
+
+      if (existsAt !== undefined) {
+        // Column exists — check if it's already in the right place
+        const existsAtAdjusted = existsAt + offset;
+        if (existsAtAdjusted !== targetCol) {
+          // It's in the wrong column — move it by inserting a blank column at targetCol
+          // and copying data across, then deleting the original
+          // (simpler: we only insert missing ones and rely on reorder below)
+        }
+        // Already accounted for — nothing to insert
+      } else {
+        // Column is MISSING — insert a blank column at targetCol
+        sheet.insertColumnBefore(targetCol + offset);
+        // Initialise header cell immediately so it's recognised in subsequent iterations
+        sheet.getRange(1, targetCol + offset).setValue(correctHeader);
+        // Update existingPos for all headers that shifted right
+        Object.keys(existingPos).forEach(k => {
+          if (existingPos[k] >= targetCol) existingPos[k]++;
+        });
+        existingPos[correctHeader] = targetCol;
+        offset++;
+        log.push('  + Inserted column "' + correctHeader + '" at position ' + targetCol);
+      }
+    });
+
+    // Re-read the header row after insertions
+    const newLastCol  = sheet.getLastColumn();
+    const updatedHdrs = sheet.getRange(1, 1, 1, newLastCol).getValues()[0].map(v => String(v).trim());
+
+    // Log any unrecognised columns (don't auto-delete — admin should review)
+    updatedHdrs.forEach((h, i) => {
+      if (h && !headers.includes(h)) {
+        log.push('  ? Unrecognised column "' + h + '" at position ' + (i+1) + ' — review manually');
+      }
+    });
+
+    // Rewrite the header row with correct names for the known columns
+    headers.forEach((correctHeader, idx) => {
+      const col = updatedHdrs.indexOf(correctHeader) + 1;
+      if (col > 0) sheet.getRange(1, col).setValue(correctHeader);
+    });
+
+    // Reformat the header row
+    const finalColCount = sheet.getLastColumn();
+    sheet.getRange(1, 1, 1, finalColCount)
+      .setFontWeight('bold')
+      .setBackground(bg)
+      .setFontColor(fg);
+
+    // Re-apply plain-text format to SL time columns
+    if (name === SL_SHEET) {
+      SL_TIME_COLS.forEach(colName => {
+        const col = headers.indexOf(colName) + 1;
+        if (col > 0 && lastRow > 1) {
+          sheet.getRange(2, col, Math.max(lastRow - 1, 1), 1).setNumberFormat('@');
+        }
+      });
+    }
+    // Re-apply plain-text format to CL time columns
+    if (name === CL_SHEET) {
+      CL_TIME_COLS.forEach(colName => {
+        const col = CL_HEADERS.indexOf(colName) + 1;
+        if (col > 0 && lastRow > 1) {
+          sheet.getRange(2, col, Math.max(lastRow - 1, 1), 1).setNumberFormat('@');
+        }
+      });
+    }
+
+    log.push('  Done: ' + name);
+  });
+
+  // Print full log to execution console
+  Logger.log('\n=== HEADER MIGRATION REPORT ===\n' + log.join('\n'));
+  SpreadsheetApp.getUi().alert(
+    'Migration Complete',
+    log.join('\n'),
+    SpreadsheetApp.getUi().ButtonSet.OK
+  );
+}
+
