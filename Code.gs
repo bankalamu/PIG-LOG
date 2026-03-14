@@ -521,11 +521,20 @@ const SL_HEADERS_GS = ["SL_ID","SowId","FarrowDate","Pen","Notes",
   "sl_foster","sl_total_piglets","sl_mortality",
   "ByLitter","ByNursing","BySowTreat","ByMilestones",
   "ByD01","ByD23","ByD57","ByD710","ByD14","ByD2128",
+  "SlTime_shdr_litter","SlTime_shdr_sowtreat",
+  "SlTime_mhdr_d01","SlTime_mhdr_d23","SlTime_mhdr_d57",
+  "SlTime_mhdr_d710","SlTime_mhdr_d14","SlTime_mhdr_d2128",
   "sl_born_alive","sl_stillborn","sl_mummified","sl_total_birth_wt",
   "sl_lightest","sl_heaviest","sl_nursing","sl_weaklings",
   "sl_lightest_today","sl_heaviest_today","sl_castrated",
   "sl_wt_d14","sl_alive_d14","sl_num_weaned","sl_date_weaned","sl_wean_wt",
   ...SL_TASK_COLS];
+
+const SL_TIME_COLS = [
+  "SlTime_shdr_litter","SlTime_shdr_sowtreat",
+  "SlTime_mhdr_d01","SlTime_mhdr_d23","SlTime_mhdr_d57",
+  "SlTime_mhdr_d710","SlTime_mhdr_d14","SlTime_mhdr_d2128"
+];
 
 function getSlSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -536,6 +545,14 @@ function getSlSheet() {
     sheet.getRange(1,1,1,SL_HEADERS_GS.length).setFontWeight("bold").setBackground("#880e4f").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
   }
+  // Ensure time columns are stored as plain text (prevent serial conversion)
+  const lastRow = Math.max(sheet.getLastRow(), 2);
+  SL_TIME_COLS.forEach(colName => {
+    const colIdx = SL_HEADERS_GS.indexOf(colName);
+    if (colIdx >= 0) {
+      sheet.getRange(2, colIdx + 1, lastRow, 1).setNumberFormat("@");
+    }
+  });
   return sheet;
 }
 
@@ -544,12 +561,25 @@ function slGetAll() {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
   const data = sheet.getRange(2,1,lastRow-1,SL_HEADERS_GS.length).getValues();
+  const validTime = t => /^\d{1,2}:\d{2}$/.test(String(t).trim());
   const records = data.filter(r => r[0] !== '').map(row => {
     const rec = {};
     SL_HEADERS_GS.forEach((h,i) => {
-      rec[h] = row[i] instanceof Date
-        ? Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd")
-        : row[i];
+      if (SL_TIME_COLS.includes(h)) {
+        // Return HH:MM string; discard Date objects or invalid values
+        const v = row[i];
+        if (v instanceof Date) {
+          const hh = String(v.getHours()).padStart(2,'0');
+          const mm = String(v.getMinutes()).padStart(2,'0');
+          rec[h] = hh + ':' + mm;
+        } else {
+          rec[h] = validTime(v) ? String(v).trim() : '';
+        }
+      } else {
+        rec[h] = row[i] instanceof Date
+          ? Utilities.formatDate(row[i], Session.getScriptTimeZone(), "yyyy-MM-dd")
+          : row[i];
+      }
     });
     return rec;
   });
@@ -583,7 +613,11 @@ function slAdd(data) {
   const sheet = getSlSheet();
   const ids = sheet.getLastRow() <= 1 ? [] : sheet.getRange(2,1,sheet.getLastRow()-1,1).getValues().flat().filter(v=>v!=="");
   const newId = ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
-  const row = SL_HEADERS_GS.map(h => h === "SL_ID" ? newId : (data[h] !== undefined ? data[h] : ""));
+  const row = SL_HEADERS_GS.map(h => {
+    if (h === "SL_ID") return newId;
+    const v = data[h] !== undefined ? data[h] : "";
+    return SL_TIME_COLS.includes(h) ? String(v) : v;
+  });
   sheet.appendRow(row);
   return { success: true, sl_id: newId };
 }
@@ -598,7 +632,10 @@ function slUpdate(slId, data) {
   const sheetRow = rowIndex + 2;
   SL_HEADERS_GS.forEach((h, colIndex) => {
     if (h === "SL_ID") return;
-    if (data[h] !== undefined) sheet.getRange(sheetRow, colIndex+1).setValue(data[h]);
+    if (data[h] !== undefined) {
+      const v = SL_TIME_COLS.includes(h) ? String(data[h]) : data[h];
+      sheet.getRange(sheetRow, colIndex+1).setValue(v);
+    }
   });
   return { success: true };
 }
