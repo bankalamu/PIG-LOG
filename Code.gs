@@ -1131,4 +1131,66 @@ function migrateAllSheetHeaders() {
   SpreadsheetApp.getUi().alert('Migration Complete', report, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
+// ============================================================
+//  DIAGNOSE — Run this FIRST to see what each sheet looks like
+//  WITHOUT making any changes. Check the Execution Log output.
+//  This confirms the new Code.gs is active before you migrate.
+// ============================================================
+function diagnoseSheetHeaders() {
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  const log = [];
+
+  const sheets = [
+    { name: SHEET_NAME,  headers: HEADERS       },
+    { name: CL_SHEET,    headers: CL_HEADERS    },
+    { name: SL_SHEET,    headers: SL_HEADERS_GS },
+    { name: WK_SHEET,    headers: WK_HEADERS_GS },
+    { name: MO_SHEET,    headers: MO_HEADERS_GS },
+  ];
+
+  sheets.forEach(({ name, headers }) => {
+    const sheet = ss.getSheetByName(name);
+    if (!sheet) { log.push('MISSING: ' + name); return; }
+
+    const lastCol    = sheet.getLastColumn();
+    const currentHdr = lastCol > 0
+      ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim())
+      : [];
+
+    const specLen  = headers.length;
+    const sheetLen = currentHdr.length;
+    const match    = specLen === sheetLen && headers.every((h, i) => h === currentHdr[i]);
+
+    log.push('');
+    log.push('Sheet: ' + name);
+    log.push('  Spec columns  : ' + specLen);
+    log.push('  Sheet columns : ' + sheetLen);
+    log.push('  Status        : ' + (match ? '✓ CORRECT' : '✗ NEEDS MIGRATION'));
+
+    if (!match) {
+      // Show first mismatch
+      const maxLen = Math.max(specLen, sheetLen);
+      for (let i = 0; i < maxLen; i++) {
+        const s = headers[i]     || '(missing)';
+        const c = currentHdr[i]  || '(missing)';
+        if (s !== c) {
+          log.push('  First mismatch at col ' + (i+1) + ': spec="' + s + '" sheet="' + c + '"');
+          break;
+        }
+      }
+      // List orphan columns
+      const orphans = currentHdr.filter(h => h && !headers.includes(h));
+      if (orphans.length) log.push('  Orphan cols   : ' + orphans.join(', '));
+      // List missing columns
+      const missing = headers.filter(h => !currentHdr.includes(h));
+      if (missing.length) log.push('  Missing cols  : ' + missing.slice(0, 10).join(', ') + (missing.length > 10 ? '...' : ''));
+    }
+  });
+
+  const report = '=== DIAGNOSE REPORT ===\n' + log.join('\n');
+  Logger.log(report);
+  SpreadsheetApp.getUi().alert('Diagnose Result', report, SpreadsheetApp.getUi().ButtonSet.OK);
+}
+
+
 
