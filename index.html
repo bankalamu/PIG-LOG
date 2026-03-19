@@ -2750,6 +2750,7 @@ function initChecklist() {
   const dateEl = document.getElementById('clDate');
   if (dateEl) dateEl.value = today;
   _clShowSetup();
+  clUpdateOfflineBanner();
   // Load max pen from settings (async, non-blocking)
   apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
     if (r && r.success && r.value) {
@@ -2868,12 +2869,14 @@ async function clStartRecord() {
   if (existing) {
     // Always load into edit mode — never allow a second record for same date+pen
     clEditId = existing.CL_ID;
+    _clClearAllFields();   // start fresh then populate from existing record
     _populateClForm(existing);
     document.getElementById('clExistingBanner').style.display = 'block';
     document.getElementById('clExistingBanner').textContent   = `✏️ Pen ${pen} already has a record for ${date} — editing existing record.`;
     document.getElementById('btnSaveChecklist').textContent   = 'UPDATE CHECKLIST';
   } else {
     clEditId = null;
+    _clClearAllFields();   // always start completely blank for new records
     document.getElementById('clExistingBanner').style.display = 'none';
     document.getElementById('btnSaveChecklist').textContent   = 'SAVE CHECKLIST';
   }
@@ -2894,7 +2897,26 @@ async function clStartRecord() {
   clUpdateDayTotal();
   clUpdateOfflineBanner();
   // Restore any offline draft for this date+pen
-  if (!existing) clLoadDraft();
+  if (!existing) await clLoadDraft();
+}
+
+// Clear all form fields and state WITHOUT resetting the date/pen setup panel
+function _clClearAllFields() {
+  CL_KEYS.forEach(k => {
+    clState[k] = null;
+    document.querySelectorAll(`#clBody .check-item[data-key="${k}"] .toggle-btn`)
+      .forEach(b => b.classList.remove('selected'));
+  });
+  const fields = ['clCheckedBy','clNotes','cl_nursing','cl_weaklings','cl_lightest_today','cl_heaviest_today'];
+  fields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  clToggleLactating(false);
+  clSecTimes = { sec1: '', sec2: '', sec3: '' };
+  ['clSec1Badge','clSec2Badge','clSec3Badge'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; el.textContent = ''; }
+  });
+  [1,2,3].forEach(s => clPhotoClear(s));
+  _clCheckSectionComplete();
 }
 
 function clIsLocked(dateStr) {
@@ -3024,7 +3046,7 @@ function resetChecklist() {
   allChecklists = [];
   // Clear all 3 section photos and draft
   [1,2,3].forEach(s => clPhotoClear(s));
-  clClearDraft();
+  clClearDraft(); // async but fire-and-forget is fine here
   clUpdateOfflineBanner();
   _clShowSetup();
 }
@@ -3141,7 +3163,8 @@ async function saveChecklist() {
     if(b) { b.textContent = '✅ Saved — you can keep updating this record.'; b.style.display='block'; }
     document.getElementById('clLockedSub').textContent = '(saved)';
     clUpdateDayTotal();
-    clClearDraft(); // clear offline draft on successful save
+    clUpdateOfflineBanner();
+    await clClearDraft(); // clear offline draft on successful save
     // Upload all 3 section photos non-blocking
     clUploadPhotos(clEditId);
   } else {
@@ -3406,6 +3429,8 @@ function clPhotoSelected(input, sec) {
     const now     = _clNowTime();
     const nowFull = _clNowDate() + ' ' + now;
     clPhotos[sec] = { data: dataUrl.split(',')[1], mime, time: nowFull };
+    // Persist photo to IndexedDB immediately (survives offline)
+    _clSavePhotoToIDB(sec, dataUrl.split(',')[1], mime, nowFull);
     // Update preview
     const img   = document.getElementById('clPhotoImg'     + sec);
     const prev  = document.getElementById('clPhotoPreview' + sec);
@@ -3427,6 +3452,7 @@ function clPhotoSelected(input, sec) {
 
 function clPhotoClear(sec) {
   clPhotos[sec] = null;
+  _clDeletePhotoFromIDB(sec); // remove from IndexedDB too
   const input = document.getElementById('clPhotoInput'  + sec);
   const img   = document.getElementById('clPhotoImg'    + sec);
   const prev  = document.getElementById('clPhotoPreview'+ sec);
@@ -3482,64 +3508,131 @@ async function clUploadPhotos(clId) {
 }
 
 // ── Offline Draft System ──────────────────────────────────────
-const CL_DRAFT_KEY = 'piglog_cl_draft';
+// localStorage  → form state (small, text)
+// IndexedDB     → photo base64 data (large binary)
+const CL_DRAFT_KEY       = 'piglog_cl_draft';
+const CL_IDB_NAME        = 'PigLogOffline';
+const CL_IDB_STORE       = 'photos';
+const CL_IDB_VERSION     = 1;
 
 function _clNowDate() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
-function clSaveDraft() {
+// Open (or create) the IndexedDB
+function _clOpenIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(CL_IDB_NAME, CL_IDB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(CL_IDB_STORE)) {
+        db.createObjectStore(CL_IDB_STORE, { keyPath: 'key' });
+      }
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+// Save a photo to IndexedDB — key = "cl_draft_photo_{sec}"
+async function _clSavePhotoToIDB(sec, data, mime, time) {
+  try {
+    const db    = await _clOpenIDB();
+    const tx    = db.transaction(CL_IDB_STORE, 'readwrite');
+    const store = tx.objectStore(CL_IDB_STORE);
+    store.put({ key: `cl_draft_photo_${sec}`, data, mime, time, savedAt: new Date().toISOString() });
+    return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+  } catch(e) { /* IndexedDB unavailable — degrade gracefully */ }
+}
+
+// Load a photo from IndexedDB
+async function _clLoadPhotoFromIDB(sec) {
+  try {
+    const db    = await _clOpenIDB();
+    const tx    = db.transaction(CL_IDB_STORE, 'readonly');
+    const store = tx.objectStore(CL_IDB_STORE);
+    return new Promise((res, rej) => {
+      const req = store.get(`cl_draft_photo_${sec}`);
+      req.onsuccess = e => res(e.target.result || null);
+      req.onerror   = () => res(null);
+    });
+  } catch(e) { return null; }
+}
+
+// Delete a photo from IndexedDB
+async function _clDeletePhotoFromIDB(sec) {
+  try {
+    const db    = await _clOpenIDB();
+    const tx    = db.transaction(CL_IDB_STORE, 'readwrite');
+    tx.objectStore(CL_IDB_STORE).delete(`cl_draft_photo_${sec}`);
+  } catch(e) {}
+}
+
+// Clear all draft photos from IndexedDB
+async function _clClearAllPhotosFromIDB() {
+  for (const sec of [1,2,3]) await _clDeletePhotoFromIDB(sec);
+}
+
+// Save form state to localStorage + photos to IndexedDB
+async function clSaveDraft() {
   try {
     const date      = document.getElementById('clDate')?.value || '';
     const pen       = document.getElementById('clPen')?.value  || '';
+    if (!date || !pen) return; // don't save draft without date+pen
     const checkedBy = document.getElementById('clCheckedBy')?.value || '';
     const notes     = document.getElementById('clNotes')?.value || '';
     const pigCount  = document.getElementById('clPigCount')?.value  || '';
     const draft = {
       date, pen, checkedBy, notes, pigCount,
-      clState: { ...clState },
-      secTimes: { ...clSecTimes },
-      editId: clEditId || null,
+      clState:   { ...clState },
+      secTimes:  { ...clSecTimes },
+      editId:    clEditId || null,
       lactating: document.getElementById('clLactatingBox')?.dataset?.checked || 'false',
       nursing:   document.getElementById('cl_nursing')?.value || '',
       weaklings: document.getElementById('cl_weaklings')?.value || '',
       lightest:  document.getElementById('cl_lightest_today')?.value || '',
       heaviest:  document.getElementById('cl_heaviest_today')?.value || '',
-      // Store photo timestamps and mime (not base64 — too large for localStorage)
       photoMeta: {
-        1: clPhotos[1] ? { time: clPhotos[1].time, mime: clPhotos[1].mime, hasData: true } : null,
-        2: clPhotos[2] ? { time: clPhotos[2].time, mime: clPhotos[2].mime, hasData: true } : null,
-        3: clPhotos[3] ? { time: clPhotos[3].time, mime: clPhotos[3].mime, hasData: true } : null,
+        1: clPhotos[1] ? { time: clPhotos[1].time, mime: clPhotos[1].mime } : null,
+        2: clPhotos[2] ? { time: clPhotos[2].time, mime: clPhotos[2].mime } : null,
+        3: clPhotos[3] ? { time: clPhotos[3].time, mime: clPhotos[3].mime } : null,
       },
+      hasPendingPhotos: [1,2,3].some(s => clPhotos[s]?.data),
       savedAt: new Date().toISOString()
     };
     localStorage.setItem(CL_DRAFT_KEY, JSON.stringify(draft));
-  } catch(e) { /* localStorage unavailable */ }
+    // Save photo data to IndexedDB
+    for (const sec of [1,2,3]) {
+      const p = clPhotos[sec];
+      if (p?.data) {
+        await _clSavePhotoToIDB(sec, p.data, p.mime, p.time);
+      }
+    }
+  } catch(e) { /* storage unavailable */ }
 }
 
-function clLoadDraft() {
+async function clLoadDraft() {
   try {
     const raw = localStorage.getItem(CL_DRAFT_KEY);
-    if (!raw) return;
+    if (!raw) return false;
     const draft = JSON.parse(raw);
-    // Only restore if date+pen match current setup
     const curDate = document.getElementById('clDate')?.value || '';
     const curPen  = document.getElementById('clPen')?.value  || '';
-    if (!draft.date || !draft.pen) return;
-    if (draft.date !== curDate || String(draft.pen) !== String(curPen)) return;
+    if (!draft.date || !draft.pen) return false;
+    if (draft.date !== curDate || String(draft.pen) !== String(curPen)) return false;
 
-    // Restore fields
+    // Restore text fields
     if (draft.checkedBy) { const el = document.getElementById('clCheckedBy'); if (el) el.value = draft.checkedBy; }
     if (draft.notes)     { const el = document.getElementById('clNotes');     if (el) el.value = draft.notes; }
     if (draft.pigCount)  { const el = document.getElementById('clPigCount');  if (el) el.value = draft.pigCount; clCurrentPigCount = parseInt(draft.pigCount,10)||0; }
 
-    // Restore check state
+    // Restore check state with correct timestamps
     if (draft.clState) {
       Object.entries(draft.clState).forEach(([k, v]) => {
         clState[k] = v;
         if (v) {
-          const cls = v === 'ok' ? '.toggle-ok' : '.toggle-bad';
+          const cls  = v === 'ok' ? '.toggle-ok' : '.toggle-bad';
           const item = document.querySelector(`#clBody .check-item[data-key="${k}"]`);
           if (item) {
             item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
@@ -3550,37 +3643,69 @@ function clLoadDraft() {
     }
     if (draft.secTimes) {
       clSecTimes = { ...clSecTimes, ...draft.secTimes };
-      _clRenderSecBadge('clSec1Badge', clSecTimes.sec1);
-      _clRenderSecBadge('clSec2Badge', clSecTimes.sec2);
-      _clRenderSecBadge('clSec3Badge', clSecTimes.sec3);
     }
     if (draft.lactating === 'true') clToggleLactating(true);
     if (draft.nursing)   { const el = document.getElementById('cl_nursing');        if (el) el.value = draft.nursing; }
     if (draft.weaklings) { const el = document.getElementById('cl_weaklings');      if (el) el.value = draft.weaklings; }
     if (draft.lightest)  { const el = document.getElementById('cl_lightest_today'); if (el) el.value = draft.lightest; }
     if (draft.heaviest)  { const el = document.getElementById('cl_heaviest_today'); if (el) el.value = draft.heaviest; }
+    if (draft.editId)    clEditId = draft.editId;
 
-    // Restore photo meta (show timestamps without image — user must retake if not uploaded yet)
-    if (draft.photoMeta) {
-      [1, 2, 3].forEach(sec => {
-        const meta = draft.photoMeta[sec];
-        if (meta && meta.hasData) {
-          const stat  = document.getElementById('clPhotoStatus' + sec);
-          const reqEl = document.getElementById('clPhoto'       + sec + 'Req');
-          const tsEl  = document.getElementById('clPhotoTs'     + sec);
-          if (stat)  stat.textContent  = '📷 ' + meta.time + ' (retake to upload)';
-          if (reqEl) { reqEl.style.color = '#e07b00'; reqEl.textContent = '⚠ retake'; }
-          if (tsEl)  { tsEl.textContent = '📷 ' + meta.time; tsEl.style.display = 'block'; }
-        }
-      });
+    // Restore photos from IndexedDB
+    let photosRestored = 0;
+    for (const sec of [1,2,3]) {
+      const meta = draft.photoMeta?.[sec];
+      const idbRecord = await _clLoadPhotoFromIDB(sec);
+      if (idbRecord?.data) {
+        // Full photo data recovered from IndexedDB
+        clPhotos[sec] = { data: idbRecord.data, mime: idbRecord.mime, time: idbRecord.time };
+        const img    = document.getElementById('clPhotoImg'    + sec);
+        const prev   = document.getElementById('clPhotoPreview'+ sec);
+        const stat   = document.getElementById('clPhotoStatus' + sec);
+        const clrBtn = document.getElementById('clPhotoClear'  + sec);
+        const tsEl   = document.getElementById('clPhotoTs'     + sec);
+        const reqEl  = document.getElementById('clPhoto'       + sec + 'Req');
+        if (img)    img.src                  = `data:${idbRecord.mime};base64,${idbRecord.data}`;
+        if (prev)   prev.style.display       = 'block';
+        if (stat)   stat.textContent         = '📷 ' + idbRecord.time + ' (offline — pending upload)';
+        if (clrBtn) clrBtn.style.display     = 'inline-flex';
+        if (tsEl)   { tsEl.textContent = '📷 ' + idbRecord.time; tsEl.style.display = 'block'; }
+        if (reqEl)  { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓ (pending upload)'; }
+        photosRestored++;
+      } else if (meta) {
+        // Meta only — photo lost, needs retake
+        const stat  = document.getElementById('clPhotoStatus' + sec);
+        const reqEl = document.getElementById('clPhoto'       + sec + 'Req');
+        const tsEl  = document.getElementById('clPhotoTs'     + sec);
+        if (stat)  stat.textContent  = '📷 ' + meta.time + ' — ⚠ retake required';
+        if (reqEl) { reqEl.style.color = '#c0392b'; reqEl.textContent = '*retake needed'; }
+        if (tsEl)  { tsEl.textContent = '📷 ' + meta.time; tsEl.style.display = 'block'; }
+      }
     }
-    if (draft.editId) clEditId = draft.editId;
-    showToast('📋 Draft restored from offline save');
-  } catch(e) { /* ignore */ }
+
+    // Re-run section completion check to update badges
+    _clCheckSectionComplete();
+
+    const savedAgo = draft.savedAt ? _clTimeSince(draft.savedAt) : '';
+    showToast(`📋 Draft restored${savedAgo ? ' (saved ' + savedAgo + ' ago)' : ''} — ${photosRestored} photo(s) recovered`);
+    return true;
+  } catch(e) { return false; }
 }
 
-function clClearDraft() {
-  try { localStorage.removeItem(CL_DRAFT_KEY); } catch(e) {}
+function _clTimeSince(isoString) {
+  try {
+    const secs = Math.floor((Date.now() - new Date(isoString)) / 1000);
+    if (secs < 60)   return secs + 's';
+    if (secs < 3600) return Math.floor(secs/60) + 'm';
+    return Math.floor(secs/3600) + 'h';
+  } catch(e) { return ''; }
+}
+
+async function clClearDraft() {
+  try {
+    localStorage.removeItem(CL_DRAFT_KEY);
+    await _clClearAllPhotosFromIDB();
+  } catch(e) {}
 }
 
 // Queue photo upload for later (when back online)
@@ -3588,24 +3713,51 @@ const CL_PHOTO_QUEUE_KEY = 'piglog_cl_photo_queue';
 function clQueuePhotoUpload(clId, sec) {
   try {
     const q = JSON.parse(localStorage.getItem(CL_PHOTO_QUEUE_KEY) || '[]');
-    q.push({ clId, sec, time: new Date().toISOString() });
-    localStorage.setItem(CL_PHOTO_QUEUE_KEY, JSON.stringify(q));
+    // Avoid duplicate queue entries
+    if (!q.find(e => e.clId === clId && e.sec === sec)) {
+      q.push({ clId, sec, time: new Date().toISOString() });
+      localStorage.setItem(CL_PHOTO_QUEUE_KEY, JSON.stringify(q));
+    }
   } catch(e) {}
 }
 
 async function clSubmitOfflineDraft() {
-  showToast('Uploading queued photos…');
-  // Re-trigger save which will attempt upload
+  if (!navigator.onLine) {
+    showToast('Still offline — please wait for connection', true);
+    return;
+  }
+  showToast('🔄 Uploading saved draft…');
   await saveChecklist();
 }
 
-// Show/hide offline banner based on navigator.onLine
+// Show/hide offline banner; prompt upload when back online
 function clUpdateOfflineBanner() {
   const banner = document.getElementById('clOfflineBanner');
-  if (banner) banner.style.display = navigator.onLine ? 'none' : 'block';
+  if (!banner) return;
+  if (!navigator.onLine) {
+    banner.style.display = 'block';
+    banner.innerHTML = '📴 <strong>Offline</strong> — entries are saved locally and timestamped. They will upload when you reconnect.';
+  } else {
+    // Check if there is a pending draft to upload
+    try {
+      const raw = localStorage.getItem(CL_DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft.hasPendingPhotos || draft.savedAt) {
+          banner.style.display = 'block';
+          const ago = _clTimeSince(draft.savedAt);
+          banner.innerHTML = `✅ <strong>Back online</strong> — you have an unsaved draft (${ago} ago).
+            <button onclick="clSubmitOfflineDraft()" style="margin-left:10px;background:#2d6a2d;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:800;cursor:pointer">⬆ Upload & Save Now</button>
+            <button onclick="clClearDraft().then(()=>{clUpdateOfflineBanner()})" style="margin-left:6px;background:#999;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">Discard</button>`;
+          return;
+        }
+      }
+    } catch(e) {}
+    banner.style.display = 'none';
+  }
 }
-window.addEventListener('online',  clUpdateOfflineBanner);
-window.addEventListener('offline', clUpdateOfflineBanner);
+window.addEventListener('online',  () => { clUpdateOfflineBanner(); });
+window.addEventListener('offline', () => { clUpdateOfflineBanner(); });
 
 async function clHistoryPhotoSelected(input, clId, sec) {
   const file = input.files[0];
