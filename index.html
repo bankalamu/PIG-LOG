@@ -837,7 +837,7 @@
 
       <!-- SECTION 1: Morning -->
       <div class="check-section">
-        <div class="check-section-title">1️⃣ Morning Check — Before Feeding <span id="clSec1Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
+        <div class="check-section-title">1️⃣ Morning Check — Before Feeding <span id="clSec1Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span><span id="clSec1Status" style="margin-left:6px;font-size:11px;font-weight:700;border-radius:12px;padding:2px 8px;vertical-align:middle;background:#fff3e0;color:#e65100;border:1px solid #ff9800">📋 checks + photo needed</span></div>
         <div class="check-item" data-key="tail">
           <div class="check-item-text">
             <span class="check-item-label">Tail &amp; Hindquarters</span>
@@ -931,7 +931,7 @@
 
       <!-- SECTION 2: Feeding -->
       <div class="check-section">
-        <div class="check-section-title">2️⃣ Feeding Check — At Each Meal <span id="clSec2Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
+        <div class="check-section-title">2️⃣ Feeding Check — At Each Meal <span id="clSec2Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span><span id="clSec2Status" style="margin-left:6px;font-size:11px;font-weight:700;border-radius:12px;padding:2px 8px;vertical-align:middle;background:#fff3e0;color:#e65100;border:1px solid #ff9800">📋 checks + photo needed</span></div>
         <div class="check-item" data-key="appetite">
           <div class="check-item-text">
             <span class="check-item-label">Appetite</span>
@@ -1003,7 +1003,7 @@
 
       <!-- SECTION 3: Afternoon -->
       <div class="check-section">
-        <div class="check-section-title">3️⃣ Afternoon Check — End of Day <span id="clSec3Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
+        <div class="check-section-title">3️⃣ Afternoon Check — End of Day <span id="clSec3Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span><span id="clSec3Status" style="margin-left:6px;font-size:11px;font-weight:700;border-radius:12px;padding:2px 8px;vertical-align:middle;background:#fff3e0;color:#e65100;border:1px solid #ff9800">📋 checks + photo needed</span></div>
         <div class="check-item" data-key="pinch">
           <div class="check-item-text">
             <span class="check-item-label">Skin Pinch Test</span>
@@ -2945,13 +2945,15 @@ function _clClearAllFields() {
     if (el) { el.style.display = 'none'; el.textContent = ''; }
   });
   [1,2,3].forEach(s => clPhotoClear(s));
-  // Reset section save buttons
+  // Reset section save buttons and status banners
   [1,2,3].forEach(s => {
     clSecSaved[s] = false;
-    const btn   = document.getElementById('btnSaveSec' + s);
-    const badge = document.getElementById('clSec' + s + 'SavedBadge');
-    if (btn)   { btn.disabled = true; btn.style.background = '#aaa'; btn.style.cursor = 'not-allowed'; btn.textContent = '💾 Save ' + CL_SEC_LABELS[s] + ' Section'; }
-    if (badge) badge.style.display = 'none';
+    const btn      = document.getElementById('btnSaveSec'   + s);
+    const badge    = document.getElementById('clSec'        + s + 'SavedBadge');
+    const statusEl = document.getElementById('clSec'        + s + 'Status');
+    if (btn)      { btn.disabled = true; btn.style.background = '#aaa'; btn.style.cursor = 'not-allowed'; btn.textContent = '💾 Save ' + CL_SEC_LABELS[s] + ' Section'; }
+    if (badge)    badge.style.display = 'none';
+    if (statusEl) { statusEl.textContent = '📋 checks + photo needed'; statusEl.style.background = '#fff3e0'; statusEl.style.color = '#e65100'; statusEl.style.border = '1px solid #ff9800'; statusEl.style.display = 'inline'; }
   });
   _clCheckSectionComplete();
 }
@@ -3022,15 +3024,27 @@ function _populateClForm(rec) {
   }
   // Restore photo timestamps for existing records
   [1,2,3].forEach(sec => {
-    const url  = rec['PhotoUrl'  + sec];
-    const time = rec['PhotoTime' + sec];
-    const stat  = document.getElementById('clPhotoStatus' + sec);
-    const reqEl = document.getElementById('clPhoto'       + sec + 'Req');
-    const tsEl  = document.getElementById('clPhotoTs'     + sec);
+    const url      = rec['PhotoUrl'  + sec];
+    const time     = rec['PhotoTime' + sec];
+    const stat     = document.getElementById('clPhotoStatus' + sec);
+    const reqEl    = document.getElementById('clPhoto'       + sec + 'Req');
+    const tsEl     = document.getElementById('clPhotoTs'     + sec);
+    const statusEl = document.getElementById('clSec'         + sec + 'Status');
     if (url) {
       if (stat)  stat.textContent = '✅ ' + (time || 'Uploaded');
       if (reqEl) { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓'; }
       if (tsEl)  { tsEl.textContent = '📷 ' + (time || ''); tsEl.style.display = time ? 'block' : 'none'; }
+    }
+    // Mark section as saved if record has data for it
+    const secKeys = CL_SEC_KEYS_MAP[sec];
+    const secHasData = secKeys.some(k => rec[k] === 'ok' || rec[k] === 'bad');
+    if (secHasData && url) {
+      clSecSaved[sec] = true;
+      const btn   = document.getElementById('btnSaveSec'    + sec);
+      const badge = document.getElementById('clSec'         + sec + 'SavedBadge');
+      if (btn)      { btn.textContent = '✅ ' + CL_SEC_LABELS[sec] + ' Saved'; btn.style.background = '#2d6a2d'; btn.disabled = true; }
+      if (badge)    badge.style.display = 'inline-block';
+      if (statusEl) { statusEl.textContent = '✅ Saved'; statusEl.style.background = '#e8f5e8'; statusEl.style.color = '#2d6a2d'; statusEl.style.border = '1px solid #2d6a2d'; }
     }
   });
   CL_KEYS.forEach(k => {
@@ -3278,8 +3292,10 @@ async function saveSection(sec) {
   if (result && result.success) {
     if (result.cl_id) clEditId = result.cl_id;
     clSecSaved[sec] = true;
-    // Show saved badge, update button
+    // Show saved badge, update button, hide status banner
     if (badge) badge.style.display = 'inline-block';
+    const statusEl = document.getElementById('clSec' + sec + 'Status');
+    if (statusEl) { statusEl.textContent = '✅ Saved'; statusEl.style.background = '#e8f5e8'; statusEl.style.color = '#2d6a2d'; statusEl.style.border = '1px solid #2d6a2d'; }
     if (btn)   {
       btn.textContent   = '✅ ' + label + ' Saved';
       btn.style.background = '#2d6a2d';
@@ -4078,6 +4094,32 @@ function _clCheckSectionComplete() {
       } else {
         el.style.display   = 'none';
         el.textContent     = '';
+      }
+    }
+
+    // Update the status tracker banner in the section header
+    const statusEl = document.getElementById('clSec' + sec.num + 'Status');
+    if (statusEl) {
+      if (clSecSaved[sec.num]) {
+        // Already saved — hide status banner
+        statusEl.style.display = 'none';
+      } else if (ready) {
+        statusEl.textContent         = '✅ Ready to save';
+        statusEl.style.background    = '#e8f5e8';
+        statusEl.style.color         = '#2d6a2d';
+        statusEl.style.border        = '1px solid #2d6a2d';
+        statusEl.style.display       = 'inline';
+      } else {
+        // Build "what's remaining" message
+        const unanswered = sec.keys.filter(k => clState[k] === null || clState[k] === undefined).length;
+        const parts = [];
+        if (unanswered > 0) parts.push(unanswered + ' check' + (unanswered > 1 ? 's' : '') + ' remaining');
+        if (!hasPhoto)       parts.push('photo needed');
+        statusEl.textContent      = '📋 ' + (parts.length ? parts.join(' + ') : 'incomplete');
+        statusEl.style.background = '#fff3e0';
+        statusEl.style.color      = '#e65100';
+        statusEl.style.border     = '1px solid #ff9800';
+        statusEl.style.display    = 'inline';
       }
     }
 
