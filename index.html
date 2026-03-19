@@ -2763,6 +2763,11 @@ const CL_SEC1_KEYS = ['tail','eyes','stool','posture','skin','breathing'];
 const CL_SEC2_KEYS = ['appetite','water','feed','smell'];
 const CL_SEC3_KEYS = ['pinch','belly','limbs','injuries','temp'];
 
+// Section save tracking — must be declared before _clClearAllFields uses them
+const clSecSaved      = { 1: false, 2: false, 3: false };
+const CL_SEC_KEYS_MAP = { 1: CL_SEC1_KEYS, 2: CL_SEC2_KEYS, 3: CL_SEC3_KEYS };
+const CL_SEC_LABELS   = { 1: 'Morning', 2: 'Feeding', 3: 'Afternoon' };
+
 function _clNowTime() {
   const d = new Date();
   return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
@@ -3191,14 +3196,6 @@ async function saveChecklist() {
 }
 
 // Track which sections have been saved this session
-const clSecSaved = { 1: false, 2: false, 3: false };
-
-const CL_SEC_KEYS_MAP = {
-  1: CL_SEC1_KEYS,
-  2: CL_SEC2_KEYS,
-  3: CL_SEC3_KEYS
-};
-const CL_SEC_LABELS = { 1: 'Morning', 2: 'Feeding', 3: 'Afternoon' };
 
 async function saveSection(sec) {
   const btn   = document.getElementById('btnSaveSec' + sec);
