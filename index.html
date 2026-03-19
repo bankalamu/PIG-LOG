@@ -3233,11 +3233,26 @@ async function saveSection(sec) {
   const pigCount       = Number.isInteger(pigCountParsed) && pigCountParsed >= 1 ? pigCountParsed : clCurrentPigCount;
 
   const concerns = keys.filter(k => clState[k] === 'bad');
+
+  // Determine overall status:
+  // Only mark ALL OK when all 3 sections are saved with no concerns.
+  // Until then use PARTIAL to avoid false "All OK" display.
+  const allSecsSaved = clSecSaved[1] && clSecSaved[2] && clSecSaved[3];
+  // After this section saves, check if all will be saved
+  const willAllBeSaved = (sec === 1 ? true : clSecSaved[1])
+                      && (sec === 2 ? true : clSecSaved[2])
+                      && (sec === 3 ? true : clSecSaved[3]);
+  // Accumulate concerns across all saved sections
+  const allConcerns = CL_KEYS.filter(k => clState[k] === 'bad');
+  const overallStatus = allConcerns.length > 0 ? 'CONCERNS'
+                      : willAllBeSaved ? 'ALL OK'
+                      : 'PARTIAL';
+
   const data = {
     Date: date, Pen: pen, CheckedBy: checkedBy,
     PigCount: pigCount,
-    Status:   concerns.length > 0 ? 'CONCERNS' : 'ALL OK',
-    Concerns: concerns.join(',')
+    Status:   overallStatus,
+    Concerns: allConcerns.join(',')
   };
   // Section-specific time stamp
   const secKey = 'sec' + sec;
@@ -3360,11 +3375,14 @@ function renderChecklistHistory() {
     const isToday   = date === today;
     const isPast    = date < today;
     const concerns  = recs.filter(r => r.Status === 'CONCERNS').length;
+    const partials  = recs.filter(r => r.Status === 'PARTIAL').length;
     const totalPens = recs.length;
 
     // Day-level badges
     const concernBadge = concerns > 0
       ? `<span class="cl-concern-badge">⚠ ${concerns} concern${concerns>1?'s':''}</span>` : '';
+    const partialBadge = partials > 0
+      ? `<span style="background:#fff3e0;color:#e65100;border:1px solid #ff9800;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">⏳ ${partials} in progress</span>` : '';
     const todayBadge = isToday
       ? `<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,0.3);padding:2px 7px;border-radius:8px">TODAY</span>` : '';
     const countBadge = `<span class="cl-day-count">${totalPens} pen${totalPens>1?'s':''}</span>`;
@@ -3379,10 +3397,13 @@ function renderChecklistHistory() {
     // Pen cards inside the folder
     const penCards = recs.map(rec => {
       const hasConcerns = rec.Status === 'CONCERNS';
+      const isPartial   = rec.Status === 'PARTIAL';
       const concernList = (rec.Concerns||'').split(',').filter(Boolean);
       const badge = hasConcerns
         ? `<span class="cl-concern-badge">⚠ ${concernList.length} concern(s)</span>`
-        : `<span class="cl-ok-badge">✓ All OK</span>`;
+        : isPartial
+          ? `<span style="background:#fff3e0;color:#e65100;border:1px solid #ff9800;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">⏳ In Progress</span>`
+          : `<span class="cl-ok-badge">✓ All OK</span>`;
 
       // Edit: today editable by all; past records admin only
       const canEdit = isAdmin || !isPast;
@@ -3508,10 +3529,10 @@ function renderChecklistHistory() {
       <div class="cl-day-header ${isToday?'today':''}" onclick="clToggleDay('clDay_${di}')">
         <div>
           <div class="cl-day-title">${dateLabel}</div>
-          <div class="cl-day-meta">${totalPens} pen record${totalPens>1?'s':''} · ${dayPigTotal>0?'🐷 '+dayPigTotal+' pigs · ':''}${concerns>0?concerns+' concern(s)':'All OK'}</div>
+          <div class="cl-day-meta">${totalPens} pen record${totalPens>1?'s':''} · ${dayPigTotal>0?'🐷 '+dayPigTotal+' pigs · ':''}${concerns>0?concerns+' concern(s)':partials>0?partials+' in progress':'All OK'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
-          <div class="cl-day-badges">${todayBadge}${countBadge}${concernBadge}</div>
+          <div class="cl-day-badges">${todayBadge}${countBadge}${concernBadge}${partialBadge}</div>
           <span class="cl-day-chevron ${chevronOpen}" id="chev_clDay_${di}">▼</span>
         </div>
       </div>
