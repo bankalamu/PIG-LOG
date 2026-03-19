@@ -809,6 +809,12 @@
         ✅ Existing record loaded — saving will update it.
       </div>
 
+      <!-- Offline draft banner -->
+      <div id="clOfflineBanner" style="display:none;padding:9px 14px;background:#fff8e1;border:1.5px solid #f59e0b;border-radius:9px;font-size:12px;font-weight:700;color:#78350f;margin-bottom:10px">
+        📴 Offline — your entries are saved locally and will upload when reconnected.
+        <button onclick="clSubmitOfflineDraft()" style="margin-left:10px;background:#f59e0b;border:none;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:800;cursor:pointer;color:#000">Upload now</button>
+      </div>
+
       <!-- Checklist body — hidden until date+pen confirmed -->
       <div id="clBody" style="display:none">
         <div class="checklist-meta" style="grid-template-columns:1fr 1fr;gap:10px">
@@ -900,6 +906,21 @@
         </div>
       </div>
 
+      <!-- Section 1 Photo (required) -->
+      <div class="cl-section-photo" id="clPhoto1Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Morning Photo <span id="clPhoto1Req" style="color:#c0392b;font-weight:900">*required</span></span>
+          <label for="clPhotoInput1" style="display:inline-flex;align-items:center;gap:5px;background:#2d6a2d;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
+          <input type="file" id="clPhotoInput1" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="clPhotoSelected(this,1)">
+          <button id="clPhotoClear1" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear(1)">✕</button>
+          <span id="clPhotoStatus1" style="font-size:11px;color:#666"></span>
+        </div>
+        <div id="clPhotoPreview1" style="display:none;margin-top:8px;position:relative">
+          <img id="clPhotoImg1" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #2d6a2d;object-fit:cover;display:block" src="" alt="Morning photo">
+          <div id="clPhotoTs1" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+        </div>
+      </div>
+
       <!-- SECTION 2: Feeding -->
       <div class="check-section">
         <div class="check-section-title">2️⃣ Feeding Check — At Each Meal <span id="clSec2Badge" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
@@ -946,6 +967,21 @@
             <button class="toggle-btn toggle-ok" onclick="toggleCheck(this,'smell','ok')">✓</button>
             <button class="toggle-btn toggle-bad" onclick="toggleCheck(this,'smell','bad')">!</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Section 2 Photo (required) -->
+      <div class="cl-section-photo" id="clPhoto2Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Feeding Photo <span id="clPhoto2Req" style="color:#c0392b;font-weight:900">*required</span></span>
+          <label for="clPhotoInput2" style="display:inline-flex;align-items:center;gap:5px;background:#2d6a2d;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
+          <input type="file" id="clPhotoInput2" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="clPhotoSelected(this,2)">
+          <button id="clPhotoClear2" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear(2)">✕</button>
+          <span id="clPhotoStatus2" style="font-size:11px;color:#666"></span>
+        </div>
+        <div id="clPhotoPreview2" style="display:none;margin-top:8px;position:relative">
+          <img id="clPhotoImg2" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #2d6a2d;object-fit:cover;display:block" src="" alt="Feeding photo">
+          <div id="clPhotoTs2" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
         </div>
       </div>
 
@@ -1009,6 +1045,21 @@
         </div>
       </div>
 
+      <!-- Section 3 Photo (required) -->
+      <div class="cl-section-photo" id="clPhoto3Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Afternoon Photo <span id="clPhoto3Req" style="color:#c0392b;font-weight:900">*required</span></span>
+          <label for="clPhotoInput3" style="display:inline-flex;align-items:center;gap:5px;background:#2d6a2d;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
+          <input type="file" id="clPhotoInput3" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="clPhotoSelected(this,3)">
+          <button id="clPhotoClear3" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear(3)">✕</button>
+          <span id="clPhotoStatus3" style="font-size:11px;color:#666"></span>
+        </div>
+        <div id="clPhotoPreview3" style="display:none;margin-top:8px;position:relative">
+          <img id="clPhotoImg3" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #2d6a2d;object-fit:cover;display:block" src="" alt="Afternoon photo">
+          <div id="clPhotoTs3" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+        </div>
+      </div>
+
       <!-- Scours action box -->
       <div class="scours-box">
         <div class="scours-box-title">🚨 If Scours Detected — Immediate Actions</div>
@@ -1058,25 +1109,6 @@
       <div class="checklist-notes">
         <label>📝 Notes / Observations Today</label>
         <textarea id="clNotes" placeholder="Record anything unusual observed today…"></textarea>
-      </div>
-
-      <!-- Photo capture -->
-      <div style="margin-bottom:12px;padding:12px 14px;background:#f8f9fa;border:1.5px solid var(--border);border-radius:10px">
-        <div style="font-size:11px;font-weight:800;color:#333;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">📷 Pen Photo <span style="font-weight:400;font-size:10px;color:#666;text-transform:none">(optional)</span></div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <label for="clPhotoInput" style="display:inline-flex;align-items:center;gap:6px;background:#2d6a2d;color:#fff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none">
-            📷 Take / Choose Photo
-          </label>
-          <input type="file" id="clPhotoInput" accept="image/*" capture="environment"
-                 style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1"
-                 onchange="clPhotoSelected(this)">
-          <button id="clPhotoClearBtn" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear()">✕ Remove</button>
-          <span id="clPhotoStatus" style="font-size:11px;color:#666"></span>
-        </div>
-        <div id="clPhotoPreview" style="display:none;margin-top:10px;position:relative;display:none">
-          <img id="clPhotoPreviewImg" style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover;display:block" src="" alt="Pen photo preview">
-          <div id="clPhotoTimestamp" style="display:none;position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.62);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:0.03em"></div>
-        </div>
       </div>
 
       <!-- Reminder -->
@@ -2174,6 +2206,7 @@ async function loadRecords() {
       allRecords = data.records || [];
       updateCounts();
       prepSearchPage();
+      populatePigDropdowns();
       if (currentPage === "pageList") renderList();
     }
   } catch (e) {
@@ -2228,6 +2261,20 @@ function buildForm(containerId, prefix) {
       input = document.createElement("select");
       input.className = "form-select";
       AVAILABLE_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
+    } else if (col === "Boar" || col === "SOW") {
+      // Searchable select — shows PIG ID, stores DB_ID
+      const wrapper = document.createElement("div");
+      wrapper.style.cssText = "position:relative";
+      input = document.createElement("select");
+      input.className = "form-select";
+      input.innerHTML = `<option value="">— Select ${col} —</option>`;
+      input.setAttribute("data-pigfield", col);
+      input.addEventListener("change", () => { input.style.border = ""; input.style.background = ""; });
+      input.id = `${prefix}_${col.replace(/\s/g, "_")}`;
+      wrapper.appendChild(input);
+      div.appendChild(wrapper);
+      container.appendChild(div);
+      return; // skip generic input.id assignment — already done above
     } else if (col === "DOB" || col === "Dewormed") {
       input = document.createElement("input");
       input.type = "date";
@@ -2261,11 +2308,33 @@ function buildForm(containerId, prefix) {
   });
 }
 
+function populatePigDropdowns() {
+  // Fill all Boar/SOW selects with current allRecords (DB_ID → PIG ID)
+  document.querySelectorAll('select[data-pigfield]').forEach(sel => {
+    const field   = sel.getAttribute('data-pigfield');
+    const current = sel.value; // preserve current selection
+    sel.innerHTML = `<option value="">— Select ${field} —</option>`;
+    allRecords.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value       = String(r.DB_ID);
+      opt.textContent = String(r['PIG ID'] || '') + (r.Type ? ' (' + r.Type + ')' : '');
+      sel.appendChild(opt);
+    });
+    if (current) sel.value = current;
+  });
+}
+
+function getPigIdFromDbId(dbId) {
+  if (!dbId) return '';
+  const r = allRecords.find(r => String(r.DB_ID) === String(dbId));
+  return r ? String(r['PIG ID'] || '') : String(dbId);
+}
+
 function getFormValues(prefix) {
   const data = {};
   COLUMNS.forEach(col => {
     const el = document.getElementById(`${prefix}_${col.replace(/\s/g, "_")}`);
-    if (el) data[col] = el.value;
+    if (el) data[col] = el.value; // for Boar/SOW selects this is DB_ID
   });
   return data;
 }
@@ -2273,7 +2342,13 @@ function getFormValues(prefix) {
 function setFormValues(prefix, record) {
   COLUMNS.forEach(col => {
     const el = document.getElementById(`${prefix}_${col.replace(/\s/g, "_")}`);
-    if (el) el.value = record[col] !== undefined ? record[col] : "";
+    if (!el) return;
+    if ((col === 'Boar' || col === 'SOW') && el.tagName === 'SELECT') {
+      // record stores DB_ID; match by value
+      el.value = record[col] !== undefined ? String(record[col]) : '';
+    } else {
+      el.value = record[col] !== undefined ? record[col] : '';
+    }
   });
 }
 
@@ -2332,8 +2407,8 @@ function _validateTypeSex(prefix, type, sex) {
 async function saveNew() {
   const data  = getFormValues("new");
   const pigId = String(data["PIG ID"] || "").trim();
-  const boar  = String(data["Boar"]   || "").trim();
-  const sow   = String(data["SOW"]    || "").trim();
+  const boar  = String(data["Boar"]   || "").trim(); // now a DB_ID
+  const sow   = String(data["SOW"]    || "").trim(); // now a DB_ID
 
   // Highlight missing fields and block
   const missing = _highlightKeyFields("new", pigId, boar, sow);
@@ -2343,7 +2418,7 @@ async function saveNew() {
   const sexErr = _validateTypeSex("new", data["Type"], data["SEX"]);
   if (sexErr) { showToast(sexErr, true); return; }
 
-  // Client-side duplicate check — same PIG ID + Boar + SOW combo (blanks included)
+  // Client-side duplicate check — same PIG ID + Boar DB_ID + SOW DB_ID
   const clean = v => String(v||"").trim().toLowerCase();
   const dup = allRecords.find(r =>
     clean(r["PIG ID"]) === clean(pigId) &&
@@ -2355,7 +2430,9 @@ async function saveNew() {
       const el = document.getElementById(`new_${id}`);
       if (el) { el.style.border = "2px solid #c0392b"; el.style.background = "#fde8e8"; }
     });
-    showToast(`Duplicate — "${pigId}" / Boar "${boar}" / SOW "${sow}" already exists (DB_ID: ${dup.DB_ID})`, true);
+    const boarLabel = getPigIdFromDbId(boar);
+    const sowLabel  = getPigIdFromDbId(sow);
+    showToast(`Duplicate — "${pigId}" / Boar "${boarLabel}" / SOW "${sowLabel}" already exists (DB_ID: ${dup.DB_ID})`, true);
     return;
   }
 
@@ -2577,8 +2654,8 @@ function renderList() {
         </div>
       </div>
       <div class="record-fields">
-        ${rec.Boar     ? `<span><span class="field-label">Boar: </span><span style="${keyStyle}">${rec.Boar}</span></span>` : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No Boar</span>`}
-        ${rec.SOW      ? `<span><span class="field-label">Sow: </span><span style="${keyStyle}">${rec.SOW}</span></span>`  : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No SOW</span>`}
+        ${rec.Boar ? `<span><span class="field-label">Boar: </span><span style="${keyStyle}">${getPigIdFromDbId(rec.Boar)}</span></span>` : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No Boar</span>`}
+        ${rec.SOW  ? `<span><span class="field-label">Sow: </span><span style="${keyStyle}">${getPigIdFromDbId(rec.SOW)}</span></span>`  : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No SOW</span>`}
         ${rec.Type     ? `<span><span class="field-label">Type: </span>${rec.Type}</span>` : ""}
         ${rec.Stage    ? `<span><span class="field-label">Stage: </span>${rec.Stage}</span>` : ""}
         ${rec.DOB      ? `<span><span class="field-label">DOB: </span>${rec.DOB}</span>` : ""}
@@ -2815,6 +2892,9 @@ async function clStartRecord() {
   document.getElementById('clBody').style.display          = 'block';
   clLockForm(locked);
   clUpdateDayTotal();
+  clUpdateOfflineBanner();
+  // Restore any offline draft for this date+pen
+  if (!existing) clLoadDraft();
 }
 
 function clIsLocked(dateStr) {
@@ -2881,6 +2961,19 @@ function _populateClForm(rec) {
       const el = document.getElementById(id); if (el) el.value = rec[id] || '';
     });
   }
+  // Restore photo timestamps for existing records
+  [1,2,3].forEach(sec => {
+    const url  = rec['PhotoUrl'  + sec];
+    const time = rec['PhotoTime' + sec];
+    const stat  = document.getElementById('clPhotoStatus' + sec);
+    const reqEl = document.getElementById('clPhoto'       + sec + 'Req');
+    const tsEl  = document.getElementById('clPhotoTs'     + sec);
+    if (url) {
+      if (stat)  stat.textContent = '✅ ' + (time || 'Uploaded');
+      if (reqEl) { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓'; }
+      if (tsEl)  { tsEl.textContent = '📷 ' + (time || ''); tsEl.style.display = time ? 'block' : 'none'; }
+    }
+  });
   CL_KEYS.forEach(k => {
     clState[k] = rec[k] || null;
     const items = document.querySelectorAll('#clBody .check-item[data-key="' + k + '"] .toggle-btn');
@@ -2929,7 +3022,10 @@ function resetChecklist() {
   const totDisp = document.getElementById('clDayTotalNum');     if (totDisp) totDisp.textContent = '—';
   clEditId = null;
   allChecklists = [];
-  clPhotoClear();
+  // Clear all 3 section photos and draft
+  [1,2,3].forEach(s => clPhotoClear(s));
+  clClearDraft();
+  clUpdateOfflineBanner();
   _clShowSetup();
 }
 
@@ -2957,8 +3053,11 @@ async function saveChecklist() {
     showToast('Checked By is required before saving', true);
     return;
   }
-  if (clIsLocked(date) && !isAdminEnabled()) {
-    showToast('Past records are locked -- admin access required', true); return;
+  // Require all 3 section photos
+  if (!clAllPhotosPresent() && !clEditId) {
+    const missing = [1,2,3].filter(s => !clPhotos[s]).map(s => ['Morning','Feeding','Afternoon'][s-1]);
+    showToast('Photos required for: ' + missing.join(', '), true);
+    return;
   }
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
   // Re-read from DOM in case user changed it; fall back to clCurrentPigCount
@@ -3014,7 +3113,6 @@ async function saveChecklist() {
     if (result.cl_id) clEditId = result.cl_id;
     showToast('Checklist saved!');
     btn.textContent = 'UPDATE CHECKLIST';
-    // Update allChecklists in memory rather than clearing it
     const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clEditId));
     if (idx !== -1) {
       allChecklists[idx] = { ...allChecklists[idx], ...data, CL_ID: clEditId };
@@ -3025,10 +3123,13 @@ async function saveChecklist() {
     if(b) { b.textContent = '✅ Saved — you can keep updating this record.'; b.style.display='block'; }
     document.getElementById('clLockedSub').textContent = '(saved)';
     clUpdateDayTotal();
-    // Upload photo if one was selected (non-blocking)
-    if (clPhotoData) clUploadPhoto(clEditId);
+    clClearDraft(); // clear offline draft on successful save
+    // Upload all 3 section photos non-blocking
+    clUploadPhotos(clEditId);
   } else {
-    showToast(result?.error || 'Save failed', true);
+    // Save draft for offline retry
+    clSaveDraft();
+    showToast(result?.error || 'Save failed — draft saved locally', true);
     btn.textContent = clEditId ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST';
   }
 }
@@ -3140,31 +3241,46 @@ function renderChecklistHistory() {
       }).join('');
 
       const detailId = `clDetail_${rec.CL_ID}`;
-      const photoThumb = rec.PhotoUrl
+
+      // Build 3-section photo thumbnails
+      const secLabels = ['Morning','Feeding','Afternoon'];
+      const photoThumb = [1,2,3].some(s => rec['PhotoUrl'+s])
         ? `<div style="margin-top:10px">
-             <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">📷 Pen Photo</div>
-             <div style="position:relative;display:inline-block;max-width:100%">
-               <a href="${rec.PhotoUrl}" target="_blank" rel="noopener">
-                 <img src="https://drive.google.com/thumbnail?id=${rec.PhotoUrl.match(/\/d\/([^/]+)/)?.[1]||''}&sz=w400"
-                      style="max-width:100%;max-height:200px;border-radius:8px;border:1.5px solid var(--border);object-fit:cover;display:block"
-                      onerror="this.style.display='none'" alt="Pen photo">
-               </a>
-               ${rec.PhotoTime ? `<div style="position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.62);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:0.03em">📷 ${rec.PhotoTime}</div>` : ''}
+             <div style="font-size:11px;font-weight:800;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">📷 Section Photos</div>
+             <div style="display:flex;gap:8px;flex-wrap:wrap">
+             ${[1,2,3].map(s => {
+               const url  = rec['PhotoUrl'  + s];
+               const time = rec['PhotoTime' + s];
+               if (!url) return `<div style="flex:1;min-width:80px;background:#f0f0f0;border-radius:8px;padding:8px;font-size:10px;color:#999;text-align:center">${secLabels[s-1]}<br>No photo</div>`;
+               const fileId = url.match(/\/d\/([^/]+)/)?.[1] || '';
+               return `<div style="flex:1;min-width:80px;position:relative">
+                 <div style="font-size:10px;font-weight:700;color:#2d6a2d;margin-bottom:3px">${secLabels[s-1]}</div>
+                 <a href="${url}" target="_blank" rel="noopener">
+                   <img src="https://drive.google.com/thumbnail?id=${fileId}&sz=w300"
+                        style="width:100%;max-height:120px;border-radius:7px;border:1.5px solid #2d6a2d;object-fit:cover;display:block"
+                        onerror="this.style.display='none'" alt="${secLabels[s-1]} photo">
+                 </a>
+                 ${time ? `<div style="position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px">📷 ${time}</div>` : ''}
+               </div>`;
+             }).join('')}
              </div>
-             <div style="font-size:10px;color:#666;margin-top:4px"><a href="${rec.PhotoUrl}" target="_blank" rel="noopener" style="color:#2d6a2d">🔗 Open full photo</a></div>
            </div>`
         : '';
 
-      // Photo upload button — only for editable records (today or admin)
-      const canAddPhoto = canEdit;
-      const photoInputId = `clPhotoFile_${rec.CL_ID}`;
-      const photoBtn = canAddPhoto
-        ? `<label for="${photoInputId}" style="display:inline-flex;align-items:center;gap:5px;background:#f0f4f0;color:#2d6a2d;border:1.5px solid #2d6a2d;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none">
-             📷 ${rec.PhotoUrl ? 'Replace Photo' : 'Add Photo'}
-           </label>
-           <input type="file" id="${photoInputId}" accept="image/*" capture="environment"
-                  style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1"
-                  onchange="clHistoryPhotoSelected(this,'${rec.CL_ID}')">`
+      // Photo upload buttons per section for editable records
+      const photoBtn = canEdit
+        ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+           ${[1,2,3].map(s => {
+             const hasPhoto = !!rec['PhotoUrl'+s];
+             const inId = `clPhotoFile_${rec.CL_ID}_${s}`;
+             return `<label for="${inId}" style="display:inline-flex;align-items:center;gap:4px;background:#f0f4f0;color:#2d6a2d;border:1.5px solid #2d6a2d;padding:4px 8px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">
+               📷 ${hasPhoto ? 'Replace' : secLabels[s-1]}
+             </label>
+             <input type="file" id="${inId}" accept="image/*" capture="environment"
+                    style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1"
+                    onchange="clHistoryPhotoSelected(this,'${rec.CL_ID}',${s})">`;
+           }).join('')}
+           </div>`
         : '';
 
       return `<div class="cl-pen-card">
@@ -3174,7 +3290,7 @@ function renderChecklistHistory() {
             ${rec.PigCount ? `<span style="font-size:12px;font-weight:700;color:#2d6a2d;margin-left:6px">🐷 ${rec.PigCount}</span>` : ''}
             <span style="font-size:11px;color:#666;margin-left:8px">By: ${rec.CheckedBy||'—'}</span>
             ${lockNote}
-            ${rec.PhotoUrl ? '<span style="font-size:11px;color:#2d6a2d;margin-left:6px">📷</span>' : ''}
+            ${[1,2,3].some(s=>rec['PhotoUrl'+s]) ? '<span style="font-size:11px;color:#2d6a2d;margin-left:6px">📷</span>' : ''}
           </div>
           ${badge}
         </div>
@@ -3248,74 +3364,250 @@ function clToggleDetail(id, btn) {
   btn.textContent = isOpen ? '👁 View' : '🔼 Hide';
 }
 
-// ── Photo capture ────────────────────────────────────────────
-let clPhotoData   = null;  // base64 string (no prefix)
-let clPhotoMime   = null;  // e.g. 'image/jpeg'
+// ── Photo capture — 3 sections ───────────────────────────────
+// clPhotos[1|2|3] = { data: base64, mime: string, time: string } | null
+const clPhotos = { 1: null, 2: null, 3: null };
 
-function clPhotoSelected(input) {
+function _clPhotoFilename(sec, pen, date) {
+  // e.g. pen5_sec1_2026-03-18_09-47.jpg
+  const ts = (date || _clNowDate()) + '_' + _clNowTime().replace(':','-');
+  return `pen${pen||'X'}_sec${sec}_${ts}`;
+}
+
+function clPhotoSelected(input, sec) {
   const file = input.files[0];
   if (!file) return;
-  // Limit to 5 MB
   if (file.size > 5 * 1024 * 1024) {
-    showToast('Photo is too large (max 5 MB). Please use a smaller image.', true);
+    showToast('Photo too large (max 5 MB)', true);
     input.value = ''; return;
   }
-  clPhotoMime = file.type || 'image/jpeg';
+  const mime = file.type || 'image/jpeg';
   const reader = new FileReader();
   reader.onload = e => {
     const dataUrl = e.target.result;
-    clPhotoData   = dataUrl.split(',')[1]; // strip data:...;base64, prefix
-    // Show preview
-    const prev = document.getElementById('clPhotoPreview');
-    const img  = document.getElementById('clPhotoPreviewImg');
-    const stat = document.getElementById('clPhotoStatus');
-    const clrBtn = document.getElementById('clPhotoClearBtn');
+    const now     = _clNowTime();
+    const nowFull = _clNowDate() + ' ' + now;
+    clPhotos[sec] = { data: dataUrl.split(',')[1], mime, time: nowFull };
+    // Update preview
+    const img   = document.getElementById('clPhotoImg'     + sec);
+    const prev  = document.getElementById('clPhotoPreview' + sec);
+    const stat  = document.getElementById('clPhotoStatus'  + sec);
+    const clrBtn= document.getElementById('clPhotoClear'   + sec);
+    const tsEl  = document.getElementById('clPhotoTs'      + sec);
+    const reqEl = document.getElementById('clPhoto'        + sec + 'Req');
     if (img)   img.src = dataUrl;
-    if (prev)  { prev.style.display = 'block'; }
-    if (stat)  stat.textContent   = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
-    if (clrBtn) clrBtn.style.display = 'inline-flex';
-    // Stamp the time on the preview
-    const tsEl = document.getElementById('clPhotoTimestamp');
-    if (tsEl) { tsEl.textContent = '📷 ' + _clNowTime(); tsEl.style.display = 'block'; }
+    if (prev)  prev.style.display  = 'block';
+    if (stat)  stat.textContent    = '📷 ' + nowFull;
+    if (clrBtn)clrBtn.style.display= 'inline-flex';
+    if (tsEl)  { tsEl.textContent = '📷 ' + nowFull; tsEl.style.display = 'block'; }
+    if (reqEl) { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓'; }
+    clSaveDraft(); // auto-save draft offline
   };
   reader.readAsDataURL(file);
 }
 
-function clPhotoClear() {
-  clPhotoData = null; clPhotoMime = null;
-  const input  = document.getElementById('clPhotoInput');
-  const prev   = document.getElementById('clPhotoPreview');
-  const img    = document.getElementById('clPhotoPreviewImg');
-  const stat   = document.getElementById('clPhotoStatus');
-  const clrBtn = document.getElementById('clPhotoClearBtn');
-  if (input)  input.value   = '';
-  if (img)    img.src        = '';
-  if (prev)   prev.style.display  = 'none';
-  if (stat)   stat.textContent    = '';
-  const tsEl = document.getElementById('clPhotoTimestamp');
-  if (tsEl) { tsEl.textContent = ''; tsEl.style.display = 'none'; }
-  if (clrBtn) clrBtn.style.display = 'none';
+function clPhotoClear(sec) {
+  clPhotos[sec] = null;
+  const input = document.getElementById('clPhotoInput'  + sec);
+  const img   = document.getElementById('clPhotoImg'    + sec);
+  const prev  = document.getElementById('clPhotoPreview'+ sec);
+  const stat  = document.getElementById('clPhotoStatus' + sec);
+  const clrBtn= document.getElementById('clPhotoClear'  + sec);
+  const tsEl  = document.getElementById('clPhotoTs'     + sec);
+  const reqEl = document.getElementById('clPhoto'       + sec + 'Req');
+  if (input) input.value = '';
+  if (img)   img.src     = '';
+  if (prev)  prev.style.display   = 'none';
+  if (stat)  stat.textContent     = '';
+  if (clrBtn)clrBtn.style.display = 'none';
+  if (tsEl)  { tsEl.textContent = ''; tsEl.style.display = 'none'; }
+  if (reqEl) { reqEl.style.color = '#c0392b'; reqEl.textContent = '*required'; }
+  clSaveDraft();
 }
 
-async function clHistoryPhotoSelected(input, clId) {
+function clAllPhotosPresent() {
+  return clPhotos[1] && clPhotos[2] && clPhotos[3];
+}
+
+async function clUploadPhotos(clId) {
+  for (const sec of [1, 2, 3]) {
+    const p = clPhotos[sec];
+    if (!p || !p.data) continue;
+    const stat = document.getElementById('clPhotoStatus' + sec);
+    if (stat) stat.textContent = '⬆️ Uploading…';
+    try {
+      const result = await apiPost({
+        action: 'clSavePhoto',
+        clId, section: sec,
+        photoBase64: p.data,
+        mimeType:    p.mime || 'image/jpeg',
+        photoTime:   p.time || ''
+      });
+      if (result && result.success) {
+        if (stat) stat.textContent = '✅ Uploaded';
+        const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
+        if (idx !== -1) {
+          allChecklists[idx]['PhotoUrl'  + sec] = result.viewUrl;
+          allChecklists[idx]['PhotoTime' + sec] = p.time;
+        }
+      } else {
+        if (stat) stat.textContent = '⚠️ Upload failed — will retry when online';
+      }
+    } catch(e) {
+      if (stat) stat.textContent = '⚠️ Offline — photo queued';
+      // Queue for later upload
+      clQueuePhotoUpload(clId, sec);
+    }
+  }
+}
+
+// ── Offline Draft System ──────────────────────────────────────
+const CL_DRAFT_KEY = 'piglog_cl_draft';
+
+function _clNowDate() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function clSaveDraft() {
+  try {
+    const date      = document.getElementById('clDate')?.value || '';
+    const pen       = document.getElementById('clPen')?.value  || '';
+    const checkedBy = document.getElementById('clCheckedBy')?.value || '';
+    const notes     = document.getElementById('clNotes')?.value || '';
+    const pigCount  = document.getElementById('clPigCount')?.value  || '';
+    const draft = {
+      date, pen, checkedBy, notes, pigCount,
+      clState: { ...clState },
+      secTimes: { ...clSecTimes },
+      editId: clEditId || null,
+      lactating: document.getElementById('clLactatingBox')?.dataset?.checked || 'false',
+      nursing:   document.getElementById('cl_nursing')?.value || '',
+      weaklings: document.getElementById('cl_weaklings')?.value || '',
+      lightest:  document.getElementById('cl_lightest_today')?.value || '',
+      heaviest:  document.getElementById('cl_heaviest_today')?.value || '',
+      // Store photo timestamps and mime (not base64 — too large for localStorage)
+      photoMeta: {
+        1: clPhotos[1] ? { time: clPhotos[1].time, mime: clPhotos[1].mime, hasData: true } : null,
+        2: clPhotos[2] ? { time: clPhotos[2].time, mime: clPhotos[2].mime, hasData: true } : null,
+        3: clPhotos[3] ? { time: clPhotos[3].time, mime: clPhotos[3].mime, hasData: true } : null,
+      },
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(CL_DRAFT_KEY, JSON.stringify(draft));
+  } catch(e) { /* localStorage unavailable */ }
+}
+
+function clLoadDraft() {
+  try {
+    const raw = localStorage.getItem(CL_DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    // Only restore if date+pen match current setup
+    const curDate = document.getElementById('clDate')?.value || '';
+    const curPen  = document.getElementById('clPen')?.value  || '';
+    if (!draft.date || !draft.pen) return;
+    if (draft.date !== curDate || String(draft.pen) !== String(curPen)) return;
+
+    // Restore fields
+    if (draft.checkedBy) { const el = document.getElementById('clCheckedBy'); if (el) el.value = draft.checkedBy; }
+    if (draft.notes)     { const el = document.getElementById('clNotes');     if (el) el.value = draft.notes; }
+    if (draft.pigCount)  { const el = document.getElementById('clPigCount');  if (el) el.value = draft.pigCount; clCurrentPigCount = parseInt(draft.pigCount,10)||0; }
+
+    // Restore check state
+    if (draft.clState) {
+      Object.entries(draft.clState).forEach(([k, v]) => {
+        clState[k] = v;
+        if (v) {
+          const cls = v === 'ok' ? '.toggle-ok' : '.toggle-bad';
+          const item = document.querySelector(`#clBody .check-item[data-key="${k}"]`);
+          if (item) {
+            item.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('selected'));
+            item.querySelector(cls)?.classList.add('selected');
+          }
+        }
+      });
+    }
+    if (draft.secTimes) {
+      clSecTimes = { ...clSecTimes, ...draft.secTimes };
+      _clRenderSecBadge('clSec1Badge', clSecTimes.sec1);
+      _clRenderSecBadge('clSec2Badge', clSecTimes.sec2);
+      _clRenderSecBadge('clSec3Badge', clSecTimes.sec3);
+    }
+    if (draft.lactating === 'true') clToggleLactating(true);
+    if (draft.nursing)   { const el = document.getElementById('cl_nursing');        if (el) el.value = draft.nursing; }
+    if (draft.weaklings) { const el = document.getElementById('cl_weaklings');      if (el) el.value = draft.weaklings; }
+    if (draft.lightest)  { const el = document.getElementById('cl_lightest_today'); if (el) el.value = draft.lightest; }
+    if (draft.heaviest)  { const el = document.getElementById('cl_heaviest_today'); if (el) el.value = draft.heaviest; }
+
+    // Restore photo meta (show timestamps without image — user must retake if not uploaded yet)
+    if (draft.photoMeta) {
+      [1, 2, 3].forEach(sec => {
+        const meta = draft.photoMeta[sec];
+        if (meta && meta.hasData) {
+          const stat  = document.getElementById('clPhotoStatus' + sec);
+          const reqEl = document.getElementById('clPhoto'       + sec + 'Req');
+          const tsEl  = document.getElementById('clPhotoTs'     + sec);
+          if (stat)  stat.textContent  = '📷 ' + meta.time + ' (retake to upload)';
+          if (reqEl) { reqEl.style.color = '#e07b00'; reqEl.textContent = '⚠ retake'; }
+          if (tsEl)  { tsEl.textContent = '📷 ' + meta.time; tsEl.style.display = 'block'; }
+        }
+      });
+    }
+    if (draft.editId) clEditId = draft.editId;
+    showToast('📋 Draft restored from offline save');
+  } catch(e) { /* ignore */ }
+}
+
+function clClearDraft() {
+  try { localStorage.removeItem(CL_DRAFT_KEY); } catch(e) {}
+}
+
+// Queue photo upload for later (when back online)
+const CL_PHOTO_QUEUE_KEY = 'piglog_cl_photo_queue';
+function clQueuePhotoUpload(clId, sec) {
+  try {
+    const q = JSON.parse(localStorage.getItem(CL_PHOTO_QUEUE_KEY) || '[]');
+    q.push({ clId, sec, time: new Date().toISOString() });
+    localStorage.setItem(CL_PHOTO_QUEUE_KEY, JSON.stringify(q));
+  } catch(e) {}
+}
+
+async function clSubmitOfflineDraft() {
+  showToast('Uploading queued photos…');
+  // Re-trigger save which will attempt upload
+  await saveChecklist();
+}
+
+// Show/hide offline banner based on navigator.onLine
+function clUpdateOfflineBanner() {
+  const banner = document.getElementById('clOfflineBanner');
+  if (banner) banner.style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online',  clUpdateOfflineBanner);
+window.addEventListener('offline', clUpdateOfflineBanner);
+
+async function clHistoryPhotoSelected(input, clId, sec) {
   const file = input.files[0];
   if (!file) return;
   if (file.size > 5 * 1024 * 1024) {
     showToast('Photo too large (max 5 MB)', true); input.value = ''; return;
   }
-  const mime = file.type || 'image/jpeg';
-  const photoTime = _clNowTime();
-  const reader = new FileReader();
+  const mime      = file.type || 'image/jpeg';
+  const photoTime = _clNowDate() + ' ' + _clNowTime();
+  const reader    = new FileReader();
   reader.onload = async e => {
     const base64 = e.target.result.split(',')[1];
     showToast('⬆️ Uploading photo…');
     try {
-      const result = await apiPost({ action: 'clSavePhoto', clId, photoBase64: base64, mimeType: mime, photoTime });
+      const result = await apiPost({ action: 'clSavePhoto', clId, section: sec || 1, photoBase64: base64, mimeType: mime, photoTime });
       if (result && result.success) {
         showToast('✅ Photo uploaded');
-        // Update in-memory record and re-render
         const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
-        if (idx !== -1) { allChecklists[idx].PhotoUrl = result.viewUrl; allChecklists[idx].ThumbUrl = result.thumbUrl; allChecklists[idx].PhotoTime = photoTime; }
+        if (idx !== -1) {
+          allChecklists[idx]['PhotoUrl'  + (sec||1)] = result.viewUrl;
+          allChecklists[idx]['PhotoTime' + (sec||1)] = photoTime;
+        }
         renderChecklistHistory();
       } else {
         showToast(result?.error || 'Photo upload failed', true);
@@ -3323,38 +3615,6 @@ async function clHistoryPhotoSelected(input, clId) {
     } catch(e) { showToast('Photo upload failed', true); }
   };
   reader.readAsDataURL(file);
-}
-
-async function clUploadPhoto(clId) {
-  if (!clPhotoData || !clId) return;
-  const stat = document.getElementById('clPhotoStatus');
-  if (stat) stat.textContent = '⬆️ Uploading photo…';
-  const photoTime = _clNowTime();
-  try {
-    const result = await apiPost({
-      action: 'clSavePhoto',
-      clId:       clId,
-      photoBase64: clPhotoData,
-      mimeType:    clPhotoMime || 'image/jpeg',
-      photoTime:   photoTime
-    });
-    if (result && result.success) {
-      if (stat) stat.textContent = '✅ Photo uploaded';
-      // Update in-memory record with the photo URL
-      const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
-      if (idx !== -1) {
-        allChecklists[idx].PhotoUrl  = result.viewUrl;
-        allChecklists[idx].PhotoTime = photoTime;
-        allChecklists[idx].ThumbUrl  = result.thumbUrl;
-      }
-      clPhotoClear();
-    } else {
-      if (stat) stat.textContent = '⚠️ Photo upload failed — record saved without photo';
-      showToast(result?.error || 'Photo upload failed', true);
-    }
-  } catch(e) {
-    if (stat) stat.textContent = '⚠️ Photo upload failed';
-  }
 }
 
 function clEditRecord(clId) {
@@ -3447,6 +3707,8 @@ function toggleCheck(btn, key, val) {
     }
     // Auto-stamp section when all its keys are answered
     _clCheckSectionComplete();
+    // Auto-save draft for offline support
+    clSaveDraft();
   }
 }
 

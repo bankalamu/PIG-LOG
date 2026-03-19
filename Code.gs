@@ -93,7 +93,7 @@ function doPost(e) {
     if (action === "clUpsert")    return corsRespond(clUpsert(payload.data));
     if (action === "clUpdate")    return corsRespond(clUpdate(payload.id, payload.data));
     if (action === "clDelete")    return corsRespond(clDelete(payload.id));
-    if (action === "clSavePhoto") return corsRespond(clSavePhoto(payload.clId, payload.photoBase64, payload.mimeType, payload.photoTime));
+    if (action === "clSavePhoto") return corsRespond(clSavePhoto(payload.clId, payload.photoBase64, payload.mimeType, payload.photoTime, payload.section));
     if (action === "slAdd")    return corsRespond(slAdd(payload.data));
     if (action === "slUpsert") return corsRespond(slUpsert(payload.data));
     if (action === "slUpdate") return corsRespond(slUpdate(payload.id, payload.data));
@@ -307,8 +307,9 @@ const CL_SHEET = "DailyChecklist";
 const CL_KEYS_GS = ['tail','eyes','stool','posture','skin','breathing',
                     'appetite','water','feed','smell',
                     'pinch','belly','limbs','injuries','temp'];
-const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes","PhotoUrl","PhotoTime","PigCount",
-                    "Sec1Time","Sec2Time","Sec3Time",
+const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes",
+                    "PhotoUrl1","PhotoTime1","PhotoUrl2","PhotoTime2","PhotoUrl3","PhotoTime3",
+                    "PigCount","Sec1Time","Sec2Time","Sec3Time",
                     "cl_lactating","cl_nursing","cl_weaklings","cl_lightest_today","cl_heaviest_today",
                     ...CL_KEYS_GS];
 
@@ -352,7 +353,7 @@ function getNextClId(sheet) {
   return Math.max(...ids.map(Number)) + 1;
 }
 
-const CL_TIME_COLS = ["PhotoTime","Sec1Time","Sec2Time","Sec3Time"];
+const CL_TIME_COLS = ["PhotoTime1","PhotoTime2","PhotoTime3","Sec1Time","Sec2Time","Sec3Time"];
 
 function rowToClRecord(row, sheetHeaders) {
   // sheetHeaders: the actual header row from the sheet (may differ in order from CL_HEADERS)
@@ -496,34 +497,35 @@ function clDelete(clId) {
   return { success: true };
 }
 
-function clSavePhoto(clId, photoBase64, mimeType, photoTime) {
+function clSavePhoto(clId, photoBase64, mimeType, photoTime, section) {
   try {
     if (!clId || !photoBase64) return { success: false, error: "Missing clId or photo data" };
+    const sec = section || 1;
 
-    // Get or create PigLog Photos folder in Drive
     const folderName = "PigLog_Photos";
     const folders = DriveApp.getFoldersByName(folderName);
-    const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+    const folder  = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
 
-    // Decode base64 and save file
+    // Timestamped filename: pen_checklist_{clId}_sec{N}_{YYYY-MM-DD_HH-MM}.jpg
     const ext  = (mimeType || 'image/jpeg').split('/')[1] || 'jpg';
-    const blob = Utilities.newBlob(Utilities.base64Decode(photoBase64), mimeType || 'image/jpeg',
-                                   'pen_photo_cl' + clId + '_' + new Date().getTime() + '.' + ext);
+    const ts   = photoTime ? String(photoTime).replace(/[: /]/g, '-').replace(/[^a-zA-Z0-9_-]/g, '') : String(new Date().getTime());
+    const name = `pen_cl${clId}_sec${sec}_${ts}.${ext}`;
+    const blob = Utilities.newBlob(Utilities.base64Decode(photoBase64), mimeType || 'image/jpeg', name);
     const file = folder.createFile(blob);
 
-    // Make file publicly viewable (anyone with link)
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    const fileId  = file.getId();
-    const viewUrl = "https://drive.google.com/file/d/" + fileId + "/view";
+    const fileId   = file.getId();
+    const viewUrl  = "https://drive.google.com/file/d/" + fileId + "/view";
     const thumbUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w400";
 
-    // Update the PhotoUrl and PhotoTime columns in the sheet
-    const updateData = { PhotoUrl: viewUrl };
-    if (photoTime) updateData.PhotoTime = photoTime;
+    // Update the correct section's PhotoUrl/PhotoTime columns
+    const updateData = {};
+    updateData['PhotoUrl'  + sec] = viewUrl;
+    if (photoTime) updateData['PhotoTime' + sec] = photoTime;
     const result = clUpdate(clId, updateData);
     if (!result.success) return { success: false, error: "Photo saved to Drive but sheet update failed: " + result.error };
 
-    return { success: true, viewUrl, thumbUrl, fileId };
+    return { success: true, viewUrl, thumbUrl, fileId, section: sec };
   } catch(e) {
     return { success: false, error: "Photo save failed: " + e.message };
   }
