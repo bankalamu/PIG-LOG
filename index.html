@@ -4073,6 +4073,8 @@ function _clCheckSectionComplete() {
         saveBtn.style.cursor      = 'not-allowed';
       }
     }
+    // Highlight the photo block border based on state
+    const photoBlock = document.getElementById(sec.photoBlockId);
     if (photoBlock) {
       if (allAnswered && !hasPhoto) {
         photoBlock.style.borderColor = '#ff9800';
