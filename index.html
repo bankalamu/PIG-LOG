@@ -906,7 +906,7 @@
         </div>
       </div>
 
-      <!-- Section 1 Photo (required) -->
+      <!-- Section 1 Photo + Save -->
       <div class="cl-section-photo" id="clPhoto1Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Morning Photo <span id="clPhoto1Req" style="color:#c0392b;font-weight:900">*required</span></span>
@@ -918,6 +918,14 @@
         <div id="clPhotoPreview1" style="display:none;margin-top:8px;position:relative">
           <img id="clPhotoImg1" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #2d6a2d;object-fit:cover;display:block" src="" alt="Morning photo">
           <div id="clPhotoTs1" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+          <button id="btnSaveSec1" onclick="saveSection(1)"
+            disabled
+            style="flex:1;background:#aaa;color:#fff;border:none;border-radius:8px;padding:10px 0;font-size:13px;font-weight:800;cursor:not-allowed;transition:background 0.2s">
+            💾 Save Morning Section
+          </button>
+          <span id="clSec1SavedBadge" style="display:none;font-size:12px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:10px;padding:3px 10px;white-space:nowrap">✓ Saved</span>
         </div>
       </div>
 
@@ -970,7 +978,7 @@
         </div>
       </div>
 
-      <!-- Section 2 Photo (required) -->
+      <!-- Section 2 Photo + Save -->
       <div class="cl-section-photo" id="clPhoto2Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Feeding Photo <span id="clPhoto2Req" style="color:#c0392b;font-weight:900">*required</span></span>
@@ -982,6 +990,14 @@
         <div id="clPhotoPreview2" style="display:none;margin-top:8px;position:relative">
           <img id="clPhotoImg2" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #2d6a2d;object-fit:cover;display:block" src="" alt="Feeding photo">
           <div id="clPhotoTs2" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+          <button id="btnSaveSec2" onclick="saveSection(2)"
+            disabled
+            style="flex:1;background:#aaa;color:#fff;border:none;border-radius:8px;padding:10px 0;font-size:13px;font-weight:800;cursor:not-allowed;transition:background 0.2s">
+            💾 Save Feeding Section
+          </button>
+          <span id="clSec2SavedBadge" style="display:none;font-size:12px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:10px;padding:3px 10px;white-space:nowrap">✓ Saved</span>
         </div>
       </div>
 
@@ -1045,7 +1061,7 @@
         </div>
       </div>
 
-      <!-- Section 3 Photo (required) -->
+      <!-- Section 3 Photo + Save -->
       <div class="cl-section-photo" id="clPhoto3Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Afternoon Photo <span id="clPhoto3Req" style="color:#c0392b;font-weight:900">*required</span></span>
@@ -1057,6 +1073,14 @@
         <div id="clPhotoPreview3" style="display:none;margin-top:8px;position:relative">
           <img id="clPhotoImg3" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #2d6a2d;object-fit:cover;display:block" src="" alt="Afternoon photo">
           <div id="clPhotoTs3" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+        </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+          <button id="btnSaveSec3" onclick="saveSection(3)"
+            disabled
+            style="flex:1;background:#aaa;color:#fff;border:none;border-radius:8px;padding:10px 0;font-size:13px;font-weight:800;cursor:not-allowed;transition:background 0.2s">
+            💾 Save Afternoon Section
+          </button>
+          <span id="clSec3SavedBadge" style="display:none;font-size:12px;font-weight:700;color:#2d6a2d;background:#e8f5e8;border:1px solid #2d6a2d;border-radius:10px;padding:3px 10px;white-space:nowrap">✓ Saved</span>
         </div>
       </div>
 
@@ -1114,9 +1138,9 @@
       <!-- Reminder -->
       <div class="checklist-reminder">⚠️ Key Reminder: A WET TAIL = Investigate Immediately. Early action saves pigs.</div>
 
-      <!-- Save button -->
+      <!-- Final save for notes + nursing (sections saved independently above) -->
       <div class="btn-row">
-        <button class="btn-primary btn-green" id="btnSaveChecklist" onclick="saveChecklist()">SAVE CHECKLIST</button>
+        <button class="btn-primary btn-green" id="btnSaveChecklist" onclick="saveChecklist()">💾 Save Notes &amp; Nursing</button>
       </div>
 
       </div><!-- end clBody -->
@@ -2916,6 +2940,14 @@ function _clClearAllFields() {
     if (el) { el.style.display = 'none'; el.textContent = ''; }
   });
   [1,2,3].forEach(s => clPhotoClear(s));
+  // Reset section save buttons
+  [1,2,3].forEach(s => {
+    clSecSaved[s] = false;
+    const btn   = document.getElementById('btnSaveSec' + s);
+    const badge = document.getElementById('clSec' + s + 'SavedBadge');
+    if (btn)   { btn.disabled = true; btn.style.background = '#aaa'; btn.style.cursor = 'not-allowed'; btn.textContent = '💾 Save ' + CL_SEC_LABELS[s] + ' Section'; }
+    if (badge) badge.style.display = 'none';
+  });
   _clCheckSectionComplete();
 }
 
@@ -3075,50 +3107,12 @@ async function saveChecklist() {
     showToast('Checked By is required before saving', true);
     return;
   }
-  // Section validation rules:
-  //   • A section is "touched"  if any check is answered OR a photo is taken
-  //   • A section is "complete" if ALL checks are answered AND photo is taken
-  //   • Untouched sections → allowed to skip
-  //   • Touched but incomplete sections → BLOCK with specific error
-  //   • At least one section must be complete to allow saving
-  const CL_SECS = [
-    { num: 1, label: 'Morning',   keys: CL_SEC1_KEYS },
-    { num: 2, label: 'Feeding',   keys: CL_SEC2_KEYS },
-    { num: 3, label: 'Afternoon', keys: CL_SEC3_KEYS },
-  ];
-
-  if (!clEditId) {
-    const errors = [];
-    let completedCount = 0;
-
-    CL_SECS.forEach(s => {
-      const anyChecked  = s.keys.some(k => clState[k] !== null && clState[k] !== undefined);
-      const allAnswered = s.keys.every(k => clState[k] !== null && clState[k] !== undefined);
-      const hasPhoto    = !!clPhotos[s.num];
-      const touched     = anyChecked || hasPhoto;
-      const complete    = allAnswered && hasPhoto;
-
-      if (!touched) return; // untouched — skip entirely
-
-      if (complete) {
-        completedCount++;
-      } else {
-        // Touched but incomplete — must fix before saving
-        if (!allAnswered && !hasPhoto) errors.push(s.label + ': checks incomplete + photo missing');
-        else if (!allAnswered)         errors.push(s.label + ': checks incomplete');
-        else                           errors.push(s.label + ': photo missing');
-      }
-    });
-
-    if (errors.length > 0) {
-      showToast('Fix incomplete sections: ' + errors.join(' · '), true);
-      return;
-    }
-
-    if (completedCount === 0) {
-      showToast('Complete at least one section (all checks + photo) before saving', true);
-      return;
-    }
+  // saveChecklist handles Notes + Nursing fields only.
+  // Section checks are saved via saveSection(1/2/3).
+  // Require at least one section saved before saving notes.
+  if (!clEditId && !Object.values(clSecSaved).some(Boolean)) {
+    showToast('Save at least one section first', true);
+    return;
   }
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
   // Re-read from DOM in case user changed it; fall back to clCurrentPigCount
@@ -3193,6 +3187,126 @@ async function saveChecklist() {
     clSaveDraft();
     showToast(result?.error || 'Save failed — draft saved locally', true);
     btn.textContent = clEditId ? 'UPDATE CHECKLIST' : 'SAVE CHECKLIST';
+  }
+}
+
+// Track which sections have been saved this session
+const clSecSaved = { 1: false, 2: false, 3: false };
+
+const CL_SEC_KEYS_MAP = {
+  1: CL_SEC1_KEYS,
+  2: CL_SEC2_KEYS,
+  3: CL_SEC3_KEYS
+};
+const CL_SEC_LABELS = { 1: 'Morning', 2: 'Feeding', 3: 'Afternoon' };
+
+async function saveSection(sec) {
+  const btn   = document.getElementById('btnSaveSec' + sec);
+  const badge = document.getElementById('clSec' + sec + 'SavedBadge');
+  const keys  = CL_SEC_KEYS_MAP[sec];
+  const label = CL_SEC_LABELS[sec];
+
+  // Final guard: must be complete
+  const allAnswered = keys.every(k => clState[k] !== null && clState[k] !== undefined);
+  const hasPhoto    = !!clPhotos[sec];
+  if (!allAnswered || !hasPhoto) {
+    showToast(label + ' section is not complete — answer all checks and take the photo', true);
+    return;
+  }
+
+  // Need Checked By and pig count at minimum
+  const checkedBy = document.getElementById('clCheckedBy')?.value.trim();
+  if (!checkedBy) {
+    const el = document.getElementById('clCheckedBy');
+    if (el) { el.style.border = '2px solid #c0392b'; el.style.background = '#fde8e8'; el.focus(); }
+    showToast('Enter Checked By before saving', true);
+    return;
+  }
+  const date   = document.getElementById('clDate').value;
+  const penRaw = document.getElementById('clPen').value.trim();
+  if (!date || !penRaw) { showToast('Date and Pen are required', true); return; }
+  const penNum = parseInt(penRaw, 10);
+  const pen    = String(penNum);
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  // Build partial data payload — only this section's keys + common fields
+  const pigCountRaw    = document.getElementById('clPigCount')?.value.trim() || '';
+  const pigCountParsed = parseInt(pigCountRaw, 10);
+  const pigCount       = Number.isInteger(pigCountParsed) && pigCountParsed >= 1 ? pigCountParsed : clCurrentPigCount;
+
+  const concerns = keys.filter(k => clState[k] === 'bad');
+  const data = {
+    Date: date, Pen: pen, CheckedBy: checkedBy,
+    PigCount: pigCount,
+    Status:   concerns.length > 0 ? 'CONCERNS' : 'ALL OK',
+    Concerns: concerns.join(',')
+  };
+  // Section-specific time stamp
+  const secKey = 'sec' + sec;
+  data['Sec' + sec + 'Time'] = clSecTimes[secKey] || _clNowTime();
+  // Section check values
+  keys.forEach(k => { data[k] = clState[k] || ''; });
+
+  // Upsert (create if new, update if exists)
+  let result;
+  if (!clEditId) {
+    // Check for duplicate before creating
+    const dup = allChecklists.find(r =>
+      String(r.Date||'').trim() === date && String(r.Pen||'').trim() === pen
+    );
+    if (dup) { clEditId = dup.CL_ID; }
+  }
+  if (clEditId) {
+    result = await apiPost({ action: 'clUpdate', id: clEditId, data });
+  } else {
+    result = await apiPost({ action: 'clUpsert', data });
+  }
+
+  if (result && result.success) {
+    if (result.cl_id) clEditId = result.cl_id;
+    clSecSaved[sec] = true;
+    // Show saved badge, update button
+    if (badge) badge.style.display = 'inline-block';
+    if (btn)   {
+      btn.textContent   = '✅ ' + label + ' Saved';
+      btn.style.background = '#2d6a2d';
+      btn.style.cursor  = 'default';
+    }
+    // Update in-memory
+    const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clEditId));
+    if (idx !== -1) allChecklists[idx] = { ...allChecklists[idx], ...data, CL_ID: clEditId };
+    else            allChecklists.push({ ...data, CL_ID: clEditId });
+
+    const b = document.getElementById('clExistingBanner');
+    if (b) { b.textContent = '✅ ' + label + ' section saved.'; b.style.display = 'block'; }
+    document.getElementById('clLockedSub').textContent = '(in progress)';
+    clUpdateDayTotal();
+    clSaveDraft();
+    // Upload this section's photo non-blocking
+    const p = clPhotos[sec];
+    if (p?.data && clEditId) {
+      const stat = document.getElementById('clPhotoStatus' + sec);
+      if (stat) stat.textContent = '⬆️ Uploading photo…';
+      apiPost({
+        action: 'clSavePhoto', clId: clEditId, section: sec,
+        photoBase64: p.data, mimeType: p.mime || 'image/jpeg', photoTime: p.time || ''
+      }).then(r => {
+        if (stat) stat.textContent = r?.success ? '✅ Photo uploaded' : '⚠ Upload failed — will retry';
+        if (r?.success) {
+          const i = allChecklists.findIndex(r2 => String(r2.CL_ID) === String(clEditId));
+          if (i !== -1) {
+            allChecklists[i]['PhotoUrl' + sec]  = r.viewUrl;
+            allChecklists[i]['PhotoTime' + sec] = p.time;
+          }
+        }
+      });
+    }
+    showToast('✅ ' + label + ' section saved!');
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save ' + label + ' Section'; btn.style.background = '#2d6a2d'; btn.style.cursor = 'pointer'; }
+    clSaveDraft();
+    showToast((result?.error || 'Save failed') + ' — draft kept locally', true);
   }
 }
 
@@ -3949,8 +4063,19 @@ function _clCheckSectionComplete() {
       }
     }
 
-    // Highlight the photo block when checks are done but photo missing
-    const photoBlock = document.getElementById(sec.photoBlockId);
+    // Enable/disable the section save button
+    const saveBtn = document.getElementById('btnSaveSec' + sec.num);
+    if (saveBtn && !clSecSaved[sec.num]) {
+      if (ready) {
+        saveBtn.disabled          = false;
+        saveBtn.style.background  = '#2d6a2d';
+        saveBtn.style.cursor      = 'pointer';
+      } else {
+        saveBtn.disabled          = true;
+        saveBtn.style.background  = '#aaa';
+        saveBtn.style.cursor      = 'not-allowed';
+      }
+    }
     if (photoBlock) {
       if (allAnswered && !hasPhoto) {
         photoBlock.style.borderColor = '#ff9800';
