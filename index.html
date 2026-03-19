@@ -3075,27 +3075,48 @@ async function saveChecklist() {
     showToast('Checked By is required before saving', true);
     return;
   }
-  // All 3 sections must be fully complete: every check answered + photo taken
+  // Section validation rules:
+  //   • A section is "touched"  if any check is answered OR a photo is taken
+  //   • A section is "complete" if ALL checks are answered AND photo is taken
+  //   • Untouched sections → allowed to skip
+  //   • Touched but incomplete sections → BLOCK with specific error
+  //   • At least one section must be complete to allow saving
   const CL_SECS = [
     { num: 1, label: 'Morning',   keys: CL_SEC1_KEYS },
     { num: 2, label: 'Feeding',   keys: CL_SEC2_KEYS },
     { num: 3, label: 'Afternoon', keys: CL_SEC3_KEYS },
   ];
+
   if (!clEditId) {
-    const incomplete = CL_SECS.filter(s => {
+    const errors = [];
+    let completedCount = 0;
+
+    CL_SECS.forEach(s => {
+      const anyChecked  = s.keys.some(k => clState[k] !== null && clState[k] !== undefined);
       const allAnswered = s.keys.every(k => clState[k] !== null && clState[k] !== undefined);
       const hasPhoto    = !!clPhotos[s.num];
-      return !allAnswered || !hasPhoto;
+      const touched     = anyChecked || hasPhoto;
+      const complete    = allAnswered && hasPhoto;
+
+      if (!touched) return; // untouched — skip entirely
+
+      if (complete) {
+        completedCount++;
+      } else {
+        // Touched but incomplete — must fix before saving
+        if (!allAnswered && !hasPhoto) errors.push(s.label + ': checks incomplete + photo missing');
+        else if (!allAnswered)         errors.push(s.label + ': checks incomplete');
+        else                           errors.push(s.label + ': photo missing');
+      }
     });
-    if (incomplete.length > 0) {
-      const details = incomplete.map(s => {
-        const allAnswered = s.keys.every(k => clState[k] !== null && clState[k] !== undefined);
-        const hasPhoto    = !!clPhotos[s.num];
-        if (!allAnswered && !hasPhoto) return s.label + ' (checks + photo)';
-        if (!allAnswered)              return s.label + ' (checks incomplete)';
-        return                                s.label + ' (photo missing)';
-      });
-      showToast('Complete all sections before saving: ' + details.join(' · '), true);
+
+    if (errors.length > 0) {
+      showToast('Fix incomplete sections: ' + errors.join(' · '), true);
+      return;
+    }
+
+    if (completedCount === 0) {
+      showToast('Complete at least one section (all checks + photo) before saving', true);
       return;
     }
   }
@@ -3901,7 +3922,7 @@ function _clCheckSectionComplete() {
       clSecTimes[sec.key] = '';
     }
 
-    // Badge: show time + ready indicator
+    // Badge: show state
     const el = document.getElementById(sec.badgeId);
     if (el) {
       if (ready) {
@@ -3910,8 +3931,14 @@ function _clCheckSectionComplete() {
         el.style.background= '#e8f5e8';
         el.style.color     = '#2d6a2d';
         el.style.border    = '1px solid #2d6a2d';
-      } else if (allAnswered) {
+      } else if (allAnswered && !hasPhoto) {
         el.textContent     = '✓ ' + clSecTimes[sec.key] + ' — photo required';
+        el.style.display   = 'inline-block';
+        el.style.background= '#fff3e0';
+        el.style.color     = '#e65100';
+        el.style.border    = '1px solid #ff9800';
+      } else if (!allAnswered && hasPhoto) {
+        el.textContent     = '⚠ photo taken — complete checks';
         el.style.display   = 'inline-block';
         el.style.background= '#fff3e0';
         el.style.color     = '#e65100';
