@@ -909,7 +909,7 @@
       <!-- Section 1 Photo (required) -->
       <div class="cl-section-photo" id="clPhoto1Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Morning Photo <span id="clPhoto1Req" style="color:#c0392b;font-weight:900">needed to save section</span></span>
+          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Morning Photo <span id="clPhoto1Req" style="color:#c0392b;font-weight:900">*required</span></span>
           <label for="clPhotoInput1" style="display:inline-flex;align-items:center;gap:5px;background:#2d6a2d;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
           <input type="file" id="clPhotoInput1" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="clPhotoSelected(this,1)">
           <button id="clPhotoClear1" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear(1)">✕</button>
@@ -973,7 +973,7 @@
       <!-- Section 2 Photo (required) -->
       <div class="cl-section-photo" id="clPhoto2Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Feeding Photo <span id="clPhoto2Req" style="color:#c0392b;font-weight:900">needed to save section</span></span>
+          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Feeding Photo <span id="clPhoto2Req" style="color:#c0392b;font-weight:900">*required</span></span>
           <label for="clPhotoInput2" style="display:inline-flex;align-items:center;gap:5px;background:#2d6a2d;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
           <input type="file" id="clPhotoInput2" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="clPhotoSelected(this,2)">
           <button id="clPhotoClear2" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear(2)">✕</button>
@@ -1048,7 +1048,7 @@
       <!-- Section 3 Photo (required) -->
       <div class="cl-section-photo" id="clPhoto3Block" style="margin:-2px 0 10px;padding:10px 14px;background:#f0f7f0;border:2px solid #2d6a2d;border-top:none;border-radius:0 0 10px 10px">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Afternoon Photo <span id="clPhoto3Req" style="color:#c0392b;font-weight:900">needed to save section</span></span>
+          <span style="font-size:11px;font-weight:800;color:#2d6a2d;text-transform:uppercase;letter-spacing:0.05em">📷 Afternoon Photo <span id="clPhoto3Req" style="color:#c0392b;font-weight:900">*required</span></span>
           <label for="clPhotoInput3" style="display:inline-flex;align-items:center;gap:5px;background:#2d6a2d;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
           <input type="file" id="clPhotoInput3" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="clPhotoSelected(this,3)">
           <button id="clPhotoClear3" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="clPhotoClear(3)">✕</button>
@@ -3053,48 +3053,30 @@ async function saveChecklist() {
     showToast('Checked By is required before saving', true);
     return;
   }
-  // Section completion: a section is "ready" when all its keys are answered AND photo is taken.
-  // Allow save if at least one section is ready. Warn about incomplete sections but don't block.
+  // All 3 sections must be fully complete: every check answered + photo taken
   const CL_SECS = [
     { num: 1, label: 'Morning',   keys: CL_SEC1_KEYS },
     { num: 2, label: 'Feeding',   keys: CL_SEC2_KEYS },
     { num: 3, label: 'Afternoon', keys: CL_SEC3_KEYS },
   ];
-  const secStatus = CL_SECS.map(s => {
-    const allAnswered = s.keys.every(k => clState[k] !== null && clState[k] !== undefined);
-    const hasPhoto    = !!clPhotos[s.num];
-    return { ...s, allAnswered, hasPhoto, ready: allAnswered && hasPhoto };
-  });
-  const readySecs   = secStatus.filter(s => s.ready);
-  const partialSecs = secStatus.filter(s => !s.ready && (s.allAnswered || s.hasPhoto));
-
-  if (readySecs.length === 0 && !clEditId) {
-    // Nothing is ready yet — tell the user what's needed
-    const hints = secStatus.map(s => {
-      if (s.allAnswered && !s.hasPhoto) return s.label + ': photo missing';
-      if (!s.allAnswered && s.hasPhoto) return s.label + ': checks incomplete';
-      return s.label + ': checks + photo needed';
+  if (!clEditId) {
+    const incomplete = CL_SECS.filter(s => {
+      const allAnswered = s.keys.every(k => clState[k] !== null && clState[k] !== undefined);
+      const hasPhoto    = !!clPhotos[s.num];
+      return !allAnswered || !hasPhoto;
     });
-    showToast('Complete at least one section: ' + hints.join(' · '), true);
-    return;
-  }
-
-  // Warn about partially-done sections (don't block — user may intentionally skip)
-  if (partialSecs.length > 0 && !clEditId) {
-    const warn = partialSecs.map(s =>
-      s.allAnswered ? s.label + ' (no photo)' : s.label + ' (checks incomplete)'
-    ).join(', ');
-    // Non-blocking toast — save proceeds
-    showToast('⚠ Saving with incomplete sections: ' + warn, false);
-  }
-
-  // Mark only ready sections as "included" in this save; zero out incomplete section data
-  secStatus.forEach(s => {
-    if (!s.ready) {
-      // Clear that section's check states from data (will be saved as blank)
-      s.keys.forEach(k => { /* leave clState as-is — server gets '' for unanswered */ });
+    if (incomplete.length > 0) {
+      const details = incomplete.map(s => {
+        const allAnswered = s.keys.every(k => clState[k] !== null && clState[k] !== undefined);
+        const hasPhoto    = !!clPhotos[s.num];
+        if (!allAnswered && !hasPhoto) return s.label + ' (checks + photo)';
+        if (!allAnswered)              return s.label + ' (checks incomplete)';
+        return                                s.label + ' (photo missing)';
+      });
+      showToast('Complete all sections before saving: ' + details.join(' · '), true);
+      return;
     }
-  });
+  }
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
   // Re-read from DOM in case user changed it; fall back to clCurrentPigCount
   const pigCountRaw = (document.getElementById('clPigCount')?.value || '').trim();
@@ -3458,7 +3440,7 @@ function clPhotoClear(sec) {
   if (stat)  stat.textContent     = '';
   if (clrBtn)clrBtn.style.display = 'none';
   if (tsEl)  { tsEl.textContent = ''; tsEl.style.display = 'none'; }
-  if (reqEl) { reqEl.style.color = '#c0392b'; reqEl.textContent = 'needed to save section'; }
+  if (reqEl) { reqEl.style.color = '#c0392b'; reqEl.textContent = '*required'; }
   clSaveDraft();
   _clCheckSectionComplete();
 }
@@ -3777,7 +3759,7 @@ function _clCheckSectionComplete() {
         el.style.color     = '#2d6a2d';
         el.style.border    = '1px solid #2d6a2d';
       } else if (allAnswered) {
-        el.textContent     = '✓ ' + clSecTimes[sec.key] + ' — add photo to save';
+        el.textContent     = '✓ ' + clSecTimes[sec.key] + ' — photo required';
         el.style.display   = 'inline-block';
         el.style.background= '#fff3e0';
         el.style.color     = '#e65100';
