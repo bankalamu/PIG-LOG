@@ -2459,7 +2459,36 @@ async function prepNewForm() {
   }
 }
 
-// Highlight missing/invalid key fields with red border
+// Required fields and how to identify their element IDs
+const REQUIRED_FIELDS = [
+  { col: "PIG ID",    id: "PIG_ID",    label: "PIG ID"    },
+  { col: "Boar",      id: "Boar",      label: "Boar"      },
+  { col: "SOW",       id: "SOW",       label: "SOW"       },
+  { col: "DOB",       id: "DOB",       label: "Date of Birth" },
+  { col: "SEX",       id: "SEX",       label: "Sex"       },
+  { col: "Type",      id: "Type",      label: "Type"      },
+  { col: "Stage",     id: "Stage",     label: "Stage"     },
+  { col: "Status",    id: "Status",    label: "Status"    },
+  { col: "Available", id: "Available", label: "Available" },
+];
+// Optional fields (not validated): Weight, Dewormed, Pen, Notes
+
+function _validateAllFields(prefix, data) {
+  const missing = [];
+  REQUIRED_FIELDS.forEach(({ col, id, label }) => {
+    const val = String(data[col] || "").trim();
+    const el  = document.getElementById(`${prefix}_${id}`);
+    if (!val) {
+      missing.push(label);
+      if (el) { el.style.border = "2px solid #c0392b"; el.style.background = "#fde8e8"; }
+    } else {
+      if (el) { el.style.border = ""; el.style.background = ""; }
+    }
+  });
+  return missing; // empty array = all good
+}
+
+// Keep legacy function for backward compat (used by duplicate check highlighting)
 function _highlightKeyFields(prefix, pigId, boar, sow) {
   const fields = { "PIG_ID": pigId, "Boar": boar, "SOW": sow };
   let anyMissing = false;
@@ -2496,13 +2525,17 @@ function _validateTypeSex(prefix, type, sex) {
 
 async function saveNew() {
   const data  = getFormValues("new");
-  const pigId = String(data["PIG ID"] || "").trim();
-  const boar  = String(data["Boar"]   || "").trim(); // now a DB_ID
-  const sow   = String(data["SOW"]    || "").trim(); // now a DB_ID
 
-  // Highlight missing fields and block
-  const missing = _highlightKeyFields("new", pigId, boar, sow);
-  if (missing) { showToast("PIG ID, Boar and SOW are all required", true); return; }
+  // Validate all required fields
+  const missing = _validateAllFields("new", data);
+  if (missing.length > 0) {
+    showToast("Required: " + missing.join(", "), true);
+    return;
+  }
+
+  const pigId = String(data["PIG ID"] || "").trim();
+  const boar  = String(data["Boar"]   || "").trim();
+  const sow   = String(data["SOW"]    || "").trim();
 
   // Type / Sex consistency
   const sexErr = _validateTypeSex("new", data["Type"], data["SEX"]);
@@ -2619,16 +2652,19 @@ function _availableBadge(val) {
 async function saveEdit() {
   const data = getFormValues("edit");
 
-  // If key fields are unlocked, enforce all 3 present and check for duplicates
+  // Validate all required fields regardless of key lock state
+  const missing = _validateAllFields("edit", data);
+  if (missing.length > 0) {
+    showToast("Required: " + missing.join(", "), true);
+    return;
+  }
+
+  // If key fields are unlocked, also check for duplicate PIG ID + Boar + SOW combo
   const keyLocked = document.getElementById(`edit_PIG_ID`)?.disabled;
   if (!keyLocked) {
     const pigId = String(data["PIG ID"] || "").trim();
     const boar  = String(data["Boar"]   || "").trim();
     const sow   = String(data["SOW"]    || "").trim();
-
-    const missing = _highlightKeyFields("edit", pigId, boar, sow);
-    if (missing) { showToast("PIG ID, Boar and SOW are all required", true); return; }
-
     const clean = v => String(v||"").trim().toLowerCase();
     const dup = allRecords.find(r =>
       Number(r.DB_ID) !== Number(currentEditId) &&
