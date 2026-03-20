@@ -1484,6 +1484,7 @@
       <div class="btn-row">
         <button class="btn-primary btn-green" id="btnSaveSl" onclick="saveSowLitter()">SAVE RECORD</button>
         <button class="btn-cancel" onclick="cancelSowLitter()">Cancel</button>
+        <button id="btnDeleteSl" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:800;cursor:pointer;margin-top:8px;width:100%" onclick="slDeleteCurrentRecord()">🗑 Permanently Delete This Record</button>
       </div>
     </div><!-- end slFormView -->
 
@@ -2131,6 +2132,8 @@ function updateAdminBadge() {
   // Show delete button on edit form only in admin mode
   const delBtn = document.getElementById('btnDeleteRecord');
   if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
+  const delSlBtn = document.getElementById('btnDeleteSl');
+  if (delSlBtn) delSlBtn.style.display = isAdminEnabled() ? 'block' : 'none';
 }
 
 async function runSowIdMigration() {
@@ -6202,7 +6205,7 @@ function renderSlHistory() {
     }
     return '<div class="cl-record-card">'
       + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + getSowPigIdFromDbId(rec.SowId) + '</div>' + closeBadge + '</div>'
-      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + '</div>'
+      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + (rec.LitterBoar ? ' · Boar: ' + getBoarPigIdFromDbId(rec.LitterBoar) : ' · <span style="color:#c0392b;font-size:10px">No Boar recorded</span>') + '</div>'
       + (adminAct ? '<div class="cl-record-actions">' + adminAct + '</div>' : '')
       + '</div>';
   }).join('');
@@ -6254,17 +6257,41 @@ async function slOpenRecord(slId) {
     if (btn) { btn.disabled = false; btn.textContent = 'UPDATE RECORD'; }
     if (banner) banner.style.display = 'block';
   }
+  // Show delete button in admin mode for both active and closed records
+  const delSlBtn = document.getElementById('btnDeleteSl');
+  if (delSlBtn) delSlBtn.style.display = isAdminEnabled() ? 'block' : 'none';
+}
+
+async function slDeleteCurrentRecord() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!slEditId) { showToast('No record loaded', true); return; }
+  await slDeleteRecord(slEditId);
 }
 
 async function slDeleteRecord(slId) {
   if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
-  if (!confirm('Delete this sow & litter record? This cannot be undone.')) return;
+  const rec = allSlRecords.find(r => String(r.SL_ID) === String(slId));
+  const sowLabel  = rec ? getSowPigIdFromDbId(rec.SowId)   : slId;
+  const boarLabel = rec ? getBoarPigIdFromDbId(rec.LitterBoar) : '—';
+  const status    = rec ? (slIsClosed(rec) ? 'Closed/Weaned' : 'Active') : '?';
+  const confirmed = confirm(
+    `⚠ PERMANENTLY DELETE this Sow & Litter record?\n\n` +
+    `Sow:        ${sowLabel}\n` +
+    `Litter Boar: ${boarLabel || '—'}\n` +
+    `Farrow Date: ${rec?.FarrowDate || '—'}\n` +
+    `Pen:         ${rec?.Pen || '—'}\n` +
+    `Status:      ${status}\n\n` +
+    `This cannot be undone. Tap OK to confirm.`
+  );
+  if (!confirmed) return;
   const result = await apiPost({ action: 'slDelete', id: slId });
   if (result && result.success) {
-    showToast('Record deleted');
+    showToast(`✓ Record for Sow "${sowLabel}" deleted`);
     allSlRecords = allSlRecords.filter(r => String(r.SL_ID) !== String(slId));
     renderSlActive();
     renderSlHistory();
+    // If the deleted record was open in the form, go back to active view
+    if (String(slEditId) === String(slId)) { slEditId = null; setSlView('active'); }
   } else {
     showToast(result?.error || 'Delete failed', true);
   }
