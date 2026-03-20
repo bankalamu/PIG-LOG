@@ -671,14 +671,24 @@
     <div id="homeAdminPanel" style="display:none;margin-top:18px;background:#fff9c4;border:1.5px solid #f59e0b;border-radius:12px;padding:14px 16px">
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:10px">⚙️ Admin — Data Tools</div>
 
-      <div style="margin-bottom:10px">
-        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Migrate Boar/SOW to DB_ID</div>
-        <div style="font-size:11px;color:#666;margin-bottom:8px">Updates all existing PigLog records to store Boar and SOW as their DB_ID instead of PIG ID string. Safe to run multiple times — already-migrated records are skipped.</div>
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f0d080">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Migrate PigLog Boar/SOW → DB_ID</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">Updates Boar and SOW columns in PigLog from PIG ID strings to DB_IDs. Safe to run multiple times.</div>
         <button onclick="runBoarSowMigration()"
           style="background:#f59e0b;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;color:#000">
           🔄 Run Migration
         </button>
         <span id="migrationStatus" style="margin-left:10px;font-size:11px;color:#555"></span>
+      </div>
+
+      <div style="margin-bottom:4px">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Migrate SowLitter SowId → DB_ID</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">Updates the SowId column in the SowLitter tab from PIG ID strings to the matching DB_ID from PigLog. Ensures sow links survive ear tag changes. Safe to run multiple times.</div>
+        <button onclick="runSowIdMigration()"
+          style="background:#880e4f;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;color:#fff">
+          🔄 Migrate SowLitter SowId
+        </button>
+        <span id="sowIdMigrationStatus" style="margin-left:10px;font-size:11px;color:#555"></span>
       </div>
     </div>
   </div>
@@ -2113,6 +2123,31 @@ function updateAdminBadge() {
   // Show delete button on edit form only in admin mode
   const delBtn = document.getElementById('btnDeleteRecord');
   if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
+}
+
+async function runSowIdMigration() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const statusEl = document.getElementById('sowIdMigrationStatus');
+  if (!confirm('This will update all SowId values in the SowLitter tab to use DB_IDs from PigLog.\n\nAlready-numeric values are skipped. Continue?')) return;
+  if (statusEl) statusEl.textContent = '⏳ Running…';
+  try {
+    const result = await apiPost({ action: 'migrateSowIds' });
+    if (result && result.success) {
+      const msg = `✅ Done — ${result.updated} SowId(s) updated`
+        + (result.notFound > 0 ? `, ${result.notFound} PIG ID(s) not found (check sheet manually)` : '');
+      if (statusEl) statusEl.textContent = msg;
+      showToast(msg);
+      // Flush caches so dropdown reflects updated data
+      sowRecordCache = [];
+      await populateSlSowDropdown();
+    } else {
+      if (statusEl) statusEl.textContent = '❌ ' + (result?.error || 'Failed');
+      showToast(result?.error || 'Migration failed', true);
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Network error';
+    showToast('Migration failed: ' + e.message, true);
+  }
 }
 
 async function runBoarSowMigration() {

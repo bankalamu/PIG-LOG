@@ -107,7 +107,8 @@ function doPost(e) {
     if (action === "moUpdate") return corsRespond(moUpdate(payload.id, payload.data));
     if (action === "moDelete") return corsRespond(moDelete(payload.id));
     if (action === "saveSetting") return corsRespond(saveSetting(payload.key, payload.value));
-    if (action === "migrateBoarSow") return corsRespond(migrateBoarSowToDbId());
+    if (action === "migrateBoarSow")   return corsRespond(migrateBoarSowToDbId());
+    if (action === "migrateSowIds")    return corsRespond(migrateSowLitterSowId());
     return corsRespond({ error: "Unknown action" });
   } catch (err) {
     return corsRespond({ error: err.message });
@@ -1360,9 +1361,107 @@ function migrateBoarSowToDbId() {
     });
   });
 
-  const summary = 'Migrated ' + updated + ' value(s).'
-    + (log.length      ? '\n\nUpdated:\n'              + log.join('\n')      : '')
-    + (notFound.length ? '\n\nNot found (review):\n'  + notFound.join('\n') : '');
-  Logger.log(summary);
-  return { success: true, updated, notFound: notFound.length, message: summary };
+  const summary = 'PigLog: Migrated ' + updated + ' Boar/SOW value(s).'
+    + (log.length      ? '\n\nUpdated:\n'             + log.join('\n')      : '')
+    + (notFound.length ? '\n\nNot found (review):\n' + notFound.join('\n') : '');
+
+  // Also migrate SowLitter.SowId
+  const slResult = migrateSowLitterSowId();
+  const fullSummary = summary + '\n\n' + slResult.message;
+  Logger.log(fullSummary);
+  return { success: true, updated: updated + slResult.updated, notFound: notFound.length + slResult.notFound, message: fullSummary };
 }
+
+// ============================================================
+//  SOWLITTER SowId → DB_ID MIGRATION
+//  Scans every SowLitter row. For SowId values that look like
+//  a PIG ID string, finds the matching DB_ID from PigLog
+//  and replaces it in-place. Already-numeric values are skipped.
+// ============================================================
+function migrateSowLitterSowId() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Build PIG ID → DB_ID lookup from PigLog
+  const pigSheet = getSheet();
+  const pigLastRow = pigSheet.getLastRow();
+  const pigIdToDbId = {};
+
+  if (pigLastRow > 1) {
+    const pigLastCol = pigSheet.getLastColumn();
+    const pigHdr     = pigSheet.getRange(1, 1, 1, pigLastCol).getValues()[0];
+    const pigHdrMap  = {};
+    pigHdr.forEach((h, i) => { if (h) pigHdrMap[String(h).trim()] = i; });
+    const dbIdIdx  = pigHdrMap['DB_ID'];
+    const pigIdIdx = pigHdrMap['PIG ID'];
+    if (dbIdIdx !== undefined && pigIdIdx !== undefined) {
+      const pigData = pigSheet.getRange(2, 1, pigLastRow - 1, pigLastCol).getValues();
+      pigData.forEach(row => {
+        const dbId  = row[dbIdIdx];
+        const pigId = String(row[pigIdIdx] || '').trim();
+        if (dbId !== '' && dbId !== null && pigId) {
+          pigIdToDbId[pigId.toLowerCase()] = dbId;
+        }
+      });
+    }
+  }
+
+  if (Object.keys(pigIdToDbId).length === 0) {
+    return { success: false, updated: 0, notFound: 0, message: 'SowLitter: PigLog has no records to build lookup from.' };
+  }
+
+  // Open SowLitter sheet
+  const slSheet = ss.getSheetByName(SL_SHEET);
+  if (!slSheet) return { success: true, updated: 0, notFound: 0, message: 'SowLitter: sheet not found — skipped.' };
+
+  const slLastRow = slSheet.getLastRow();
+  if (slLastRow <= 1) return { success: true, updated: 0, notFound: 0, message: 'SowLitter: no data rows.' };
+
+  const slLastCol = slSheet.getLastColumn();
+  const slHdr     = slSheet.getRange(1, 1, 1, slLastCol).getValues()[0];
+  const slHdrMap  = {};
+  slHdr.forEach((h, i) => { if (h) slHdrMap[String(h).trim()] = i; });
+
+  const slIdIdx  = slHdrMap['SL_ID'];
+  const sowIdIdx = slHdrMap['SowId'];
+
+  if (sowIdIdx === undefined) {
+    return { success: false, updated: 0, notFound: 0, message: 'SowLitter: SowId column not found. Run migrateAllSheetHeaders first.' };
+  }
+
+  const slData = slSheet.getRange(2, 1, slLastRow - 1, slLastCol).getValues();
+  let updated = 0;
+  const log      = [];
+  const notFound = [];
+
+  slData.forEach((row, i) => {
+    const sheetRow = i + 2;
+    const slId     = slIdIdx !== undefined ? row[slIdIdx] : '?';
+    if (slId === '' || slId === null) return; // skip empty rows
+
+    const val    = row[sowIdIdx];
+    const valStr = String(val || '').trim();
+    if (!valStr) return;
+
+    // Already a numeric DB_ID — skip
+    const asNum = Number(valStr);
+    if (!isNaN(asNum) && asNum > 0 && String(Math.round(asNum)) === valStr) return;
+
+    // Look up PIG ID → DB_ID
+    const matchDbId = pigIdToDbId[valStr.toLowerCase()];
+    if (matchDbId !== undefined) {
+      slSheet.getRange(sheetRow, sowIdIdx + 1).setValue(matchDbId);
+      log.push('  Row ' + sheetRow + ' (SL_ID=' + slId + '): SowId "' + valStr + '" → DB_ID ' + matchDbId);
+      updated++;
+    } else {
+      notFound.push('  Row ' + sheetRow + ' (SL_ID=' + slId + '): SowId "' + valStr + '" — no matching PIG ID found');
+    }
+  });
+
+  const msg = 'SowLitter: Migrated ' + updated + ' SowId value(s).'
+    + (log.length      ? '\n\nUpdated:\n'             + log.join('\n')      : '')
+    + (notFound.length ? '\n\nNot found (review):\n' + notFound.join('\n') : '');
+
+  Logger.log(msg);
+  return { success: true, updated, notFound: notFound.length, message: msg };
+}
+
