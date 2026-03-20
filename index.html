@@ -2062,7 +2062,7 @@
 // ══════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════
-const APP_VERSION    = "2.2";
+const APP_VERSION    = "3.0";
 const SCRIPT_URL_KEY = "piglog_script_url";
 const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
 
@@ -3333,7 +3333,7 @@ function _populateClForm(rec) {
       const el = document.getElementById(id); if (el) el.value = rec[id] || '';
     });
   }
-  // Restore photo timestamps for existing records
+  // Restore photos from saved record URLs
   [1,2,3].forEach(sec => {
     const url      = rec['PhotoUrl'  + sec];
     const time     = rec['PhotoTime' + sec];
@@ -3341,10 +3341,23 @@ function _populateClForm(rec) {
     const reqEl    = document.getElementById('clPhoto'       + sec + 'Req');
     const tsEl     = document.getElementById('clPhotoTs'     + sec);
     const statusEl = document.getElementById('clSec'         + sec + 'Status');
+    const img      = document.getElementById('clPhotoImg'    + sec);
+    const prev     = document.getElementById('clPhotoPreview'+ sec);
+    const clrBtn   = document.getElementById('clPhotoClear'  + sec);
+
     if (url) {
-      if (stat)  stat.textContent = '✅ ' + (time || 'Uploaded');
-      if (reqEl) { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓'; }
-      if (tsEl)  { tsEl.textContent = '📷 ' + (time || ''); tsEl.style.display = time ? 'block' : 'none'; }
+      // Show the photo
+      if (img)    { img.src = url; }
+      if (prev)   prev.style.display   = 'block';
+      if (clrBtn) clrBtn.style.display = 'inline-flex';
+      if (stat)   stat.textContent     = '✅ ' + (time || 'Uploaded');
+      if (reqEl)  { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓'; }
+      if (tsEl)   { tsEl.textContent = '📷 ' + (time || ''); tsEl.style.display = time ? 'block' : 'none'; }
+      // Mark clPhotos so section-complete check knows a photo exists
+      // We store the URL as a proxy — no base64 needed for display
+      if (!clPhotos[sec]) {
+        clPhotos[sec] = { data: null, mime: 'image/jpeg', time: time || '', url };
+      }
     }
     // Mark section as saved if record has data for it
     const secKeys = CL_SEC_KEYS_MAP[sec];
