@@ -2364,8 +2364,31 @@ function buildForm(containerId, prefix) {
       input.type = "text";
       input.className = "form-input";
       input.placeholder = col === "PIG ID" ? "e.g. B1-S2-L3" : col;
-      // Clear error highlight when user types or changes value
-      if (col === "PIG ID" || col === "Boar" || col === "SOW") {
+      if (col === "PIG ID") {
+        // Live duplicate warning as user types
+        input.addEventListener("input", () => {
+          input.style.border = ""; input.style.background = "";
+          const warnId  = input.id + "_dupwarn";
+          let warnEl    = document.getElementById(warnId);
+          const val     = input.value.trim();
+          if (!val) { if (warnEl) warnEl.style.display = "none"; return; }
+          const exists  = allRecords.find(r => String(r["PIG ID"]||"").trim().toLowerCase() === val.toLowerCase());
+          if (exists) {
+            input.style.border     = "2px solid #e07b00";
+            input.style.background = "#fff8f0";
+            if (!warnEl) {
+              warnEl = document.createElement("div");
+              warnEl.id = warnId;
+              warnEl.style.cssText = "font-size:11px;font-weight:700;color:#e07b00;margin-top:3px;padding:4px 8px;background:#fff3e0;border:1px solid #ff9800;border-radius:6px";
+              input.parentElement.appendChild(warnEl);
+            }
+            warnEl.textContent = `⚠ PIG ID "${val}" already exists (DB_ID: ${exists.DB_ID}) — ear tags must be unique`;
+            warnEl.style.display = "block";
+          } else {
+            if (warnEl) warnEl.style.display = "none";
+          }
+        });
+      } else if (col === "Boar" || col === "SOW") {
         input.addEventListener("input", () => { input.style.border = ""; input.style.background = ""; });
       }
     }
@@ -2548,8 +2571,17 @@ async function saveNew() {
   const sexErr = _validateTypeSex("new", data["Type"], data["SEX"]);
   if (sexErr) { showToast(sexErr, true); return; }
 
-  // Client-side duplicate check — same PIG ID + Boar DB_ID + SOW DB_ID
+  // PIG ID must be unique — it is the physical ear tag identifier
   const clean = v => String(v||"").trim().toLowerCase();
+  const pigIdDup = allRecords.find(r => clean(r["PIG ID"]) === clean(pigId));
+  if (pigIdDup) {
+    const pigIdEl = document.getElementById("new_PIG_ID");
+    if (pigIdEl) { pigIdEl.style.border = "2px solid #c0392b"; pigIdEl.style.background = "#fde8e8"; }
+    showToast(`⚠ PIG ID "${pigId}" already exists (DB_ID: ${pigIdDup.DB_ID}). Each pig must have a unique ear tag ID.`, true);
+    return;
+  }
+
+  // Full combo duplicate check — same PIG ID + Boar + SOW
   const dup = allRecords.find(r =>
     clean(r["PIG ID"]) === clean(pigId) &&
     clean(r["Boar"])   === clean(boar)  &&

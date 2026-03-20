@@ -210,6 +210,14 @@ function addRecord(data) {
   // Duplicate check using live header positions
   if (lastRow > 1) {
     const existing = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+    // PIG ID must be unique — it is the physical ear tag
+    const pigIdDup = existing.find(r => String(r[pidIdx]).trim().toLowerCase() === pigId.toLowerCase());
+    if (pigIdDup) {
+      return { success: false, error: `PIG ID "${pigId}" already exists. Each pig must have a unique ear tag ID.` };
+    }
+
+    // Full combo duplicate check
     const dup = existing.find(r =>
       String(r[pidIdx]).trim().toLowerCase() === pigId.toLowerCase() &&
       String(r[borIdx]).trim().toLowerCase() === boar.toLowerCase()  &&
