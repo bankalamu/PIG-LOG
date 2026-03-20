@@ -2222,7 +2222,7 @@ function showPage(id) {
     const err = document.getElementById("searchError");
     if (err) err.style.display = "none";
   }
-  if (id === "pageSowLitter") { allSlRecords = []; setSlView('active'); }
+  if (id === "pageSowLitter") { allSlRecords = []; sowRecordCache = []; setSlView('active'); }
   if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
   if (id === "pageWeekly")   { allWeekly = [];     wkDateChanged(); }
   if (id === "pageMonthly")  { allMonthly = []; _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
@@ -5359,33 +5359,54 @@ let pigIdCache   = [];
 // SL section timestamps — keyed by header ID
 let slSecTimes = {};
 
-async function loadPigIds() {
-  if (pigIdCache.length > 0) return pigIdCache;
-  const result = await apiGet({ action: 'getAll' });
-  if (result && result.success) {
-    pigIdCache = (result.records || [])
-      .map(r => r['PIG ID'])
-      .filter(id => id && String(id).trim() !== '');
-  }
-  return pigIdCache;
+let sowRecordCache = []; // { dbId, pigId } for Type=Sow only
+
+async function loadSowRecords() {
+  // Use allRecords if already loaded (avoids extra API call)
+  const source = allRecords.length > 0 ? allRecords : await (async () => {
+    const r = await apiGet({ action: 'getAll' });
+    return (r && r.success) ? r.records || [] : [];
+  })();
+  sowRecordCache = source
+    .filter(r => String(r['Type'] || '').trim().toLowerCase() === 'sow')
+    .map(r => ({ dbId: String(r['DB_ID']), pigId: String(r['PIG ID'] || '').trim() }))
+    .filter(r => r.dbId && r.pigId)
+    .sort((a, b) => a.pigId.localeCompare(b.pigId));
+  return sowRecordCache;
+}
+
+// Helper: resolve SowId (DB_ID) back to PIG ID for display
+function getSowPigIdFromDbId(dbId) {
+  if (!dbId) return '';
+  const found = sowRecordCache.find(r => r.dbId === String(dbId));
+  if (found) return found.pigId;
+  // Fall back to allRecords
+  const rec = allRecords.find(r => String(r['DB_ID']) === String(dbId));
+  return rec ? String(rec['PIG ID'] || '') : String(dbId);
 }
 
 async function populateSlSowDropdown() {
-  const ids = await loadPigIds();
-  const sel = document.getElementById('slSowId');
+  const sows = await loadSowRecords();
+  const sel  = document.getElementById('slSowId');
   if (!sel) return;
-  const current = sel.value;
-  // Detach onchange briefly to avoid spurious lookup
-  const prev = sel.onchange;
-  sel.onchange = null;
+  const current = sel.value; // preserve current DB_ID selection
+  const prev    = sel.onchange;
+  sel.onchange  = null;
   sel.innerHTML = '<option value="">— Select Sow —</option>';
-  ids.forEach(id => {
+  sows.forEach(({ dbId, pigId }) => {
     const opt = document.createElement('option');
-    opt.value = id; opt.textContent = id;
-    if (id === current) opt.selected = true;
+    opt.value       = dbId;   // store DB_ID
+    opt.textContent = pigId + '  (DB:' + dbId + ')';
+    if (dbId === current) opt.selected = true;
     sel.appendChild(opt);
   });
   sel.onchange = prev;
+  if (!sows.length) {
+    const opt = document.createElement('option');
+    opt.disabled = true;
+    opt.textContent = 'No sows found — add pigs with Type = Sow first';
+    sel.appendChild(opt);
+  }
 }
 
 async function saveWeaningPeriod() {
@@ -5733,7 +5754,8 @@ async function slLookupExisting() {
       return !slIsClosed(r); // only block if that record is still open
     });
     if (sowPenConflict) {
-      const msg = `⚠️ Sow ${sowId} already has an open record in Pen ${pen} (Farrow: ${sowPenConflict.FarrowDate}). Only one open record per Sow + Pen combination is allowed.`;
+      const sowLabel = getSowPigIdFromDbId(sowId) || sowId;
+      const msg = `⚠️ Sow ${sowLabel} already has an open record in Pen ${pen} (Farrow: ${sowPenConflict.FarrowDate}). Only one open record per Sow + Pen combination is allowed.`;
       if (slError) { slError.textContent = msg; slError.style.display = 'block'; }
       document.getElementById('btnSaveSl').disabled = true;
       document.getElementById('btnSaveSl').textContent = 'BLOCKED — Duplicate';
@@ -5752,7 +5774,7 @@ async function slLookupExisting() {
   });
   if (conflict) {
     const gapDays = Math.round(Math.abs(newDate - new Date(conflict.FarrowDate)) / 86400000);
-    const msg = `⚠️ Sow ${sowId} already has a litter record dated ${conflict.FarrowDate} (${gapDays} days apart). A new record requires at least 5 months (150 days) between farrow dates.`;
+    const msg = `⚠️ Sow ${getSowPigIdFromDbId(sowId)||sowId} already has a litter record dated ${conflict.FarrowDate} (${gapDays} days apart). A new record requires at least 5 months (150 days) between farrow dates.`;
     if (slError) { slError.textContent = msg; slError.style.display = 'block'; }
     document.getElementById('btnSaveSl').disabled = true;
     document.getElementById('btnSaveSl').textContent = 'BLOCKED — Too soon';
@@ -5904,7 +5926,8 @@ async function saveSowLitter() {
       return !slIsClosed(r);
     });
     if (sowPenConflict) {
-      showSlErr(`⚠️ Cannot save — Sow ${sowId} already has an open record in Pen ${pen} (Farrow: ${sowPenConflict.FarrowDate}). Close or wean that litter first.`);
+      const sowLabel = getSowPigIdFromDbId(sowId) || sowId;
+      showSlErr(`⚠️ Cannot save — Sow ${sowLabel} already has an open record in Pen ${pen} (Farrow: ${sowPenConflict.FarrowDate}). Close or wean that litter first.`);
       return;
     }
   }
@@ -5919,8 +5942,9 @@ async function saveSowLitter() {
       return Math.abs(newDate - ed) / 86400000 < 150;
     });
     if (conflict) {
-      const gapDays = Math.round(Math.abs(newDate - new Date(conflict.FarrowDate)) / 86400000);
-      showSlErr(`⚠️ Cannot save — Sow ${sowId} already has a record dated ${conflict.FarrowDate} (${gapDays} days ago). Minimum 5 months (150 days) between litters.`);
+      const gapDays  = Math.round(Math.abs(newDate - new Date(conflict.FarrowDate)) / 86400000);
+      const sowLabel = getSowPigIdFromDbId(sowId) || sowId;
+      showSlErr(`⚠️ Cannot save — Sow ${sowLabel} already has a record dated ${conflict.FarrowDate} (${gapDays} days ago). Minimum 5 months (150 days) between litters.`);
       return;
     }
   }
@@ -6025,7 +6049,7 @@ function renderSlActive() {
       ? ' <button class="btn-delete" onclick="event.stopPropagation();slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
       : '';
     return '<div class="cl-record-card" style="cursor:pointer" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">'
-      + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + (rec.SowId||'-') + ' · Day ' + days + urgentBadge + '</div></div>'
+      + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + getSowPigIdFromDbId(rec.SowId) + ' · Day ' + days + urgentBadge + '</div></div>'
       + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + ' · Wean by Day 35</div>'
       + (deleteBtn ? '<div class="cl-record-actions">' + deleteBtn + '</div>' : '')
       + '</div>';
@@ -6063,14 +6087,14 @@ function renderSlHistory() {
       if (days > 35) closeBadge = '<span style="background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">🔒 Day ' + days + ' — Auto-closed</span>';
     }
     return '<div class="cl-record-card">'
-      + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + (rec.SowId||'-') + '</div>' + closeBadge + '</div>'
+      + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + getSowPigIdFromDbId(rec.SowId) + '</div>' + closeBadge + '</div>'
       + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + '</div>'
       + (adminAct ? '<div class="cl-record-actions">' + adminAct + '</div>' : '')
       + '</div>';
   }).join('');
 }
 
-function slOpenRecord(slId) {
+async function slOpenRecord(slId) {
   const rec = allSlRecords.find(r => String(r.SL_ID) === String(slId));
   if (!rec) return;
   slEditId = rec.SL_ID;
@@ -6078,6 +6102,8 @@ function slOpenRecord(slId) {
   // Show form FIRST so elements are visible before populating
   setSlView('form');
 
+  // Refresh sow dropdown (may have changed) then set value by DB_ID
+  await populateSlSowDropdown();
   const sowSel = document.getElementById('slSowId');
   if (sowSel) sowSel.value = rec.SowId || '';
   const fd = document.getElementById('slFarrowDate');
