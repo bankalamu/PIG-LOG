@@ -6527,20 +6527,30 @@ function clLoadHistoryPhoto(imgId, storedUrl) {
   const displayUrl = fileId
     ? 'https://lh3.googleusercontent.com/d/' + fileId
     : storedUrl;
+  const viewUrl = fileId
+    ? 'https://drive.google.com/file/d/' + fileId + '/view'
+    : storedUrl;
 
   img.src = displayUrl;
   img.alt = '';
+  img.style.cursor = 'pointer';
+
+  // Wrap in anchor so tapping opens full-size photo
+  if (!img.parentElement.closest('a')) {
+    const a = document.createElement('a');
+    a.href = viewUrl; a.target = '_blank'; a.rel = 'noopener';
+    img.parentElement.insertBefore(a, img);
+    a.appendChild(img);
+  }
+
   img.onerror = function() {
     this.onerror = null;
     this.style.display = 'none';
-    if (fileId) {
-      const a = document.createElement('a');
-      a.href = 'https://drive.google.com/file/d/' + fileId + '/view';
-      a.target = '_blank'; a.rel = 'noopener';
-      a.style.cssText = 'display:block;text-align:center;padding:8px;background:#f0f7f0;border-radius:8px;font-size:11px;color:#2d6a2d;font-weight:700;text-decoration:none';
-      a.textContent = '📷 Tap to view';
-      this.parentElement.insertBefore(a, this);
-    }
+    const a = document.createElement('a');
+    a.href = viewUrl; a.target = '_blank'; a.rel = 'noopener';
+    a.style.cssText = 'display:block;text-align:center;padding:8px;background:#f0f7f0;border-radius:8px;font-size:11px;color:#2d6a2d;font-weight:700;text-decoration:none';
+    a.textContent = '📷 Tap to view';
+    this.parentElement.insertBefore(a, this);
   };
 }
 
@@ -6572,15 +6582,23 @@ function clSetPhotoImg(sec, storedUrl, time) {
   }
 
   if (img) {
-    img.src = displayUrl;
+    img.src   = displayUrl;
+    img.style.cursor = 'pointer';
+    // Wrap in anchor so tapping opens the full-size photo in Drive
+    const viewUrl = fileId ? 'https://drive.google.com/file/d/' + fileId + '/view' : storedUrl;
+    if (!img.parentElement.closest('a')) {
+      const a = document.createElement('a');
+      a.href = viewUrl; a.target = '_blank'; a.rel = 'noopener';
+      img.parentElement.insertBefore(a, img);
+      a.appendChild(img);
+    } else {
+      img.parentElement.closest('a').href = viewUrl;
+    }
     img.onerror = function() {
-      // Fallback to open link if image fails to load
       this.onerror = null;
       this.style.display = 'none';
       const fallback = document.createElement('a');
-      fallback.href = fileId ? 'https://drive.google.com/file/d/' + fileId + '/view' : storedUrl;
-      fallback.target = '_blank';
-      fallback.rel = 'noopener';
+      fallback.href = viewUrl; fallback.target = '_blank'; fallback.rel = 'noopener';
       fallback.style.cssText = 'display:block;text-align:center;padding:12px;background:#f0f7f0;border-radius:8px;font-size:12px;color:#2d6a2d;font-weight:700;text-decoration:none';
       fallback.textContent = '📷 Tap to view photo';
       this.parentElement.insertBefore(fallback, this);
