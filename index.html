@@ -1884,20 +1884,24 @@
       <div class="notch-inputs">
         <div class="notch-input-group">
           <label>Boar ID</label>
-          <input type="number" id="inputBoar" min="1" max="8" placeholder="1–8" oninput="calcToNotches()">
-          <div class="notch-max">Max: 8</div>
+          <select id="inputBoar" onchange="calcToNotches()" style="padding:8px 6px;border:1.5px solid var(--brand);border-radius:8px;font-size:13px;font-weight:700;background:#fff;color:#000;width:100%">
+            <option value="">— Select —</option>
+          </select>
+          <div class="notch-max">Max notch value: 8</div>
           <div class="notch-error" id="errBoar"></div>
         </div>
         <div class="notch-input-group">
-          <label>Litter ID</label>
+          <label>Litter No.</label>
           <input type="number" id="inputLitter" min="1" max="17" placeholder="1–17" oninput="calcToNotches()">
           <div class="notch-max">Max: 17</div>
           <div class="notch-error" id="errLitter"></div>
         </div>
         <div class="notch-input-group">
           <label>Sow ID</label>
-          <input type="number" id="inputSow" min="9" max="161" placeholder="9–161" oninput="calcToNotches()">
-          <div class="notch-max">Range: 9–161</div>
+          <select id="inputSow" onchange="calcToNotches()" style="padding:8px 6px;border:1.5px solid var(--brand);border-radius:8px;font-size:13px;font-weight:700;background:#fff;color:#000;width:100%">
+            <option value="">— Select —</option>
+          </select>
+          <div class="notch-max">DB_ID range: 9–161</div>
           <div class="notch-error" id="errSow"></div>
         </div>
       </div>
@@ -2034,15 +2038,15 @@
     <div class="notch-results">
       <div class="notch-results-title">Decoded IDs</div>
       <div class="notch-result-row">
-        <div><div class="notch-result-label">🐗 Boar ID</div><div class="notch-result-desc">Left ear · lower · max 8</div></div>
+        <div><div class="notch-result-label">🐗 Boar</div><div class="notch-result-desc">Left ear · lower · max 8</div><div id="resultBoarPigId" style="font-size:11px;color:#888;margin-top:2px"></div></div>
         <div class="notch-result-val" id="resultBoar">—</div>
       </div>
       <div class="notch-result-row">
-        <div><div class="notch-result-label">🐣 Litter ID</div><div class="notch-result-desc">Left ear · upper · max 17</div></div>
+        <div><div class="notch-result-label">🐣 Litter No.</div><div class="notch-result-desc">Left ear · upper · max 17</div></div>
         <div class="notch-result-val" id="resultLitter">—</div>
       </div>
       <div class="notch-result-row">
-        <div><div class="notch-result-label">🐷 Sow ID</div><div class="notch-result-desc">Right ear · max 161</div></div>
+        <div><div class="notch-result-label">🐷 Sow</div><div class="notch-result-desc">Right ear · max 161</div><div id="resultSowPigId" style="font-size:11px;color:#888;margin-top:2px"></div></div>
         <div class="notch-result-val" id="resultSow">—</div>
       </div>
       <div class="notch-result-row">
@@ -2272,6 +2276,7 @@ function showPage(id) {
   if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
   if (id === "pageWeekly")   { allWeekly = [];     wkDateChanged(); }
   if (id === "pageMonthly")  { allMonthly = []; _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
+  if (id === "pageNotch")    { boarRecordCache = []; sowRecordCache = []; populateNotchDropdowns(); }
 }
 
 function goHome() { showPage("pageHome"); }
@@ -4308,8 +4313,14 @@ function _clCheckSectionComplete() {
     const ready       = allAnswered && hasPhoto;
 
     if (allAnswered) {
-      clSecTimes[sec.key] = _clNowTime();
+      // Only stamp the time the FIRST time this section becomes complete.
+      // If a timestamp already exists (section was completed earlier), keep it.
+      if (!clSecTimes[sec.key]) {
+        clSecTimes[sec.key] = _clNowTime();
+      }
     } else {
+      // Section is no longer fully answered — clear the timestamp so it
+      // re-stamps correctly if the user completes it again.
       clSecTimes[sec.key] = '';
     }
 
@@ -6385,29 +6396,74 @@ function _applyNotchState(id) {
 }
 
 // Calculator: given number values, work out which circles to light up
+async function populateNotchDropdowns() {
+  // Boar dropdown — Type=Boar, DB_ID as value (notch value), PIG ID as label
+  const boars = await loadBoarRecords();
+  const boarSel = document.getElementById('inputBoar');
+  if (boarSel) {
+    const cur = boarSel.value;
+    boarSel.innerHTML = '<option value="">— Select Boar —</option>';
+    boars.forEach(({ dbId, pigId }) => {
+      const opt = document.createElement('option');
+      opt.value = dbId;
+      opt.textContent = pigId + '  (DB_ID: ' + dbId + ')';
+      if (dbId === cur) opt.selected = true;
+      boarSel.appendChild(opt);
+    });
+    if (!boars.length) {
+      const opt = document.createElement('option'); opt.disabled = true;
+      opt.textContent = 'No boars in PigLog yet'; boarSel.appendChild(opt);
+    }
+  }
+  // Sow dropdown — Type=Sow, DB_ID as value, valid range 9–161
+  const sows = await loadSowRecords();
+  const sowSel = document.getElementById('inputSow');
+  if (sowSel) {
+    const cur = sowSel.value;
+    sowSel.innerHTML = '<option value="">— Select Sow —</option>';
+    sows.forEach(({ dbId, pigId }) => {
+      const id  = parseInt(dbId, 10);
+      const opt = document.createElement('option');
+      opt.value = dbId;
+      if (id < 9 || id > 161) {
+        opt.textContent = '⚠ ' + pigId + '  (DB_ID: ' + dbId + ' — out of range 9–161)';
+        opt.style.color = '#c0392b';
+      } else {
+        opt.textContent = pigId + '  (DB_ID: ' + dbId + ')';
+      }
+      if (dbId === cur) opt.selected = true;
+      sowSel.appendChild(opt);
+    });
+    if (!sows.length) {
+      const opt = document.createElement('option'); opt.disabled = true;
+      opt.textContent = 'No sows in PigLog yet'; sowSel.appendChild(opt);
+    }
+  }
+}
+
 function calcToNotches() {
-  const boarVal   = parseInt(document.getElementById('inputBoar')?.value   || 0) || 0;
+  const boarSel   = document.getElementById('inputBoar');
+  const sowSel    = document.getElementById('inputSow');
+  const boarVal   = parseInt(boarSel?.value  || 0) || 0;
   const litterVal = parseInt(document.getElementById('inputLitter')?.value || 0) || 0;
-  const sowVal    = parseInt(document.getElementById('inputSow')?.value    || 0) || 0;
+  const sowVal    = parseInt(sowSel?.value   || 0) || 0;
+
+  // Resolve PIG IDs for display
+  const boarPigId = boarVal ? getBoarPigIdFromDbId(String(boarVal)) || ('DB:' + boarVal) : '';
+  const sowPigId  = sowVal  ? getSowPigIdFromDbId(String(sowVal))   || ('DB:' + sowVal)  : '';
 
   // Validate
   const errBoar   = document.getElementById('errBoar');
   const errLitter = document.getElementById('errLitter');
   const errSow    = document.getElementById('errSow');
-  if (errBoar)   errBoar.textContent   = (boarVal   > 8   || boarVal   < 0) ? 'Max 8'   : '';
-  if (errLitter) errLitter.textContent = (litterVal > 17  || litterVal < 0) ? 'Max 17'  : '';
-  if (errSow)    errSow.textContent    = (sowVal > 161 || (sowVal > 0 && sowVal < 9)) ? 'Range: 9–161' : '';
-
-  // Decode into notch counts using the notch system:
-  // Boar (left lower):   uses 3,3,1,1 → max 3+3+1+1=8
-  // Litter (left upper): uses 9,3,3,1,1 → max 9+3+3+1+1=17
-  // Sow (right):         uses 81,27,27,9,9,3,3,1,1 → max 161
+  if (errBoar)   errBoar.textContent   = (boarVal > 8   || boarVal < 0)   ? 'DB_ID exceeds max notch value 8'   : '';
+  if (errLitter) errLitter.textContent = (litterVal > 17 || litterVal < 0) ? 'Max 17'                              : '';
+  if (errSow)    errSow.textContent    = (sowVal > 161 || (sowVal > 0 && sowVal < 9)) ? 'DB_ID must be 9–161 (right ear minimum is 9)' : '';
 
   const boarNotches   = _decomposeValue(boarVal,   [3,3,1,1]);
   const litterNotches = _decomposeValue(litterVal, [9,3,3,1,1]);
   const sowNotches    = _decomposeValue(sowVal,    [81,27,27,9,9,3,3,1,1]);
 
-  // Map decomposition arrays to specific circle IDs (in order matching decompose arrays)
   const assignments = {
     boar:   { ids: ['L_B3a','L_B3b','L_B1a','L_B1b'],                             active: boarNotches   },
     litter: { ids: ['L_L9','L_L3a','L_L3b','L_L1a','L_L1b'],                      active: litterNotches },
@@ -6415,23 +6471,26 @@ function calcToNotches() {
   };
 
   Object.values(assignments).forEach(({ ids, active }) => {
-    ids.forEach((id, i) => {
-      notchActive[id] = !!active[i];
-      _applyNotchState(id);
-    });
+    ids.forEach((id, i) => { notchActive[id] = !!active[i]; _applyNotchState(id); });
   });
 
-  // Update result display
+  // Update result display — show DB_ID number + PIG ID label
   const rB = boarVal   > 0 ? boarVal   : '—';
   const rL = litterVal > 0 ? litterVal : '—';
   const rS = sowVal    > 0 ? sowVal    : '—';
   const rP = (boarVal > 0 && sowVal > 0 && litterVal > 0)
-    ? boarVal + '-' + sowVal + '-' + litterVal : '—';
+    ? 'B' + boarVal + '-S' + sowVal + '-L' + litterVal : '—';
 
   document.getElementById('resultBoar').textContent   = rB;
   document.getElementById('resultLitter').textContent = rL;
   document.getElementById('resultSow').textContent    = rS;
   document.getElementById('resultPigId').textContent  = rP;
+
+  // Show PIG ID labels under the DB_ID values
+  const rBP = document.getElementById('resultBoarPigId');
+  const rSP = document.getElementById('resultSowPigId');
+  if (rBP) rBP.textContent = boarPigId ? boarPigId : '';
+  if (rSP) rSP.textContent = sowPigId  ? sowPigId  : '';
 }
 
 // Greedy decompose: given a value and ordered slot values, mark slots active
