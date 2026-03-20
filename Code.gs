@@ -191,13 +191,16 @@ function addRecord(data) {
   const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
 
-  // All three key fields required
+  // All required fields must be present
+  const required = ["PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "Available"];
+  const missing  = required.filter(f => !String(data[f] || "").trim());
+  if (missing.length > 0) {
+    return { success: false, error: "Required fields missing: " + missing.join(", ") };
+  }
+
   const pigId = String(data["PIG ID"] || "").trim();
   const boar  = String(data["Boar"]   || "").trim();
   const sow   = String(data["SOW"]    || "").trim();
-  if (!pigId || !boar || !sow) {
-    return { success: false, error: "PIG ID, Boar and SOW are all required." };
-  }
 
   const { map, lastCol } = _getPigLogHeaders(sheet);
   const pidIdx  = map["PIG ID"] !== undefined ? map["PIG ID"] : 1;
@@ -232,6 +235,13 @@ function updateRecord(dbId, data) {
   const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records found" };
+
+  // All required fields must be present in the update payload
+  const required = ["PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "Available"];
+  const missing  = required.filter(f => !String(data[f] || "").trim());
+  if (missing.length > 0) {
+    return { success: false, error: "Required fields missing: " + missing.join(", ") };
+  }
 
   const { map, lastCol } = _getPigLogHeaders(sheet);
   const idIdx    = map["DB_ID"]    !== undefined ? map["DB_ID"]    : 0;

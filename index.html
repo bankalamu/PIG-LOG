@@ -2475,17 +2475,24 @@ const REQUIRED_FIELDS = [
 
 function _validateAllFields(prefix, data) {
   const missing = [];
+  let firstMissingEl = null;
   REQUIRED_FIELDS.forEach(({ col, id, label }) => {
     const val = String(data[col] || "").trim();
     const el  = document.getElementById(`${prefix}_${id}`);
     if (!val) {
       missing.push(label);
-      if (el) { el.style.border = "2px solid #c0392b"; el.style.background = "#fde8e8"; }
+      if (el) {
+        el.style.border     = "2px solid #c0392b";
+        el.style.background = "#fde8e8";
+        if (!firstMissingEl) firstMissingEl = el;
+      }
     } else {
       if (el) { el.style.border = ""; el.style.background = ""; }
     }
   });
-  return missing; // empty array = all good
+  // Scroll first missing field into view
+  if (firstMissingEl) firstMissingEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return missing;
 }
 
 // Keep legacy function for backward compat (used by duplicate check highlighting)
@@ -2529,7 +2536,7 @@ async function saveNew() {
   // Validate all required fields
   const missing = _validateAllFields("new", data);
   if (missing.length > 0) {
-    showToast("Required: " + missing.join(", "), true);
+    showToast("⚠ Please complete: " + missing.join(" · "), true);
     return;
   }
 
@@ -2655,7 +2662,7 @@ async function saveEdit() {
   // Validate all required fields regardless of key lock state
   const missing = _validateAllFields("edit", data);
   if (missing.length > 0) {
-    showToast("Required: " + missing.join(", "), true);
+    showToast("⚠ Please complete: " + missing.join(" · "), true);
     return;
   }
 
