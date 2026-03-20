@@ -710,23 +710,18 @@
   <!-- SEARCH / EDIT -->
   <div id="pageSearch" style="display:none">
     <div class="section-title" style="color:var(--brand)">Update Record</div>
-    <div class="section-sub">Enter the PIG ID to load and edit existing data</div>
+    <div class="section-sub">Select a PIG ID to load and edit the record</div>
 
     <div class="search-card">
       <div class="form-group">
         <label class="form-label">PIG ID</label>
-        <input type="text" class="form-input" id="searchInput" placeholder="e.g. B1-S2-L3"
-          onkeydown="if(event.key==='Enter') doSearch()" />
+        <select id="searchInput" class="form-select"
+          onchange="if(this.value) doSearch()"
+          style="font-weight:700;font-size:14px">
+          <option value="">— Select PIG ID —</option>
+        </select>
       </div>
       <div class="search-error" id="searchError" style="display:none"></div>
-      <div class="btn-row" style="margin-top:14px">
-        <button class="btn-primary btn-green" onclick="doSearch()">LOAD RECORD →</button>
-      </div>
-    </div>
-
-    <div id="recentChips" style="display:none">
-      <div class="chips-label">Recent PIG IDs</div>
-      <div class="pig-chips" id="chipsContainer"></div>
     </div>
   </div>
 
@@ -2216,7 +2211,13 @@ function showPage(id) {
   window.scrollTo(0, 0);
 
   if (id === "pageNew") { prepNewForm(); } // async — fire and forget is fine, shows "Fetching…" while loading
-  if (id === "pageSearch") prepSearchPage();
+  if (id === "pageSearch") {
+    prepSearchPage();
+    const sel = document.getElementById("searchInput");
+    if (sel) sel.value = ""; // reset selection each time page is opened
+    const err = document.getElementById("searchError");
+    if (err) err.style.display = "none";
+  }
   if (id === "pageSowLitter") { allSlRecords = []; setSlView('active'); }
   if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
   if (id === "pageWeekly")   { allWeekly = [];     wkDateChanged(); }
@@ -2617,43 +2618,50 @@ async function saveNew() {
 // ── SEARCH ────────────────────────────────────────
 
 function prepSearchPage() {
-  const chips = document.getElementById("chipsContainer");
-  const recentDiv = document.getElementById("recentChips");
-  const ids = [...new Set(allRecords.map(r => r["PIG ID"]).filter(Boolean))].slice(-12);
-  if (ids.length > 0) {
-    chips.innerHTML = "";
-    ids.forEach(id => {
-      const btn = document.createElement("button");
-      btn.className = "pig-chip"; btn.textContent = id;
-      btn.onclick = () => { document.getElementById("searchInput").value = id; doSearch(); };
-      chips.appendChild(btn);
-    });
-    recentDiv.style.display = "block";
-  } else {
-    recentDiv.style.display = "none";
-  }
+  const sel = document.getElementById("searchInput");
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Select PIG ID —</option>';
+  // Sort by PIG ID for easy scanning
+  const sorted = allRecords.slice().sort((a, b) =>
+    String(a["PIG ID"]||"").localeCompare(String(b["PIG ID"]||""))
+  );
+  sorted.forEach(r => {
+    const pigId = String(r["PIG ID"] || "").trim();
+    if (!pigId) return;
+    const opt = document.createElement("option");
+    opt.value = pigId;
+    opt.textContent = pigId + (r.Type ? "  (" + r.Type + ")" : "") + "  · DB:" + r.DB_ID;
+    sel.appendChild(opt);
+  });
+  if (current) sel.value = current; // restore selection if already chosen
 }
 
 async function doSearch() {
   const pigId = document.getElementById("searchInput").value.trim();
   const errEl = document.getElementById("searchError");
-  if (!pigId) { errEl.textContent = "Please enter a PIG ID"; errEl.style.display = "block"; return; }
-
+  if (!pigId) { errEl.textContent = "Please select a PIG ID"; errEl.style.display = "block"; return; }
   errEl.style.display = "none";
-  const result = await apiGet({ action: "getByPigId", pigId });
 
-  if (!result || !result.success) {
-    errEl.textContent = result?.error || `No record found for PIG ID: "${pigId}"`;
-    errEl.style.display = "block";
-    return;
+  // Try allRecords first (already loaded — no API call needed)
+  let rec = allRecords.find(r => String(r["PIG ID"]||"").trim() === pigId);
+
+  // Fall back to API if not found locally (e.g. record added in another session)
+  if (!rec) {
+    const result = await apiGet({ action: "getByPigId", pigId });
+    if (!result || !result.success) {
+      errEl.textContent = result?.error || `No record found for PIG ID: "${pigId}"`;
+      errEl.style.display = "block";
+      return;
+    }
+    rec = result.record;
   }
 
-  const rec = result.record;
   currentEditId = rec.DB_ID;
   document.getElementById("editDbId").textContent = rec.DB_ID;
   document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
-  populatePigDropdowns(); // ensure Boar/SOW options are current before setting values
+  populatePigDropdowns();
   setFormValues("edit", rec);
   _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
   showPage("pageEdit");
