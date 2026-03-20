@@ -748,6 +748,7 @@
     <div class="btn-row">
       <button class="btn-primary btn-green" id="btnSaveEdit" onclick="saveEdit()">SAVE CHANGES</button>
       <button class="btn-cancel" onclick="showPage('pageSearch')">Cancel</button>
+      <button id="btnDeleteRecord" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:800;cursor:pointer;margin-top:8px;width:100%" onclick="deleteCurrentRecord()">🗑 Permanently Delete This Record</button>
     </div>
   </div>
 
@@ -2109,6 +2110,9 @@ function updateAdminBadge() {
   if (wkAdmin) wkAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
   const homeAdmin = document.getElementById('homeAdminPanel');
   if (homeAdmin) homeAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
+  // Show delete button on edit form only in admin mode
+  const delBtn = document.getElementById('btnDeleteRecord');
+  if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
 }
 
 async function runBoarSowMigration() {
@@ -2664,6 +2668,9 @@ async function doSearch() {
   populatePigDropdowns();
   setFormValues("edit", rec);
   _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
+  // Show delete button only in admin mode
+  const delBtn = document.getElementById('btnDeleteRecord');
+  if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
   showPage("pageEdit");
 }
 
@@ -2857,10 +2864,46 @@ function editFromList(dbId) {
   document.getElementById("editDbId").textContent = rec.DB_ID;
   document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
-  populatePigDropdowns(); // ensure Boar/SOW options are current before setting values
+  populatePigDropdowns();
   setFormValues("edit", rec);
   _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
+  const delBtn = document.getElementById('btnDeleteRecord');
+  if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
   showPage("pageEdit");
+}
+
+async function deleteCurrentRecord() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!currentEditId) { showToast('No record loaded', true); return; }
+
+  // Get the PIG ID for the confirmation message
+  const rec    = allRecords.find(r => Number(r.DB_ID) === Number(currentEditId));
+  const pigId  = rec ? rec["PIG ID"] : `DB_ID ${currentEditId}`;
+  const typeStr= rec?.Type ? ` (${rec.Type})` : '';
+
+  const confirmed = confirm(
+    `⚠ PERMANENTLY DELETE this record?\n\n` +
+    `PIG ID: ${pigId}${typeStr}\n` +
+    `DB_ID:  ${currentEditId}\n\n` +
+    `This cannot be undone. The pig will be removed from the database entirely.\n\n` +
+    `Tap OK to confirm permanent deletion.`
+  );
+  if (!confirmed) return;
+
+  const btn = document.getElementById('btnDeleteRecord');
+  if (btn) { btn.disabled = true; btn.textContent = '🗑 Deleting…'; }
+
+  const result = await apiPost({ action: 'delete', id: currentEditId });
+
+  if (result && result.success) {
+    showToast(`✓ "${pigId}" permanently deleted`);
+    currentEditId = null;
+    await loadRecords();
+    showPage('pageSearch'); // return to search after deletion
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = '🗑 Permanently Delete This Record'; }
+    showToast(result?.error || 'Delete failed', true);
+  }
 }
 
 async function deleteRecord(dbId) {
