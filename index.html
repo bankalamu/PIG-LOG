@@ -2138,6 +2138,10 @@ function updateAdminBadge() {
   if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
   const delSlBtn = document.getElementById('btnDeleteSl');
   if (delSlBtn) delSlBtn.style.display = isAdminEnabled() ? 'block' : 'none';
+  // Re-apply section locks — saved sections unlock for admin, re-lock for non-admin
+  [1,2,3].forEach(s => {
+    if (clSecSaved[s]) clLockSection(s, !isAdminEnabled());
+  });
 }
 
 async function runSowIdMigration() {
@@ -3193,13 +3197,14 @@ function _clClearAllFields() {
     if (el) { el.style.display = 'none'; el.textContent = ''; }
   });
   [1,2,3].forEach(s => clPhotoClear(s));
-  // Reset section save buttons and status banners
+  // Reset and unlock section save buttons
   [1,2,3].forEach(s => {
     clSecSaved[s] = false;
+    clLockSection(s, false); // ensure unlocked for fresh record
     const btn      = document.getElementById('btnSaveSec'   + s);
     const badge    = document.getElementById('clSec'        + s + 'SavedBadge');
     const statusEl = document.getElementById('clSec'        + s + 'Status');
-    if (btn)      { btn.disabled = true; btn.style.background = '#aaa'; btn.style.cursor = 'not-allowed'; btn.textContent = '💾 Save ' + CL_SEC_LABELS[s] + ' Section'; }
+    if (btn)      { btn.disabled = true; btn.style.background = '#aaa'; btn.style.cursor = 'not-allowed'; btn.style.opacity = '1'; btn.textContent = '💾 Save ' + CL_SEC_LABELS[s] + ' Section'; }
     if (badge)    badge.style.display = 'none';
     if (statusEl) { statusEl.textContent = '📋 checks + photo needed'; statusEl.style.background = '#fff3e0'; statusEl.style.color = '#e65100'; statusEl.style.border = '1px solid #ff9800'; statusEl.style.display = 'inline'; }
   });
@@ -3235,6 +3240,64 @@ function clToggleLactating(forceState) {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+  }
+}
+
+// Lock or unlock an individual section (checks + photo + save button)
+// Admin can always unlock. Non-admin: saved sections stay locked.
+function clLockSection(sec, lock) {
+  const secKeyMap = { 1: CL_SEC1_KEYS, 2: CL_SEC2_KEYS, 3: CL_SEC3_KEYS };
+  const keys = secKeyMap[sec] || [];
+
+  // When admin unlocks a saved section, allow it to be re-saved
+  if (!lock && clSecSaved[sec]) {
+    clSecSaved[sec] = false;
+  }
+
+  // Lock/unlock toggle buttons for this section's keys
+  keys.forEach(k => {
+    document.querySelectorAll(`#clBody .check-item[data-key="${k}"] .toggle-btn`).forEach(b => {
+      b.style.pointerEvents = lock ? 'none' : '';
+      b.style.opacity       = lock ? '0.45' : '';
+    });
+  });
+
+  // Lock/unlock photo input and clear button
+  const photoInput = document.getElementById('clPhotoInput' + sec);
+  const photoClear = document.getElementById('clPhotoClear' + sec);
+  const photoLabel = document.querySelector(`label[for="clPhotoInput${sec}"]`);
+  if (photoInput) photoInput.disabled = lock;
+  if (photoLabel) { photoLabel.style.opacity = lock ? '0.45' : '1'; photoLabel.style.pointerEvents = lock ? 'none' : ''; }
+  if (photoClear) { photoClear.style.opacity = lock ? '0.45' : '1'; photoClear.style.pointerEvents = lock ? 'none' : ''; }
+
+  // Save button state
+  const saveBtn = document.getElementById('btnSaveSec' + sec);
+  if (saveBtn) {
+    if (lock) {
+      saveBtn.disabled          = true;
+      saveBtn.style.background  = '#2d6a2d';
+      saveBtn.style.cursor      = 'not-allowed';
+      saveBtn.style.opacity     = '0.6';
+    } else {
+      // Unlock — re-evaluate readiness
+      saveBtn.style.opacity = '1';
+      saveBtn.style.cursor  = 'pointer';
+      // Re-enable only if section is complete (checks + photo)
+      const allAnswered = keys.every(k => clState[k] !== null && clState[k] !== undefined);
+      const hasPhoto    = !!clPhotos[sec];
+      saveBtn.disabled  = !(allAnswered && hasPhoto);
+      saveBtn.style.background = (allAnswered && hasPhoto) ? '#2d6a2d' : '#aaa';
+    }
+  }
+
+  // Section overlay label
+  const statusEl = document.getElementById('clSec' + sec + 'Status');
+  if (statusEl && lock) {
+    statusEl.textContent      = '🔒 Saved — Admin only to edit';
+    statusEl.style.background = '#f0f0f0';
+    statusEl.style.color      = '#888';
+    statusEl.style.border     = '1px solid #ccc';
+    statusEl.style.display    = 'inline';
   }
 }
 
@@ -3293,6 +3356,8 @@ function _populateClForm(rec) {
       if (btn)      { btn.textContent = '✅ ' + CL_SEC_LABELS[sec] + ' Saved'; btn.style.background = '#2d6a2d'; btn.disabled = true; }
       if (badge)    badge.style.display = 'inline-block';
       if (statusEl) { statusEl.textContent = '✅ Saved'; statusEl.style.background = '#e8f5e8'; statusEl.style.color = '#2d6a2d'; statusEl.style.border = '1px solid #2d6a2d'; }
+      // Lock section for non-admin
+      if (!isAdminEnabled()) clLockSection(sec, true);
     }
   });
   CL_KEYS.forEach(k => {
@@ -3544,11 +3609,9 @@ async function saveSection(sec) {
     if (badge) badge.style.display = 'inline-block';
     const statusEl = document.getElementById('clSec' + sec + 'Status');
     if (statusEl) { statusEl.textContent = '✅ Saved'; statusEl.style.background = '#e8f5e8'; statusEl.style.color = '#2d6a2d'; statusEl.style.border = '1px solid #2d6a2d'; }
-    if (btn)   {
-      btn.textContent   = '✅ ' + label + ' Saved';
-      btn.style.background = '#2d6a2d';
-      btn.style.cursor  = 'default';
-    }
+    if (btn) { btn.textContent = '✅ ' + label + ' Saved'; btn.style.background = '#2d6a2d'; btn.style.cursor = 'default'; }
+    // Lock the section for non-admin — admin can still edit
+    clLockSection(sec, !isAdminEnabled());
     // Update in-memory
     const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clEditId));
     if (idx !== -1) allChecklists[idx] = { ...allChecklists[idx], ...data, CL_ID: clEditId };
