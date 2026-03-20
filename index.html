@@ -666,6 +666,21 @@
         <div class="card-desc">Growth review, health programme &amp; farm management</div>
       </div>
     </button>
+
+    <!-- Admin-only: data migration tools -->
+    <div id="homeAdminPanel" style="display:none;margin-top:18px;background:#fff9c4;border:1.5px solid #f59e0b;border-radius:12px;padding:14px 16px">
+      <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:10px">⚙️ Admin — Data Tools</div>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Migrate Boar/SOW to DB_ID</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">Updates all existing PigLog records to store Boar and SOW as their DB_ID instead of PIG ID string. Safe to run multiple times — already-migrated records are skipped.</div>
+        <button onclick="runBoarSowMigration()"
+          style="background:#f59e0b;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;color:#000">
+          🔄 Run Migration
+        </button>
+        <span id="migrationStatus" style="margin-left:10px;font-size:11px;color:#555"></span>
+      </div>
+    </div>
   </div>
 
   <!-- NEW PIG FORM -->
@@ -2093,10 +2108,35 @@ function updateAdminBadge() {
     badge.innerHTML = "🔒 Admin";
   }
   // Show/hide admin-only panels
-  const clAdmin = document.getElementById('clAdminSettings');
+  const clAdmin   = document.getElementById('clAdminSettings');
   if (clAdmin) clAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
-  const wkAdmin = document.getElementById('wkAdminSettings');
+  const wkAdmin   = document.getElementById('wkAdminSettings');
   if (wkAdmin) wkAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
+  const homeAdmin = document.getElementById('homeAdminPanel');
+  if (homeAdmin) homeAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
+}
+
+async function runBoarSowMigration() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const statusEl = document.getElementById('migrationStatus');
+  if (!confirm('This will update all Boar/SOW values in PigLog to use DB_IDs.\n\nAlready-migrated records are skipped. Continue?')) return;
+  if (statusEl) statusEl.textContent = '⏳ Running…';
+  try {
+    const result = await apiPost({ action: 'migrateBoarSow' });
+    if (result && result.success) {
+      const msg = `✅ Done — ${result.updated} record(s) updated` + (result.notFound > 0 ? `, ${result.notFound} not found (check console)` : '');
+      if (statusEl) statusEl.textContent = msg;
+      showToast(msg);
+      // Reload records so dropdowns reflect updated values
+      await loadRecords();
+    } else {
+      if (statusEl) statusEl.textContent = '❌ ' + (result?.error || 'Failed');
+      showToast(result?.error || 'Migration failed', true);
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Network error';
+    showToast('Migration failed: ' + e.message, true);
+  }
 }
 
 function toggleAdminMode() {

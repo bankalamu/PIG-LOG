@@ -107,6 +107,7 @@ function doPost(e) {
     if (action === "moUpdate") return corsRespond(moUpdate(payload.id, payload.data));
     if (action === "moDelete") return corsRespond(moDelete(payload.id));
     if (action === "saveSetting") return corsRespond(saveSetting(payload.key, payload.value));
+    if (action === "migrateBoarSow") return corsRespond(migrateBoarSowToDbId());
     return corsRespond({ error: "Unknown action" });
   } catch (err) {
     return corsRespond({ error: err.message });
@@ -1276,3 +1277,74 @@ function diagnoseSheetHeaders() {
 
 
 
+
+// ============================================================
+//  BOAR/SOW → DB_ID MIGRATION
+// ============================================================
+function migrateBoarSowToDbId() {
+  const sheet   = getSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, message: 'No data rows to migrate.' };
+
+  const lastCol = sheet.getLastColumn();
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const hdrMap  = {};
+  hdrRow.forEach((h, i) => { if (h) hdrMap[String(h).trim()] = i; });
+
+  const dbIdIdx = hdrMap['DB_ID'];
+  const pigIdIdx= hdrMap['PIG ID'];
+  const boarIdx = hdrMap['Boar'];
+  const sowIdx  = hdrMap['SOW'];
+
+  if (dbIdIdx === undefined || pigIdIdx === undefined || boarIdx === undefined || sowIdx === undefined) {
+    return { success: false, error: 'Required columns not found. Run migrateAllSheetHeaders first.' };
+  }
+
+  // Build lookup: PIG ID (lowercase) → DB_ID
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const pigIdToDbId = {};
+  data.forEach(row => {
+    const dbId  = row[dbIdIdx];
+    const pigId = String(row[pigIdIdx] || '').trim();
+    if (dbId !== '' && dbId !== null && pigId) {
+      pigIdToDbId[pigId.toLowerCase()] = dbId;
+    }
+  });
+
+  let updated = 0;
+  const log      = [];
+  const notFound = [];
+
+  data.forEach((row, i) => {
+    const sheetRow = i + 2;
+    const rowDbId  = row[dbIdIdx];
+    if (rowDbId === '' || rowDbId === null) return;
+
+    ['Boar', 'SOW'].forEach(field => {
+      const colIdx = field === 'Boar' ? boarIdx : sowIdx;
+      const val    = row[colIdx];
+      const valStr = String(val || '').trim();
+      if (!valStr) return;
+
+      // Already a numeric DB_ID — skip
+      const asNum = Number(valStr);
+      if (!isNaN(asNum) && asNum > 0 && String(Math.round(asNum)) === valStr) return;
+
+      // Look up PIG ID → DB_ID
+      const matchDbId = pigIdToDbId[valStr.toLowerCase()];
+      if (matchDbId !== undefined) {
+        sheet.getRange(sheetRow, colIdx + 1).setValue(matchDbId);
+        log.push('Row ' + sheetRow + ' (DB_ID=' + rowDbId + '): ' + field + ' "' + valStr + '" → ' + matchDbId);
+        updated++;
+      } else {
+        notFound.push('Row ' + sheetRow + ' (DB_ID=' + rowDbId + '): ' + field + ' "' + valStr + '" — PIG ID not found');
+      }
+    });
+  });
+
+  const summary = 'Migrated ' + updated + ' value(s).'
+    + (log.length      ? '\n\nUpdated:\n'              + log.join('\n')      : '')
+    + (notFound.length ? '\n\nNot found (review):\n'  + notFound.join('\n') : '');
+  Logger.log(summary);
+  return { success: true, updated, notFound: notFound.length, message: summary };
+}
