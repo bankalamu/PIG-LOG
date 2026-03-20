@@ -68,7 +68,8 @@ function corsRespond(data) {
 function doGet(e) {
   const action = e.parameter.action;
   try {
-    if (action === "getAll")     return respond(getAllRecords());
+    if (action === "getAll")       return respond(getAllRecords());
+    if (action === "getNextDbId")  return respond({ success: true, nextId: getNextId(getSheet()) });
     if (action === "getByPigId") return respond(getByPigId(e.parameter.pigId));
     if (action === "clGetAll")   return respond(clGetAll());
     if (action === "slGetAll")   return respond(slGetAll());

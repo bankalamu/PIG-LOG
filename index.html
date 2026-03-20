@@ -674,8 +674,12 @@
     <div class="section-sub">PIG ID format: BOAR#-SOW#-LitterNumber (e.g. B1-S2-L3)</div>
 
     <div class="db-id-badge">
-      <span class="db-id-label">DB_ID (Auto-assigned)</span>
+      <span class="db-id-label">DB_ID (Auto-assigned by server)</span>
       <span class="db-id-val" id="newDbId">—</span>
+    </div>
+    <div style="font-size:11px;color:#555;background:#f8f9f8;border:1px solid #ddd;border-radius:7px;padding:8px 12px;margin-bottom:12px;line-height:1.6">
+      ℹ️ <strong>DB_ID</strong> is permanently assigned by the server and never changes — it uniquely identifies this pig for life.<br>
+      <strong>Boar / SOW</strong> are linked by their DB_ID so the parent relationship is preserved even if their physical ear tags are renamed later.
     </div>
 
     <div class="form-card">
@@ -717,8 +721,11 @@
     <div class="section-sub" id="editSub">DB_ID is read-only</div>
 
     <div class="db-id-badge">
-      <span class="db-id-label">DB_ID (Read-only)</span>
+      <span class="db-id-label">DB_ID (Read-only — permanent)</span>
       <span class="db-id-val" id="editDbId">—</span>
+    </div>
+    <div style="font-size:11px;color:#555;background:#f8f9f8;border:1px solid #ddd;border-radius:7px;padding:8px 12px;margin-bottom:12px;line-height:1.6">
+      ℹ️ <strong>Boar / SOW</strong> are stored as DB_IDs — changing the Boar or SOW's PIG ID tag will not break the parent link for any records.
     </div>
 
     <div class="form-card">
@@ -2168,7 +2175,7 @@ function showPage(id) {
   document.getElementById("searchError").style.display = "none";
   window.scrollTo(0, 0);
 
-  if (id === "pageNew") prepNewForm();
+  if (id === "pageNew") { prepNewForm(); } // async — fire and forget is fine, shows "Fetching…" while loading
   if (id === "pageSearch") prepSearchPage();
   if (id === "pageSowLitter") { allSlRecords = []; setSlView('active'); }
   if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
@@ -2385,12 +2392,31 @@ function clearForm(prefix) {
 
 // ── NEW ───────────────────────────────────────────
 
-function prepNewForm() {
+async function prepNewForm() {
   clearForm("new");
-  const nextId = allRecords.length > 0
-    ? Math.max(...allRecords.map(r => Number(r.DB_ID) || 0)) + 1
-    : 1;
-  document.getElementById("newDbId").textContent = nextId;
+  populatePigDropdowns();
+  // Show loading state
+  const dbIdEl = document.getElementById("newDbId");
+  if (dbIdEl) dbIdEl.textContent = "Fetching…";
+
+  // Always fetch from server — the sheet is the single source of truth for DB_ID
+  try {
+    const r = await apiGet({ action: "getNextDbId" });
+    if (r && r.success && r.nextId) {
+      if (dbIdEl) dbIdEl.textContent = r.nextId;
+    } else {
+      // Fallback to local estimate if server unreachable
+      const localNext = allRecords.length > 0
+        ? Math.max(...allRecords.map(rec => Number(rec.DB_ID) || 0)) + 1
+        : 1;
+      if (dbIdEl) dbIdEl.textContent = localNext + " (estimated — verify when online)";
+    }
+  } catch(e) {
+    const localNext = allRecords.length > 0
+      ? Math.max(...allRecords.map(rec => Number(rec.DB_ID) || 0)) + 1
+      : 1;
+    if (dbIdEl) dbIdEl.textContent = localNext + " (estimated — verify when online)";
+  }
 }
 
 // Highlight missing/invalid key fields with red border
@@ -2466,10 +2492,11 @@ async function saveNew() {
   btn.disabled = false; btn.textContent = "SAVE RECORD";
 
   if (result && result.success) {
-    showToast("✓ Record saved!");
+    const assignedId = result.db_id || result.newId || '?';
+    showToast(`✓ Record saved! DB_ID assigned: ${assignedId}`);
     await loadRecords();
     clearForm("new");
-    prepNewForm();
+    await prepNewForm(); // fetch fresh next ID from server
   } else {
     showToast(result?.error || "Save failed", true);
   }
@@ -2514,6 +2541,7 @@ async function doSearch() {
   document.getElementById("editDbId").textContent = rec.DB_ID;
   document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
+  populatePigDropdowns(); // ensure Boar/SOW options are current before setting values
   setFormValues("edit", rec);
   _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
   showPage("pageEdit");
@@ -2573,7 +2601,9 @@ async function saveEdit() {
         const el = document.getElementById(`edit_${id}`);
         if (el) { el.style.border = "2px solid #c0392b"; el.style.background = "#fde8e8"; }
       });
-      showToast(`Duplicate — "${pigId}" / Boar "${boar}" / SOW "${sow}" already exists (DB_ID: ${dup.DB_ID})`, true);
+      const boarLabel = getPigIdFromDbId(boar);
+      const sowLabel  = getPigIdFromDbId(sow);
+      showToast(`Duplicate — "${pigId}" / Boar "${boarLabel}" / SOW "${sowLabel}" already exists (DB_ID: ${dup.DB_ID})`, true);
       return;
     }
   }
@@ -2678,8 +2708,8 @@ function renderList() {
         </div>
       </div>
       <div class="record-fields">
-        ${rec.Boar ? `<span><span class="field-label">Boar: </span><span style="${keyStyle}">${getPigIdFromDbId(rec.Boar)}</span></span>` : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No Boar</span>`}
-        ${rec.SOW  ? `<span><span class="field-label">Sow: </span><span style="${keyStyle}">${getPigIdFromDbId(rec.SOW)}</span></span>`  : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No SOW</span>`}
+        ${rec.Boar ? `<span><span class="field-label">Boar: </span><span style="${keyStyle}">${getPigIdFromDbId(rec.Boar)} <span style="font-size:10px;color:#888">(DB:${rec.Boar})</span></span></span>` : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No Boar</span>`}
+        ${rec.SOW  ? `<span><span class="field-label">Sow: </span><span style="${keyStyle}">${getPigIdFromDbId(rec.SOW)} <span style="font-size:10px;color:#888">(DB:${rec.SOW})</span></span></span>`  : `<span style="color:#c0392b;font-size:11px;font-weight:700">⚠ No SOW</span>`}
         ${rec.Type     ? `<span><span class="field-label">Type: </span>${rec.Type}</span>` : ""}
         ${rec.Stage    ? `<span><span class="field-label">Stage: </span>${rec.Stage}</span>` : ""}
         ${rec.DOB      ? `<span><span class="field-label">DOB: </span>${rec.DOB}</span>` : ""}
@@ -2704,6 +2734,7 @@ function editFromList(dbId) {
   document.getElementById("editDbId").textContent = rec.DB_ID;
   document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
+  populatePigDropdowns(); // ensure Boar/SOW options are current before setting values
   setFormValues("edit", rec);
   _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
   showPage("pageEdit");
