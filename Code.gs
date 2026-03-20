@@ -77,6 +77,7 @@ function doGet(e) {
     if (action === "moGetAll")   return respond(moGetAll());
     if (action === "moDedup")    return respond(moDeduplicateAll());
     if (action === "getSetting") return respond(getSetting(e.parameter.key));
+    if (action === "getPhoto")   return respond(getPhotoAsBase64(e.parameter.fileId));
     return respond({ error: "Unknown action" });
   } catch (err) {
     return respond({ error: err.message });
@@ -537,17 +538,16 @@ function clSavePhoto(clId, photoBase64, mimeType, photoTime, section) {
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     const fileId   = file.getId();
     const viewUrl  = "https://drive.google.com/file/d/" + fileId + "/view";
-    const thumbUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w800";
 
-    // Update the correct section's PhotoUrl/PhotoTime columns
-    // Store thumbUrl as PhotoUrl — it works directly in <img src> tags
+    // Store "drive:{fileId}" — frontend fetches via getPhoto action (bypasses CORS)
+    const photoUrl = 'drive:' + fileId;
     const updateData = {};
-    updateData['PhotoUrl'  + sec] = thumbUrl;
+    updateData['PhotoUrl'  + sec] = photoUrl;
     if (photoTime) updateData['PhotoTime' + sec] = photoTime;
     const result = clUpdate(clId, updateData);
     if (!result.success) return { success: false, error: "Photo saved to Drive but sheet update failed: " + result.error };
 
-    return { success: true, viewUrl, thumbUrl, fileId, section: sec };
+    return { success: true, viewUrl, fileId, photoUrl, section: sec };
   } catch(e) {
     return { success: false, error: "Photo save failed: " + e.message };
   }
@@ -558,6 +558,20 @@ function clSavePhoto(clId, photoBase64, mimeType, photoTime, section) {
 function testDriveAccess() {
   const folder = DriveApp.getRootFolder();
   Logger.log("Drive access OK. Root folder: " + folder.getName());
+}
+
+// Fetch a Drive file and return it as a base64 data URL — bypasses CORS for <img> tags
+function getPhotoAsBase64(fileId) {
+  try {
+    if (!fileId) return { success: false, error: 'No fileId provided' };
+    const file  = DriveApp.getFileById(fileId);
+    const blob  = file.getBlob();
+    const mime  = blob.getContentType() || 'image/jpeg';
+    const b64   = Utilities.base64Encode(blob.getBytes());
+    return { success: true, dataUrl: 'data:' + mime + ';base64,' + b64 };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
 }
 
 const SL_SHEET = "SowLitter";
