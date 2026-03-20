@@ -1210,7 +1210,7 @@
       <!-- Sow ID + Farrow Date header — 2-column grid, mobile-friendly -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
 
-        <!-- Row 1: Sow ID · Farrow Date -->
+        <!-- Row 1: Sow ID · Litter Boar -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Sow ID</label>
           <select id="slSowId" class="form-input" onchange="slLookupExisting()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
@@ -1219,21 +1219,29 @@
           <datalist id="slSowOptions"></datalist>
         </div>
         <div style="display:flex;flex-direction:column">
+          <label class="form-label">Litter Boar <span style="font-size:10px;font-weight:600;color:#c0392b">*required to close</span></label>
+          <select id="slLitterBoar" class="form-input" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px" onchange="slClearBoarError()">
+            <option value="">— Select Boar —</option>
+          </select>
+        </div>
+
+        <!-- Row 2: Farrow Date · Pen No. -->
+        <div style="display:flex;flex-direction:column">
           <label class="form-label">Farrow Date</label>
           <input type="date" id="slFarrowDate" class="form-input" style="font-size:13px;padding:6px 8px" onchange="slLookupExisting()">
         </div>
-
-        <!-- Row 2: Pen No. · Foster -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Pen No.</label>
           <input type="number" id="slPen" min="1" max="999" placeholder="1" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700" oninput="slLookupExisting();slCalcTotalPiglets()">
         </div>
+
+        <!-- Row 3: Foster · Total -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Foster <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
           <input type="number" id="slFoster" min="0" max="20" step="1" placeholder="0" class="form-input" style="font-weight:700;font-size:13px;padding:6px 8px" oninput="slCalcTotalPiglets()">
         </div>
 
-        <!-- Row 3: Total · Mortality -->
+        <!-- Row 4: Total · Mortality -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Total <span style="font-size:10px;font-weight:400;color:#666">(Foster + Nursing)</span></label>
           <div id="slTotalPiglets" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:7px 10px;font-size:20px;font-weight:900;color:#2d6a2d;text-align:center;min-height:38px;line-height:1.3">—</div>
@@ -2257,7 +2265,7 @@ function showPage(id) {
     const err = document.getElementById("searchError");
     if (err) err.style.display = "none";
   }
-  if (id === "pageSowLitter") { allSlRecords = []; sowRecordCache = []; setSlView('active'); }
+  if (id === "pageSowLitter") { allSlRecords = []; sowRecordCache = []; boarRecordCache = []; setSlView('active'); }
   if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
   if (id === "pageWeekly")   { allWeekly = [];     wkDateChanged(); }
   if (id === "pageMonthly")  { allMonthly = []; _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
@@ -5420,17 +5428,40 @@ function getSowPigIdFromDbId(dbId) {
   return rec ? String(rec['PIG ID'] || '') : String(dbId);
 }
 
+let boarRecordCache = []; // { dbId, pigId } for Type=Boar only
+
+async function loadBoarRecords() {
+  const source = allRecords.length > 0 ? allRecords : await (async () => {
+    const r = await apiGet({ action: 'getAll' });
+    return (r && r.success) ? r.records || [] : [];
+  })();
+  boarRecordCache = source
+    .filter(r => String(r['Type'] || '').trim().toLowerCase() === 'boar')
+    .map(r => ({ dbId: String(r['DB_ID']), pigId: String(r['PIG ID'] || '').trim() }))
+    .filter(r => r.dbId && r.pigId)
+    .sort((a, b) => a.pigId.localeCompare(b.pigId));
+  return boarRecordCache;
+}
+
+function getBoarPigIdFromDbId(dbId) {
+  if (!dbId) return '';
+  const found = boarRecordCache.find(r => r.dbId === String(dbId));
+  if (found) return found.pigId;
+  const rec = allRecords.find(r => String(r['DB_ID']) === String(dbId));
+  return rec ? String(rec['PIG ID'] || '') : String(dbId);
+}
+
 async function populateSlSowDropdown() {
   const sows = await loadSowRecords();
   const sel  = document.getElementById('slSowId');
   if (!sel) return;
-  const current = sel.value; // preserve current DB_ID selection
+  const current = sel.value;
   const prev    = sel.onchange;
   sel.onchange  = null;
   sel.innerHTML = '<option value="">— Select Sow —</option>';
   sows.forEach(({ dbId, pigId }) => {
     const opt = document.createElement('option');
-    opt.value       = dbId;   // store DB_ID
+    opt.value       = dbId;
     opt.textContent = pigId + '  (DB:' + dbId + ')';
     if (dbId === current) opt.selected = true;
     sel.appendChild(opt);
@@ -5442,6 +5473,32 @@ async function populateSlSowDropdown() {
     opt.textContent = 'No sows found — add pigs with Type = Sow first';
     sel.appendChild(opt);
   }
+}
+
+async function populateSlBoarDropdown() {
+  const boars = await loadBoarRecords();
+  const sel   = document.getElementById('slLitterBoar');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Select Boar —</option>';
+  boars.forEach(({ dbId, pigId }) => {
+    const opt = document.createElement('option');
+    opt.value       = dbId;
+    opt.textContent = pigId + '  (DB:' + dbId + ')';
+    if (dbId === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (!boars.length) {
+    const opt = document.createElement('option');
+    opt.disabled = true;
+    opt.textContent = 'No boars found — add pigs with Type = Boar first';
+    sel.appendChild(opt);
+  }
+}
+
+function slClearBoarError() {
+  const sel = document.getElementById('slLitterBoar');
+  if (sel) { sel.style.border = ''; sel.style.background = ''; }
 }
 
 async function saveWeaningPeriod() {
@@ -5458,6 +5515,7 @@ function initSowLitter() {
   const fd = document.getElementById('slFarrowDate');
   if (fd && !fd.value) fd.value = today;
   populateSlSowDropdown();
+  populateSlBoarDropdown();
   slUpdateDayInfo();
 }
 
@@ -5826,6 +5884,12 @@ async function slLookupExisting() {
 function _populateSlForm(rec) {
   if(document.getElementById('slPen'))   document.getElementById('slPen').value   = rec.Pen   || '';
   if(document.getElementById('slNotes')) document.getElementById('slNotes').value = rec.Notes || '';
+  // Restore LitterBoar (stored as DB_ID)
+  const boarSel = document.getElementById('slLitterBoar');
+  if (boarSel) {
+    boarSel.value = rec.LitterBoar || '';
+    boarSel.style.border = ''; boarSel.style.background = '';
+  }
   const byMap = {
     slBy_litter:'ByLitter', slBy_nursing:'ByNursing', slBy_sowtreat:'BySowTreat',
     slBy_milestones:'ByMilestones', slBy_d01:'ByD01', slBy_d23:'ByD23',
@@ -5925,7 +5989,7 @@ function resetSowLitter() {
   slEditId = null;
   _clearSlTasks();
   const today = new Date().toISOString().split('T')[0];
-  ['slSowId','slPen','slNotes'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['slSowId','slLitterBoar','slPen','slNotes'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
   const slErr = document.getElementById('slValidationError');
   if (slErr) slErr.style.display = 'none';
   const btn = document.getElementById('btnSaveSl');
@@ -5952,6 +6016,20 @@ async function saveSowLitter() {
   hideSlErr();
   if (!sowId)      { showSlErr('⚠️ Please select a Sow ID before saving.'); return; }
   if (!farrowDate) { showSlErr('⚠️ Please enter a Farrow Date before saving.'); return; }
+
+  // LitterBoar required — always required to save and especially to close
+  const litterBoar    = (document.getElementById('slLitterBoar')?.value || '').trim();
+  const dateWeanedVal = (document.getElementById('sl_date_weaned')?.value || '').trim();
+  if (!litterBoar) {
+    const boarSel = document.getElementById('slLitterBoar');
+    if (boarSel) { boarSel.style.border = '2px solid #c0392b'; boarSel.style.background = '#fde8e8'; boarSel.scrollIntoView({ behavior:'smooth', block:'center' }); }
+    if (dateWeanedVal) {
+      showSlErr('⚠️ Litter Boar is required before this record can be closed/weaned. Please select the boar that sired this litter.');
+    } else {
+      showSlErr('⚠️ Please select the Litter Boar before saving.');
+    }
+    return;
+  }
 
   // SOW + Pen open-record uniqueness guard
   if (!slEditId && pen) {
@@ -5997,7 +6075,8 @@ async function saveSowLitter() {
   const g = id => document.getElementById(id)?.value?.trim() || '';
   const totalPigletsEl = document.getElementById('slTotalPiglets');
   const data = {
-    SowId: sowId, FarrowDate: farrowDate, Pen: pen, Notes: notes,
+    SowId: sowId, LitterBoar: (document.getElementById('slLitterBoar')?.value||'').trim(),
+    FarrowDate: farrowDate, Pen: pen, Notes: notes,
     sl_foster:       fosterRaw || '',
     sl_total_piglets: totalPigletsEl?.dataset?.value || '',
     sl_mortality:    document.getElementById('slMortality')?.dataset?.value || '',
@@ -6085,7 +6164,7 @@ function renderSlActive() {
       : '';
     return '<div class="cl-record-card" style="cursor:pointer" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">'
       + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + getSowPigIdFromDbId(rec.SowId) + ' · Day ' + days + urgentBadge + '</div></div>'
-      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + ' · Wean by Day 35</div>'
+      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + (rec.LitterBoar ? ' · Boar: ' + getBoarPigIdFromDbId(rec.LitterBoar) : '') + ' · Wean by Day 35</div>'
       + (deleteBtn ? '<div class="cl-record-actions">' + deleteBtn + '</div>' : '')
       + '</div>';
   }).join('');
@@ -6137,13 +6216,14 @@ async function slOpenRecord(slId) {
   // Show form FIRST so elements are visible before populating
   setSlView('form');
 
-  // Refresh sow dropdown (may have changed) then set value by DB_ID
+  // Refresh both dropdowns then set values by DB_ID
   await populateSlSowDropdown();
+  await populateSlBoarDropdown();
   const sowSel = document.getElementById('slSowId');
   if (sowSel) sowSel.value = rec.SowId || '';
   const fd = document.getElementById('slFarrowDate');
   if (fd) fd.value = rec.FarrowDate || '';
-  _populateSlForm(rec);
+  _populateSlForm(rec); // also sets LitterBoar
 
   // Force colour refresh after render
   setTimeout(slRefreshColors, 50);
