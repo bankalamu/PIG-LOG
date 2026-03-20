@@ -3351,8 +3351,8 @@ function _populateClForm(rec) {
       if (!clPhotos[sec]) {
         clPhotos[sec] = { data: null, mime: 'image/jpeg', time: time || '', url };
       }
-      // Async load the actual image via proxy
-      clLoadPhotoForSection(sec, url);
+      // Load photo directly into img element
+      clSetPhotoImg(sec, url, time);
     }
     // Mark section as saved if record has data for it
     const secKeys = CL_SEC_KEYS_MAP[sec];
@@ -6511,80 +6511,87 @@ async function populateNotchDropdowns() {
   }
 }
 
-// Load a photo into a history view img element via proxy
-async function clLoadHistoryPhoto(imgId, storedUrl) {
+// Load a photo into a history view img element using direct URL
+function clLoadHistoryPhoto(imgId, storedUrl) {
   const img = document.getElementById(imgId);
   if (!img || !storedUrl) return;
+
   let fileId = null;
   if (storedUrl.startsWith('drive:')) {
     fileId = storedUrl.slice(6);
   } else {
-    const m = storedUrl.match(/\/d\/([A-Za-z0-9_-]{20,})|[?&]id=([A-Za-z0-9_-]{20,})/);
+    const m = storedUrl.match(/\/d\/([A-Za-z0-9_-]{25,})|[?&]id=([A-Za-z0-9_-]{25,})/);
     if (m) fileId = m[1] || m[2];
   }
-  if (!fileId) { img.alt = '⚠'; return; }
-  try {
-    const result = await apiGet({ action: 'getPhoto', fileId });
-    if (result?.success && result.dataUrl) {
-      img.src = result.dataUrl; img.alt = '';
-    } else {
-      img.alt = '⚠ Unavailable';
+
+  const displayUrl = fileId
+    ? 'https://lh3.googleusercontent.com/d/' + fileId
+    : storedUrl;
+
+  img.src = displayUrl;
+  img.alt = '';
+  img.onerror = function() {
+    this.onerror = null;
+    this.style.display = 'none';
+    if (fileId) {
+      const a = document.createElement('a');
+      a.href = 'https://drive.google.com/file/d/' + fileId + '/view';
+      a.target = '_blank'; a.rel = 'noopener';
+      a.style.cssText = 'display:block;text-align:center;padding:8px;background:#f0f7f0;border-radius:8px;font-size:11px;color:#2d6a2d;font-weight:700;text-decoration:none';
+      a.textContent = '📷 Tap to view';
+      this.parentElement.insertBefore(a, this);
     }
-  } catch(e) { img.alt = '⚠'; }
+  };
 }
 
-// Fetch a photo through the Apps Script proxy (bypasses CORS)
-// Handles both "drive:{fileId}" format and legacy URL formats
-async function clLoadPhotoForSection(sec, storedUrl) {
+// Load a photo into an img element - handles all Drive URL formats directly
+function clSetPhotoImg(sec, storedUrl, time) {
   const img    = document.getElementById('clPhotoImg'    + sec);
   const prev   = document.getElementById('clPhotoPreview'+ sec);
   const clrBtn = document.getElementById('clPhotoClear'  + sec);
   const stat   = document.getElementById('clPhotoStatus' + sec);
   const reqEl  = document.getElementById('clPhoto'       + sec + 'Req');
+  const tsEl   = document.getElementById('clPhotoTs'     + sec);
 
   if (!storedUrl) return;
 
-  // Extract fileId from any known format
+  // Extract fileId from any Drive URL format
+  let displayUrl = storedUrl;
   let fileId = null;
+
   if (storedUrl.startsWith('drive:')) {
     fileId = storedUrl.slice(6);
   } else {
-    // Legacy: /file/d/{fileId}/view  or  /thumbnail?id={fileId}  or  uc?export=view&id={fileId}
-    const m = storedUrl.match(/\/d\/([A-Za-z0-9_-]{20,})|[?&]id=([A-Za-z0-9_-]{20,})/);
+    const m = storedUrl.match(/\/d\/([A-Za-z0-9_-]{25,})|[?&]id=([A-Za-z0-9_-]{25,})/);
     if (m) fileId = m[1] || m[2];
   }
 
-  if (!fileId) {
-    // Unknown URL format — try setting directly and hope CORS allows it
-    if (img)  img.src = storedUrl;
-    if (prev) prev.style.display = 'block';
-    if (clrBtn) clrBtn.style.display = 'inline-flex';
-    clPhotos[sec] = { data: null, mime: 'image/jpeg', time: '', url: storedUrl };
-    return;
+  // Use direct download URL — works cross-origin in img tags
+  if (fileId) {
+    displayUrl = 'https://lh3.googleusercontent.com/d/' + fileId;
   }
 
-  // Show a loading placeholder while fetching
-  if (img)    { img.src = ''; img.alt = '⏳ Loading…'; }
-  if (prev)   prev.style.display = 'block';
-  if (stat)   stat.textContent   = '⏳ Loading photo…';
-
-  try {
-    const result = await apiGet({ action: 'getPhoto', fileId });
-    if (result && result.success && result.dataUrl) {
-      if (img)    { img.src = result.dataUrl; img.alt = ''; }
-      if (stat)   stat.textContent   = '✅ Photo loaded';
-      if (reqEl)  { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓'; }
-      if (clrBtn) clrBtn.style.display = 'inline-flex';
-      // Store in clPhotos so section-complete check knows photo exists
-      clPhotos[sec] = { data: null, mime: 'image/jpeg', time: '', url: result.dataUrl };
-    } else {
-      if (img)  img.alt = '⚠ Photo unavailable';
-      if (stat) stat.textContent = '⚠ Could not load photo';
-    }
-  } catch(e) {
-    if (img)  img.alt = '⚠ Photo unavailable';
-    if (stat) stat.textContent = '⚠ Load failed';
+  if (img) {
+    img.src = displayUrl;
+    img.onerror = function() {
+      // Fallback to open link if image fails to load
+      this.onerror = null;
+      this.style.display = 'none';
+      const fallback = document.createElement('a');
+      fallback.href = fileId ? 'https://drive.google.com/file/d/' + fileId + '/view' : storedUrl;
+      fallback.target = '_blank';
+      fallback.rel = 'noopener';
+      fallback.style.cssText = 'display:block;text-align:center;padding:12px;background:#f0f7f0;border-radius:8px;font-size:12px;color:#2d6a2d;font-weight:700;text-decoration:none';
+      fallback.textContent = '📷 Tap to view photo';
+      this.parentElement.insertBefore(fallback, this);
+    };
   }
+  if (prev)   prev.style.display   = 'block';
+  if (clrBtn) clrBtn.style.display = 'inline-flex';
+  if (stat)   stat.textContent     = '✅ ' + (time || 'Uploaded');
+  if (reqEl)  { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓'; }
+  if (tsEl)   { tsEl.textContent = '📷 ' + (time || ''); tsEl.style.display = time ? 'block' : 'none'; }
+
 }
 
 function calcToNotches() {

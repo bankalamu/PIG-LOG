@@ -539,15 +539,14 @@ function clSavePhoto(clId, photoBase64, mimeType, photoTime, section) {
     const fileId   = file.getId();
     const viewUrl  = "https://drive.google.com/file/d/" + fileId + "/view";
 
-    // Store "drive:{fileId}" — frontend fetches via getPhoto action (bypasses CORS)
-    const photoUrl = 'drive:' + fileId;
+    // Store the viewUrl — frontend extracts fileId and builds lh3.googleusercontent.com URL
     const updateData = {};
-    updateData['PhotoUrl'  + sec] = photoUrl;
+    updateData['PhotoUrl'  + sec] = viewUrl;
     if (photoTime) updateData['PhotoTime' + sec] = photoTime;
     const result = clUpdate(clId, updateData);
     if (!result.success) return { success: false, error: "Photo saved to Drive but sheet update failed: " + result.error };
 
-    return { success: true, viewUrl, fileId, photoUrl, section: sec };
+    return { success: true, viewUrl, fileId, section: sec };
   } catch(e) {
     return { success: false, error: "Photo save failed: " + e.message };
   }
