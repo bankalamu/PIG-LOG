@@ -3346,17 +3346,22 @@ function _populateClForm(rec) {
     const clrBtn   = document.getElementById('clPhotoClear'  + sec);
 
     if (url) {
+      // Convert legacy /view URLs to embeddable thumbnail URLs
+      let displayUrl = url;
+      const viewMatch = url.match(/\/file\/d\/([^\/]+)\/view/);
+      if (viewMatch) {
+        displayUrl = 'https://drive.google.com/thumbnail?id=' + viewMatch[1] + '&sz=w800';
+      }
       // Show the photo
-      if (img)    { img.src = url; }
+      if (img)    { img.src = displayUrl; }
       if (prev)   prev.style.display   = 'block';
       if (clrBtn) clrBtn.style.display = 'inline-flex';
       if (stat)   stat.textContent     = '✅ ' + (time || 'Uploaded');
       if (reqEl)  { reqEl.style.color = '#2d6a2d'; reqEl.textContent = '✓'; }
       if (tsEl)   { tsEl.textContent = '📷 ' + (time || ''); tsEl.style.display = time ? 'block' : 'none'; }
       // Mark clPhotos so section-complete check knows a photo exists
-      // We store the URL as a proxy — no base64 needed for display
       if (!clPhotos[sec]) {
-        clPhotos[sec] = { data: null, mime: 'image/jpeg', time: time || '', url };
+        clPhotos[sec] = { data: null, mime: 'image/jpeg', time: time || '', url: displayUrl };
       }
     }
     // Mark section as saved if record has data for it
@@ -3648,7 +3653,7 @@ async function saveSection(sec) {
         if (r?.success) {
           const i = allChecklists.findIndex(r2 => String(r2.CL_ID) === String(clEditId));
           if (i !== -1) {
-            allChecklists[i]['PhotoUrl' + sec]  = r.viewUrl;
+            allChecklists[i]['PhotoUrl' + sec]  = r.thumbUrl || r.viewUrl;
             allChecklists[i]['PhotoTime' + sec] = p.time;
           }
         }
@@ -3986,7 +3991,7 @@ async function clUploadPhotos(clId) {
         if (stat) stat.textContent = '✅ Uploaded';
         const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
         if (idx !== -1) {
-          allChecklists[idx]['PhotoUrl'  + sec] = result.viewUrl;
+          allChecklists[idx]['PhotoUrl'  + sec] = result.thumbUrl || result.viewUrl;
           allChecklists[idx]['PhotoTime' + sec] = p.time;
         }
       } else {
@@ -4270,7 +4275,7 @@ async function clHistoryPhotoSelected(input, clId, sec) {
         showToast('✅ Photo uploaded');
         const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
         if (idx !== -1) {
-          allChecklists[idx]['PhotoUrl'  + (sec||1)] = result.viewUrl;
+          allChecklists[idx]['PhotoUrl'  + (sec||1)] = result.thumbUrl || result.viewUrl;
           allChecklists[idx]['PhotoTime' + (sec||1)] = photoTime;
         }
         renderChecklistHistory();

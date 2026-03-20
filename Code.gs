@@ -537,11 +537,12 @@ function clSavePhoto(clId, photoBase64, mimeType, photoTime, section) {
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     const fileId   = file.getId();
     const viewUrl  = "https://drive.google.com/file/d/" + fileId + "/view";
-    const thumbUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w400";
+    const thumbUrl = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w800";
 
     // Update the correct section's PhotoUrl/PhotoTime columns
+    // Store thumbUrl as PhotoUrl — it works directly in <img src> tags
     const updateData = {};
-    updateData['PhotoUrl'  + sec] = viewUrl;
+    updateData['PhotoUrl'  + sec] = thumbUrl;
     if (photoTime) updateData['PhotoTime' + sec] = photoTime;
     const result = clUpdate(clId, updateData);
     if (!result.success) return { success: false, error: "Photo saved to Drive but sheet update failed: " + result.error };
