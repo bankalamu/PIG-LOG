@@ -2093,7 +2093,7 @@ const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","Serv
 const SEX_OPTS      = ["","Male","Female","Barrow"];
 const TYPE_OPTS     = ["","Boar","Gilt","Barrow","Sow","Piglet"];
 const STAGE_OPTS    = ["","Pocker","Grower","Cull","Breeding","Finisher"];
-const STATUS_OPTS      = ["","Active","Sold","Deceased"];
+const STATUS_OPTS      = ["","Active","Grower","Finisher","Sold","Deceased"];
 const SOW_STATUS_OPTS  = ["","Active","Servicing","Gestation","Farrowing","Lactating","Weaning","Sold","Deceased"];
 const BOAR_STATUS_OPTS = ["","Active","Servicing","Sold","Deceased"];
 const AVAILABLE_OPTS = ["","Yes","Yes Boar","Yes Sow","No"];
@@ -2603,16 +2603,23 @@ function getFormValues(prefix) {
 }
 
 function setFormValues(prefix, record) {
+  // Set Type first so Status options update correctly before Status value is assigned
+  const typeEl = document.getElementById(`${prefix}_Type`);
+  if (typeEl && record['Type'] !== undefined) {
+    typeEl.value = record['Type'];
+    _updateStatusOpts(prefix); // rebuild Status options to match Type
+  }
   COLUMNS.forEach(col => {
     const el = document.getElementById(`${prefix}_${col.replace(/\s/g, "_")}`);
     if (!el) return;
     if ((col === 'Boar' || col === 'SOW') && el.tagName === 'SELECT') {
-      // record stores DB_ID; match by value
       el.value = record[col] !== undefined ? String(record[col]) : '';
     } else {
       el.value = record[col] !== undefined ? record[col] : '';
     }
   });
+  // After all values set, ensure service fields show/hide correctly
+  _toggleServiceFields(prefix);
 }
 
 function clearForm(prefix) {
