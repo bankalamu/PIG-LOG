@@ -1214,7 +1214,7 @@
         <!-- Row 1: Sow ID · Litter Boar -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Sow ID</label>
-          <select id="slSowId" class="form-input" onchange="slLookupExisting();slUpdateEstFarrowDate()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
+          <select id="slSowId" class="form-input" onchange="slLookupExisting();slUpdateEstFarrowDate();slAutoPopulateBoar()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
             <option value="">— Select —</option>
           </select>
           <datalist id="slSowOptions"></datalist>
@@ -5738,15 +5738,47 @@ function getBoarPigIdFromDbId(dbId) {
   return rec ? String(rec['PIG ID'] || '') : String(dbId);
 }
 
+// Auto-populate Litter Boar from the selected Sow's last Sire (DB_ID)
+function slAutoPopulateBoar() {
+  const sowId   = (document.getElementById('slSowId')?.value || '').trim();
+  const boarSel = document.getElementById('slLitterBoar');
+  if (!boarSel) return;
+
+  // Only auto-set if not already manually chosen
+  const alreadySet = boarSel.value && boarSel.value !== '';
+
+  if (!sowId) {
+    if (!alreadySet) boarSel.value = '';
+    return;
+  }
+
+  // Find the sow record and read its Sire field
+  const sowRec = allRecords.find(r => String(r.DB_ID) === sowId);
+  const sireDbId = sowRec?.Sire || sowRec?.['Sire'] || '';
+
+  if (sireDbId) {
+    // Auto-set to the sow's last Sire DB_ID
+    boarSel.value = String(sireDbId);
+    // Show confirmation note
+    const boarPigId = getBoarPigIdFromDbId(String(sireDbId)) || ('DB:' + sireDbId);
+    let note = document.getElementById('slLitterBoarNote');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'slLitterBoarNote';
+      note.style.cssText = 'font-size:11px;color:#1a3a8a;margin-top:3px;font-weight:600';
+      boarSel.parentElement.appendChild(note);
+    }
+    note.textContent = '🔗 Auto-filled from sow\'s last service: ' + boarPigId + ' (DB:' + sireDbId + ')';
+  } else {
+    // No sire on record — clear note and let user pick manually
+    if (!alreadySet) boarSel.value = '';
+    const note = document.getElementById('slLitterBoarNote');
+    if (note) note.textContent = 'ℹ️ No service record found — please select manually';
+  }
+}
 // Auto-populate Est. Farrow Date = Sow's ServiceDate + 115 days
 function slUpdateEstFarrowDate() {
   const sowId = (document.getElementById('slSowId')?.value || '').trim();
-  const el    = document.getElementById('slEstFarrowDate');
-  if (!el) return;
-  if (!sowId) { el.textContent = '—'; el.dataset.value = ''; return; }
-
-  const sowRec = allRecords.find(r => String(r.DB_ID) === sowId);
-  const serviceDate = sowRec?.ServiceDate || sowRec?.['ServiceDate'] || '';
   if (!serviceDate) { el.textContent = '— (no service date on sow record)'; el.dataset.value = ''; return; }
 
   const sd  = new Date(serviceDate);
@@ -6304,6 +6336,7 @@ function resetSowLitter() {
   _clearSlTasks();
   const today = new Date().toISOString().split('T')[0];
   ['slSowId','slLitterBoar','slPen','slNotes'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
+  const noteEl = document.getElementById('slLitterBoarNote'); if (noteEl) noteEl.textContent = '';
   const slErr = document.getElementById('slValidationError');
   if (slErr) slErr.style.display = 'none';
   const btn = document.getElementById('btnSaveSl');
