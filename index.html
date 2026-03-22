@@ -769,6 +769,7 @@
       <button class="btn-edit" style="flex:none;padding:8px 14px;font-size:13px" onclick="showPage('pageNew')">+ Add New</button>
     </div>
     <input type="text" class="list-search" id="listSearch" placeholder="Search records…" oninput="renderList()" />
+    <div id="preFarrowBanner" style="display:none;margin-bottom:10px;padding:10px 14px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;color:#7b0000"></div>
     <div id="dupDiagBanner" style="display:none;margin-bottom:10px;padding:8px 12px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:8px;font-size:11px;font-family:monospace;color:#333;word-break:break-all"></div>
     <div id="listContainer"></div>
   </div>
@@ -1213,7 +1214,7 @@
         <!-- Row 1: Sow ID · Litter Boar -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Sow ID</label>
-          <select id="slSowId" class="form-input" onchange="slLookupExisting()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
+          <select id="slSowId" class="form-input" onchange="slLookupExisting();slUpdateEstFarrowDate()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
             <option value="">— Select —</option>
           </select>
           <datalist id="slSowOptions"></datalist>
@@ -1235,7 +1236,11 @@
           <input type="number" id="slPen" min="1" max="999" placeholder="1" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700" oninput="slLookupExisting();slCalcTotalPiglets()">
         </div>
 
-        <!-- Row 3: Foster · Total -->
+        <!-- Row 3: Est. Farrow Date (auto) · Foster -->
+        <div style="display:flex;flex-direction:column">
+          <label class="form-label">Est. Farrow Date <span style="font-size:10px;font-weight:400;color:#666">(Service + 115 days)</span></label>
+          <div id="slEstFarrowDate" style="background:#e8f0ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:14px;font-weight:800;color:#1a3a8a;min-height:38px;display:flex;align-items:center">—</div>
+        </div>
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Foster <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
           <input type="number" id="slFoster" min="0" max="20" step="1" placeholder="0" class="form-input" style="font-weight:700;font-size:13px;padding:6px 8px" oninput="slCalcTotalPiglets()">
@@ -2084,11 +2089,13 @@ let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
 })();
 
 // ── PigLog column definitions — DO NOT reorder without updating Code.gs HEADERS ──
-const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","Weight","Dewormed","Pen","Notes","Available"];
+const COLUMNS = ["PIG ID","Boar","SOW","DOB","SEX","Type","Stage","Status","ServiceDate","Sire","Weight","Dewormed","Pen","Notes","Available"];
 const SEX_OPTS      = ["","Male","Female","Barrow"];
 const TYPE_OPTS     = ["","Boar","Gilt","Barrow","Sow","Piglet"];
 const STAGE_OPTS    = ["","Pocker","Grower","Cull","Breeding","Finisher"];
-const STATUS_OPTS   = ["","Active","Sold","Deceased"];
+const STATUS_OPTS      = ["","Active","Sold","Deceased"];
+const SOW_STATUS_OPTS  = ["","Active","Servicing","Gestation","Farrowing","Lactating","Weaning","Sold","Deceased"];
+const BOAR_STATUS_OPTS = ["","Active","Servicing","Gestation","Farrowing","Lactating","Weaning","Sold","Deceased"];
 const AVAILABLE_OPTS = ["","Yes","Yes Boar","Yes Sow","No"];
 
 // Type → required Sex mapping (type lowercase → required sex lowercase)
@@ -2380,6 +2387,7 @@ function buildForm(containerId, prefix) {
       input = document.createElement("select");
       input.className = "form-select";
       TYPE_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
+      input.addEventListener("change", () => { _updateStatusOpts(prefix); _toggleServiceFields(prefix); });
     } else if (col === "Stage") {
       input = document.createElement("select");
       input.className = "form-select";
@@ -2387,7 +2395,41 @@ function buildForm(containerId, prefix) {
     } else if (col === "Status") {
       input = document.createElement("select");
       input.className = "form-select";
+      // Populate based on current Type value; will be updated dynamically
       STATUS_OPTS.forEach(o => { const opt = document.createElement("option"); opt.value = o; opt.textContent = o || "Select…"; input.appendChild(opt); });
+      input.setAttribute("data-statusfield", "true");
+      // Watch for status change to show/hide service fields
+      input.addEventListener("change", () => {
+        input.style.border = ""; input.style.background = "";
+        _toggleServiceFields(prefix);
+      });
+    } else if (col === "ServiceDate") {
+      // Hidden by default — shown when Status = Servicing
+      div.id = `${prefix}_ServiceDate_group`;
+      div.style.display = "none";
+      label.textContent = "Service Date ✱";
+      input = document.createElement("input");
+      input.type = "date";
+      input.className = "form-input";
+      // Default to today when shown
+      input.value = new Date().toISOString().split("T")[0];
+      input.addEventListener("change", () => { input.style.border = ""; input.style.background = ""; });
+    } else if (col === "Sire") {
+      // Hidden by default — shown when Status = Servicing
+      div.id = `${prefix}_Sire_group`;
+      div.style.display = "none";
+      label.textContent = "Sire (Boar) ✱";
+      const wrapper = document.createElement("div");
+      input = document.createElement("select");
+      input.className = "form-select";
+      input.innerHTML = `<option value="">— Select Boar —</option>`;
+      input.setAttribute("data-sirefield", "true");
+      input.addEventListener("change", () => { input.style.border = ""; input.style.background = ""; });
+      input.id = `${prefix}_Sire`;
+      wrapper.appendChild(input);
+      div.appendChild(wrapper);
+      container.appendChild(div);
+      return;
     } else if (col === "Available") {
       input = document.createElement("select");
       input.className = "form-select";
@@ -2462,6 +2504,73 @@ function buildForm(containerId, prefix) {
   });
 }
 
+// Update Status dropdown options based on current Type selection
+function _updateStatusOpts(prefix) {
+  const typeSel   = document.getElementById(`${prefix}_Type`);
+  const statusSel = document.getElementById(`${prefix}_Status`);
+  if (!typeSel || !statusSel) return;
+  const type    = String(typeSel.value || "").trim().toLowerCase();
+  const current = statusSel.value;
+  const opts    = (type === "sow" || type === "gilt") ? SOW_STATUS_OPTS
+                : type === "boar"                     ? BOAR_STATUS_OPTS
+                : STATUS_OPTS;
+  statusSel.innerHTML = "";
+  opts.forEach(o => {
+    const opt = document.createElement("option");
+    opt.value = o; opt.textContent = o || "Select…";
+    if (o === current) opt.selected = true;
+    statusSel.appendChild(opt);
+  });
+  // Also add Pre-Farrowing if it's the current value (auto-set, not in list)
+  if (current === "Pre-Farrowing" && !opts.includes("Pre-Farrowing")) {
+    const opt = document.createElement("option");
+    opt.value = "Pre-Farrowing"; opt.textContent = "Pre-Farrowing";
+    opt.selected = true;
+    statusSel.appendChild(opt);
+  }
+}
+
+// Show/hide ServiceDate + Sire fields when Status=Servicing (Sow, Gilt, or Boar)
+function _toggleServiceFields(prefix) {
+  const typeSel   = document.getElementById(`${prefix}_Type`);
+  const statusSel = document.getElementById(`${prefix}_Status`);
+  const sdGroup   = document.getElementById(`${prefix}_ServiceDate_group`);
+  const sireGroup = document.getElementById(`${prefix}_Sire_group`);
+  if (!typeSel || !statusSel) return;
+  const type   = String(typeSel.value   || "").trim().toLowerCase();
+  const status = String(statusSel.value || "").trim().toLowerCase();
+  const show   = (type === "sow" || type === "gilt" || type === "boar") && status === "servicing";
+  if (sdGroup) {
+    sdGroup.style.display = show ? "" : "none";
+    if (show) {
+      const sdEl = document.getElementById(`${prefix}_ServiceDate`);
+      if (sdEl && !sdEl.value) sdEl.value = new Date().toISOString().split("T")[0];
+    }
+  }
+  if (sireGroup) {
+    sireGroup.style.display = show ? "" : "none";
+    if (show) _populateSireDropdown(prefix);
+  }
+}
+
+// Populate the Sire dropdown with all Boar records (DB_ID → PIG ID)
+function _populateSireDropdown(prefix) {
+  const sel = document.getElementById(`${prefix}_Sire`);
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Select Boar —</option>';
+  allRecords
+    .filter(r => String(r.Type || "").trim().toLowerCase() === "boar")
+    .sort((a, b) => String(a["PIG ID"]).localeCompare(String(b["PIG ID"])))
+    .forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = String(r.DB_ID);
+      opt.textContent = String(r["PIG ID"]) + "  (DB:" + r.DB_ID + ")";
+      if (String(r.DB_ID) === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+}
+
 function populatePigDropdowns() {
   // Fill all Boar/SOW selects with current allRecords (DB_ID → PIG ID)
   document.querySelectorAll('select[data-pigfield]').forEach(sel => {
@@ -2518,6 +2627,8 @@ function clearForm(prefix) {
 async function prepNewForm() {
   clearForm("new");
   populatePigDropdowns();
+  _updateStatusOpts("new");
+  _toggleServiceFields("new");
   // Show loading state
   const dbIdEl = document.getElementById("newDbId");
   if (dbIdEl) dbIdEl.textContent = "Fetching…";
@@ -2573,7 +2684,27 @@ function _validateAllFields(prefix, data) {
       if (el) { el.style.border = ""; el.style.background = ""; }
     }
   });
-  // Scroll first missing field into view
+
+  // Conditional: ServiceDate + Sire required when Type=Sow/Gilt and Status=Servicing
+  const type   = String(data["Type"]   || "").trim().toLowerCase();
+  const status = String(data["Status"] || "").trim().toLowerCase();
+  if ((type === "sow" || type === "gilt") && status === "servicing") {
+    ["ServiceDate","Sire"].forEach(col => {
+      const val = String(data[col] || "").trim();
+      const el  = document.getElementById(`${prefix}_${col.replace(/\s/g,"_")}`);
+      if (!val) {
+        missing.push(col === "ServiceDate" ? "Service Date" : "Sire");
+        if (el) {
+          el.style.border     = "2px solid #c0392b";
+          el.style.background = "#fde8e8";
+          if (!firstMissingEl) firstMissingEl = el;
+        }
+      } else {
+        if (el) { el.style.border = ""; el.style.background = ""; }
+      }
+    });
+  }
+
   if (firstMissingEl) firstMissingEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   return missing;
 }
@@ -2722,6 +2853,8 @@ async function doSearch() {
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
   populatePigDropdowns();
   setFormValues("edit", rec);
+  _updateStatusOpts("edit");
+  _toggleServiceFields("edit");
   _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
   // Show delete button only in admin mode
   const delBtn = document.getElementById('btnDeleteRecord');
@@ -2818,19 +2951,15 @@ function renderList() {
   const filter    = document.getElementById("listSearch").value.toLowerCase();
   const container = document.getElementById("listContainer");
   const diagBanner = document.getElementById('dupDiagBanner');
+  const preFarrowBanner = document.getElementById('preFarrowBanner');
 
-  // ── Duplicate detection runs over ALL records (not filtered) ──
-  // A duplicate = same PIG ID + same Boar + same SOW on two or more records.
-  // Only skip records with no PIG ID at all (completely blank key).
-  // Empty Boar/SOW is a valid key segment — two records with same PIG ID and
-  // both Boar+SOW blank ARE duplicates.
+  // ── Duplicate detection ──
   const clean  = v => String(v === null || v === undefined ? "" : v).trim().toLowerCase().replace(/\s+/g, " ");
   const dupIds = new Set();
   const keyMap = {};
-
   allRecords.forEach(r => {
     const p = clean(r["PIG ID"]);
-    if (!p) return; // skip records with no PIG ID whatsoever
+    if (!p) return;
     const b = clean(r["Boar"]);
     const s = clean(r["SOW"]);
     const k = p + "|||" + b + "|||" + s;
@@ -2841,7 +2970,64 @@ function renderList() {
     if (ids.length > 1) ids.forEach(id => dupIds.add(id));
   });
 
-  // ── Debug banner ──
+  // ── Pre-Farrowing detection — sows with ServiceDate within 7 days of estimated farrow ──
+  const today = new Date(); today.setHours(0,0,0,0);
+  const preFarrowIds = new Set();
+  const preFarrowRecords = [];
+  const toUpdatePreFarrow = []; // records to auto-update status
+
+  allRecords.forEach(r => {
+    const type        = String(r.Type || '').trim().toLowerCase();
+    const status      = String(r.Status || '').trim();
+    const serviceDate = r.ServiceDate || '';
+    if (!serviceDate) return;
+    if (type !== 'sow' && type !== 'gilt') return;
+
+    // Calculate estimated farrow date = ServiceDate + 115 days
+    const sd = new Date(serviceDate); sd.setHours(0,0,0,0);
+    if (isNaN(sd)) return;
+    const estFarrow = new Date(sd); estFarrow.setDate(sd.getDate() + 115);
+    const daysToFarrow = Math.floor((estFarrow - today) / 86400000);
+
+    if (daysToFarrow >= 0 && daysToFarrow <= 7) {
+      preFarrowIds.add(String(r.DB_ID));
+      preFarrowRecords.push({ rec: r, daysToFarrow, estFarrow: estFarrow.toISOString().split('T')[0] });
+      // Auto-update status to Pre-Farrowing if not already manually changed away from it
+      if (status !== 'Pre-Farrowing' && status !== 'Farrowing' && status !== 'Lactating' && status !== 'Weaning') {
+        toUpdatePreFarrow.push(r);
+      }
+    }
+  });
+
+  // Auto-update status to Pre-Farrowing (non-blocking, fire-and-forget)
+  toUpdatePreFarrow.forEach(async r => {
+    try {
+      const result = await apiPost({ action: 'update', id: r.DB_ID, data: { ...r, Status: 'Pre-Farrowing' } });
+      if (result?.success) {
+        const idx = allRecords.findIndex(x => Number(x.DB_ID) === Number(r.DB_ID));
+        if (idx !== -1) allRecords[idx].Status = 'Pre-Farrowing';
+      }
+    } catch(e) { /* silent fail */ }
+  });
+
+  // ── Pre-Farrowing banner ──
+  if (preFarrowBanner) {
+    if (preFarrowRecords.length > 0) {
+      const rows = preFarrowRecords.map(({ rec, daysToFarrow, estFarrow }) =>
+        `<div style="padding:3px 0;border-bottom:1px solid #f5b0b0">
+          🐷 <strong>${rec["PIG ID"]}</strong> (DB_ID: ${rec.DB_ID})
+          — Est. Farrow: <strong>${estFarrow}</strong>
+          — <strong style="color:#c0392b">${daysToFarrow === 0 ? 'TODAY' : daysToFarrow + ' day' + (daysToFarrow > 1 ? 's' : '') + ' away'}</strong>
+        </div>`
+      ).join('');
+      preFarrowBanner.style.display = 'block';
+      preFarrowBanner.innerHTML = `<div style="font-weight:800;font-size:13px;margin-bottom:6px">🚨 Pre-Farrowing Alert — ${preFarrowRecords.length} sow${preFarrowRecords.length > 1 ? 's' : ''} due within 7 days</div>${rows}`;
+    } else {
+      preFarrowBanner.style.display = 'none';
+    }
+  }
+
+  // ── Duplicate debug banner ──
   if (diagBanner) {
     let info = '';
     if (dupIds.size > 0) {
@@ -2868,12 +3054,19 @@ function renderList() {
   }
 
   container.innerHTML = filtered.map(rec => {
-    const isDup      = dupIds.has(String(rec.DB_ID));
+    const isDup          = dupIds.has(String(rec.DB_ID));
+    const isPreFarrow    = preFarrowIds.has(String(rec.DB_ID));
+    const effectiveStatus = isPreFarrow && rec.Status !== 'Farrowing' && rec.Status !== 'Lactating' && rec.Status !== 'Weaning'
+      ? 'Pre-Farrowing' : (rec.Status || '');
     const keyStyle   = isDup ? 'color:#c0392b;font-weight:900;' : '';
-    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : '';
+    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : isPreFarrow ? 'border:2.5px solid #c0392b;' : '';
     const dupBanner  = isDup
       ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">⚠️ Duplicate — PIG ID, Boar &amp; SOW match another record</div>`
       : '';
+    const preFarrowCardBanner = isPreFarrow
+      ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">🚨 Pre-Farrowing — estimated farrow date within 7 days</div>`
+      : '';
+    const statusStyle = isPreFarrow ? 'background:#c0392b;color:#fff;' : '';
 
     const pigIdHtml = rec["PIG ID"]
       ? `<span style="${keyStyle}">${rec["PIG ID"]}</span>`
@@ -2881,14 +3074,14 @@ function renderList() {
 
     return `
     <div class="record-card" style="${cardBorder}">
-      ${dupBanner}
+      ${dupBanner}${preFarrowCardBanner}
       <div class="record-header">
         <div>
           <div class="record-pig-id">${pigIdHtml}</div>
           <div class="record-db-id">DB_ID: ${rec.DB_ID}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          ${rec.Status ? `<span class="status-badge">${rec.Status}</span>` : ""}
+          ${effectiveStatus ? `<span class="status-badge" style="${statusStyle}">${effectiveStatus}</span>` : ""}
           ${_availableBadge(rec.Available)}
         </div>
       </div>
@@ -2902,6 +3095,7 @@ function renderList() {
         ${rec.Weight   ? `<span><span class="field-label">Wt: </span>${rec.Weight} lbs</span>` : ""}
         ${rec.Pen      ? `<span><span class="field-label">Pen: </span>${rec.Pen}</span>` : ""}
         ${rec.Dewormed ? `<span><span class="field-label">Dewormed: </span>${rec.Dewormed}</span>` : ""}
+        ${rec.ServiceDate ? `<span><span class="field-label">Service: </span>${rec.ServiceDate}</span>` : ""}
       </div>
       ${rec.Notes ? `<div class="record-notes">${rec.Notes}</div>` : ""}
       <div class="record-actions">
@@ -2921,6 +3115,8 @@ function editFromList(dbId) {
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
   populatePigDropdowns();
   setFormValues("edit", rec);
+  _updateStatusOpts("edit");
+  _toggleServiceFields("edit");
   _applyEditLock(String(rec.Available||"").trim().toLowerCase() === "no");
   const delBtn = document.getElementById('btnDeleteRecord');
   if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
@@ -5535,6 +5731,25 @@ function getBoarPigIdFromDbId(dbId) {
   return rec ? String(rec['PIG ID'] || '') : String(dbId);
 }
 
+// Auto-populate Est. Farrow Date = Sow's ServiceDate + 115 days
+function slUpdateEstFarrowDate() {
+  const sowId = (document.getElementById('slSowId')?.value || '').trim();
+  const el    = document.getElementById('slEstFarrowDate');
+  if (!el) return;
+  if (!sowId) { el.textContent = '—'; el.dataset.value = ''; return; }
+
+  const sowRec = allRecords.find(r => String(r.DB_ID) === sowId);
+  const serviceDate = sowRec?.ServiceDate || sowRec?.['ServiceDate'] || '';
+  if (!serviceDate) { el.textContent = '— (no service date on sow record)'; el.dataset.value = ''; return; }
+
+  const sd  = new Date(serviceDate);
+  if (isNaN(sd)) { el.textContent = '— (invalid service date)'; el.dataset.value = ''; return; }
+  sd.setDate(sd.getDate() + 115);
+  const est = sd.toISOString().split('T')[0];
+  el.textContent   = est;
+  el.dataset.value = est;
+}
+
 async function populateSlSowDropdown() {
   const sows = await loadSowRecords();
   const sel  = document.getElementById('slSowId');
@@ -5968,6 +6183,14 @@ async function slLookupExisting() {
 function _populateSlForm(rec) {
   if(document.getElementById('slPen'))   document.getElementById('slPen').value   = rec.Pen   || '';
   if(document.getElementById('slNotes')) document.getElementById('slNotes').value = rec.Notes || '';
+  // Restore EstFarrowDate
+  const estEl = document.getElementById('slEstFarrowDate');
+  if (estEl) {
+    const val = rec.EstFarrowDate || '';
+    estEl.textContent   = val || '—';
+    estEl.dataset.value = val;
+    if (!val) slUpdateEstFarrowDate(); // recalculate from sow's ServiceDate
+  }
   // Restore LitterBoar (stored as DB_ID)
   const boarSel = document.getElementById('slLitterBoar');
   if (boarSel) {
@@ -6160,7 +6383,9 @@ async function saveSowLitter() {
   const totalPigletsEl = document.getElementById('slTotalPiglets');
   const data = {
     SowId: sowId, LitterBoar: (document.getElementById('slLitterBoar')?.value||'').trim(),
-    FarrowDate: farrowDate, Pen: pen, Notes: notes,
+    FarrowDate: farrowDate,
+    EstFarrowDate: document.getElementById('slEstFarrowDate')?.dataset?.value || '',
+    Pen: pen, Notes: notes,
     sl_foster:       fosterRaw || '',
     sl_total_piglets: totalPigletsEl?.dataset?.value || '',
     sl_mortality:    document.getElementById('slMortality')?.dataset?.value || '',

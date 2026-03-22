@@ -10,7 +10,7 @@
 // drive: https://www.googleapis.com/auth/drive
 
 const SHEET_NAME = "PigLog";
-const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "Weight", "Dewormed", "Pen", "Notes", "Available"];
+const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "ServiceDate", "Sire", "Weight", "Dewormed", "Pen", "Notes", "Available"];
 
 // Key fields that define a unique pig record
 const KEY_FIELDS = ["PIG ID", "Boar", "SOW"];
@@ -581,7 +581,7 @@ const SL_TASK_COLS = ['sow_antiinflam','sow_mma_ab','sow_oxytocin',
   'castration','ear_notch','coccidiostat',
   'indiv_weigh','health_d14','mma_d14',
   'vax','weaner_feed','weaner_pen','prev_meds','weaned'];
-const SL_HEADERS_GS = ["SL_ID","SowId","LitterBoar","FarrowDate","Pen","Notes",
+const SL_HEADERS_GS = ["SL_ID","SowId","LitterBoar","FarrowDate","EstFarrowDate","Pen","Notes",
   "sl_foster","sl_total_piglets","sl_mortality",
   "ByLitter","ByNursing","BySowTreat","ByMilestones",
   "ByD01","ByD23","ByD57","ByD710","ByD14","ByD2128",
