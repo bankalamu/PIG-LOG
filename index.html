@@ -5779,6 +5779,12 @@ function slAutoPopulateBoar() {
 // Auto-populate Est. Farrow Date = Sow's ServiceDate + 115 days
 function slUpdateEstFarrowDate() {
   const sowId = (document.getElementById('slSowId')?.value || '').trim();
+  const el    = document.getElementById('slEstFarrowDate');
+  if (!el) return;
+  if (!sowId) { el.textContent = '—'; el.dataset.value = ''; return; }
+
+  const sowRec = allRecords.find(r => String(r.DB_ID) === sowId);
+  const serviceDate = sowRec?.ServiceDate || sowRec?.['ServiceDate'] || '';
   if (!serviceDate) { el.textContent = '— (no service date on sow record)'; el.dataset.value = ''; return; }
 
   const sd  = new Date(serviceDate);
