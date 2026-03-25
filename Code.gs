@@ -69,6 +69,7 @@ function doGet(e) {
   const action = e.parameter.action;
   try {
     if (action === "getAll")       return respond(getAllRecords());
+    if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString() });
     if (action === "getNextDbId")  return respond({ success: true, nextId: getNextId(getSheet()) });
     if (action === "getByPigId") return respond(getByPigId(e.parameter.pigId));
     if (action === "clGetAll")   return respond(clGetAll());
@@ -379,13 +380,20 @@ function clGetAll() {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const lastCol  = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
+  const tz        = Session.getScriptTimeZone();
+  const lastCol   = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
   const sheetHdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
   const data      = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  const tz        = Session.getScriptTimeZone(); // call ONCE not per-cell
   const records   = data
     .filter(r => r[0] !== "" && r[0] !== null && r[0] !== undefined)
-    .map(row => rowToClRecord(row, sheetHdrs, tz));
+    .map(row => {
+      const rec = rowToClRecord(row, sheetHdrs, tz);
+      // Truncate AIAnalysis to 500 chars for list view — full text not needed until expanded
+      if (rec.AIAnalysis && String(rec.AIAnalysis).length > 500) {
+        rec.AIAnalysis = String(rec.AIAnalysis).substring(0, 500) + '…';
+      }
+      return rec;
+    });
   return { success: true, records };
 }
 

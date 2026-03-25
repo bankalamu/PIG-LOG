@@ -598,7 +598,11 @@
       <strong>⚙️ Setup Required — Paste your Apps Script URL</strong>
       After deploying your Google Apps Script, paste the Web App URL below and tap Save.
       <input type="url" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" />
-      <button class="save-url-btn" onclick="saveScriptUrl()">Save Settings</button>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="save-url-btn" onclick="saveScriptUrl()">Save Settings</button>
+        <button class="save-url-btn" style="background:#1a3a8a" onclick="testConnection()">🔌 Test Connection</button>
+      </div>
+      <div id="connectionTestResult" style="margin-top:6px;font-size:12px;font-weight:700"></div>
     </div>
 
     <p class="home-subtitle">What would you like to do?</p>
@@ -672,6 +676,14 @@
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:10px">⚙️ Admin — Data Tools</div>
 
       <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f0d080">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🔌 Test Server Connection</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">Verifies the Apps Script URL is working and responding. If this fails, all data loading will fail too.</div>
+        <button onclick="testConnection()"
+          style="background:#1a3a8a;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;color:#fff">
+          🔌 Test Now
+        </button>
+        <div id="connectionTestResult" style="margin-top:6px;font-size:11px;font-weight:700"></div>
+      </div>
         <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Migrate PigLog Boar/SOW → DB_ID</div>
         <div style="font-size:11px;color:#666;margin-bottom:8px">Updates Boar and SOW columns in PigLog from PIG ID strings to DB_IDs. Safe to run multiple times.</div>
         <button onclick="runBoarSowMigration()"
@@ -2335,6 +2347,31 @@ async function saveScriptUrl() {
   document.getElementById("configBanner").style.display = "none";
   showToast("URL saved! Loading records…");
   loadRecords();
+}
+
+async function testConnection() {
+  const urlInput = document.getElementById("scriptUrlInput");
+  const resultEl = document.getElementById("connectionTestResult");
+  const testUrl  = (urlInput?.value.trim()) || SCRIPT_URL;
+  if (!testUrl) { showToast("Enter a Script URL first", true); return; }
+  if (resultEl) resultEl.textContent = "⏳ Testing…";
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 15000);
+    const res  = await fetch(testUrl + "?action=ping", { signal: ctrl.signal });
+    clearTimeout(tid);
+    const data = await res.json();
+    if (data && data.success) {
+      if (resultEl) resultEl.innerHTML = '<span style="color:#2d6a2d">✅ Connected! Server time: ' + data.time + '</span>';
+      showToast("✅ Connection successful!");
+    } else {
+      if (resultEl) resultEl.innerHTML = '<span style="color:#c0392b">⚠ Server responded but returned error: ' + JSON.stringify(data) + '</span>';
+    }
+  } catch(e) {
+    const msg = e.name === 'AbortError' ? 'Timed out after 15s — script may not be deployed' : e.message;
+    if (resultEl) resultEl.innerHTML = '<span style="color:#c0392b">❌ ' + msg + '</span>';
+    showToast("Connection failed: " + msg, true);
+  }
 }
 
 // ── Navigation ────────────────────────────────────
