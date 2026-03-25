@@ -1529,7 +1529,10 @@
     <!-- ── HISTORY VIEW ── -->
     <div id="slHistoryView" style="display:none">
       <div style="font-size:12px;color:#666;margin-bottom:10px;font-style:italic">Completed litters and those past weaning date</div>
-      <input type="text" class="list-search" id="slHistorySearch" placeholder="Search by sow ID or date…" oninput="renderSlHistory()"/>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input type="text" class="list-search" id="slHistorySearch" placeholder="Search by sow ID or date…" oninput="renderSlHistory()" style="flex:1;margin-bottom:0"/>
+        <button onclick="allSlRecords=[];loadSlHistory()" style="background:#880e4f;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">🔄 Refresh</button>
+      </div>
       <div id="slHistoryContainer"><div class="empty-state">Loading…</div></div>
     </div>
 
@@ -1729,7 +1732,10 @@
     </div>
 
     <div id="wkHistoryView" style="display:none">
-      <input type="text" class="list-search" id="wkHistorySearch" placeholder="Search by week or pen…" oninput="renderWeeklyHistory()"/>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input type="text" class="list-search" id="wkHistorySearch" placeholder="Search by week or pen…" oninput="renderWeeklyHistory()" style="flex:1;margin-bottom:0"/>
+        <button onclick="allWeekly=[];loadWeeklyHistory()" style="background:#1a3a8a;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">🔄 Refresh</button>
+      </div>
       <div id="wkHistoryContainer"><div class="empty-state">Loading…</div></div>
     </div>
   </div>
@@ -1903,7 +1909,10 @@
     </div>
 
     <div id="moHistoryView" style="display:none">
-      <input type="text" class="list-search" id="moHistorySearch" placeholder="Search by month…" oninput="renderMonthlyHistory()"/>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input type="text" class="list-search" id="moHistorySearch" placeholder="Search by month…" oninput="renderMonthlyHistory()" style="flex:1;margin-bottom:0"/>
+        <button onclick="allMonthly=[];loadMonthlyHistory()" style="background:#4a148c;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">🔄 Refresh</button>
+      </div>
       <div id="moHistoryContainer"><div class="empty-state">Loading…</div></div>
     </div>
   </div>
@@ -5283,7 +5292,10 @@ function setWkView(view) {
   document.getElementById('wkTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
   document.getElementById('wkFormView').style.display    = view==='form'    ? 'block' : 'none';
   document.getElementById('wkHistoryView').style.display = view==='history' ? 'block' : 'none';
-  if (view === 'history') { allWeekly=[]; loadWeeklyHistory(); }
+  if (view === 'history') {
+    if (allWeekly.length === 0) { loadWeeklyHistory(); }
+    else { renderWeeklyHistory(); }
+  }
 }
 
 async function loadWeeklyHistory() {
@@ -5480,7 +5492,10 @@ function setMoView(view) {
   document.getElementById('moTabHistory').className = 'cl-tab' + (view==='history' ? ' active' : '');
   document.getElementById('moFormView').style.display    = view==='form'    ? 'block' : 'none';
   document.getElementById('moHistoryView').style.display = view==='history' ? 'block' : 'none';
-  if (view === 'history') { allMonthly=[]; loadMonthlyHistory(); }
+  if (view === 'history') {
+    if (allMonthly.length === 0) { loadMonthlyHistory(); }
+    else { renderMonthlyHistory(); }
+  }
 }
 
 // ══════════════════════════════════════════════════
@@ -6567,8 +6582,14 @@ function setSlView(view, resetForm) {
     populateSlSowDropdown();
     populateSlBoarDropdown();
   }
-  if (view === 'active')  { loadSlActive(); }
-  if (view === 'history') { allSlRecords=[]; loadSlHistory(); }
+  if (view === 'active')  {
+    if (allSlRecords.length === 0) { loadSlActive(); }
+    else { renderSlActive(); }
+  }
+  if (view === 'history') {
+    if (allSlRecords.length === 0) { loadSlHistory(); }
+    else { renderSlHistory(); }
+  }
 }
 
 function cancelSowLitter() {
