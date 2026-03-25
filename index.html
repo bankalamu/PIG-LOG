@@ -4096,6 +4096,7 @@ function renderChecklistHistory() {
     const penCards = recs.map(rec => {
       const status      = rec.Status || '';
       const concernList = (rec.Concerns||'').split(',').filter(Boolean);
+      const hasConcerns = concernList.length > 0;
       const badge =
         status === 'ALL OK'
           ? `<span class="cl-ok-badge">✓ All OK</span>`
