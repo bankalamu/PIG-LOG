@@ -124,6 +124,7 @@ function getAllRecords() {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
 
+  const tz       = Session.getScriptTimeZone(); // cache once
   const lastCol  = sheet.getLastColumn();
   const hdrRow   = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const hdrMap   = {}; // colName → 0-based index
@@ -134,16 +135,14 @@ function getAllRecords() {
     .filter(row => row[0] !== "" && row[0] !== null && row[0] !== undefined)
     .map(row => {
       const rec = {};
-      // Always include all known HEADERS (fill missing ones with "")
       HEADERS.forEach(h => {
         const idx = hdrMap[h];
         if (idx === undefined) { rec[h] = ""; return; }
         const v = row[idx];
         rec[h] = (v instanceof Date)
-          ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")
+          ? Utilities.formatDate(v, tz, "yyyy-MM-dd")
           : (v === null || v === undefined ? "" : v);
       });
-      // Also expose any extra columns in the sheet not in HEADERS
       hdrRow.forEach((h, i) => {
         if (h && !(h in rec)) rec[h] = row[i] === null ? "" : row[i];
       });
@@ -171,12 +170,13 @@ function getByPigId(pigId) {
   if (!row) return { success: false, error: `No record found for PIG ID: "${pigId}"` };
 
   const rec = {};
+  const tz  = Session.getScriptTimeZone();
   HEADERS.forEach(h => {
     const idx = hdrMap[h];
     if (idx === undefined) { rec[h] = ""; return; }
     const v = row[idx];
     rec[h] = (v instanceof Date)
-      ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")
+      ? Utilities.formatDate(v, tz, "yyyy-MM-dd")
       : (v === null || v === undefined ? "" : v);
   });
   return { success: true, record: rec };
@@ -375,46 +375,45 @@ function getNextClId(sheet) {
 
 const CL_TIME_COLS = ["PhotoTime1","PhotoTime2","PhotoTime3","Sec1Time","Sec2Time","Sec3Time"];
 
-function rowToClRecord(row, sheetHeaders) {
-  // sheetHeaders: the actual header row from the sheet (may differ in order from CL_HEADERS)
-  // Build a map from header name → value for this row
-  const valueByName = {};
-  sheetHeaders.forEach((h, i) => { if (h) valueByName[String(h).trim()] = row[i]; });
-
-  const rec = {};
-  CL_HEADERS.forEach(h => {
-    const v = valueByName.hasOwnProperty(h) ? valueByName[h] : '';
-    if (CL_TIME_COLS.includes(h)) {
-      if (v instanceof Date) {
-        rec[h] = Utilities.formatDate(v, Session.getScriptTimeZone(), "HH:mm");
-      } else if (typeof v === 'string' && /^\d{1,2}:\d{2}$/.test(v.trim())) {
-        rec[h] = v.trim();
-      } else {
-        rec[h] = '';
-      }
-    } else if (v instanceof Date) {
-      rec[h] = Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd");
-    } else {
-      rec[h] = v !== undefined && v !== null ? v : '';
-    }
-  });
-  return rec;
-}
-
-// ── Checklist CRUD ──
-
 function clGetAll() {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  // Read actual sheet headers from row 1 — use these for name-based mapping
-  const lastCol     = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
-  const sheetHdrs   = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
-  const data        = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  const records     = data
+  const lastCol  = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
+  const sheetHdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
+  const data      = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const tz        = Session.getScriptTimeZone(); // call ONCE not per-cell
+  const records   = data
     .filter(r => r[0] !== "" && r[0] !== null && r[0] !== undefined)
-    .map(row => rowToClRecord(row, sheetHdrs));
+    .map(row => rowToClRecord(row, sheetHdrs, tz));
   return { success: true, records };
+}
+
+function rowToClRecord(row, sheetHeaders, tz) {
+  if (!tz) tz = Session.getScriptTimeZone();
+  // Build index map once
+  const valMap = {};
+  for (let i = 0; i < sheetHeaders.length; i++) {
+    if (sheetHeaders[i]) valMap[sheetHeaders[i]] = row[i];
+  }
+  const rec = {};
+  for (let hi = 0; hi < CL_HEADERS.length; hi++) {
+    const h = CL_HEADERS[hi];
+    const v = valMap.hasOwnProperty(h) ? valMap[h] : '';
+    if (CL_TIME_COLS.indexOf(h) >= 0) {
+      if (v instanceof Date) {
+        rec[h] = Utilities.formatDate(v, tz, "HH:mm");
+      } else {
+        const s = String(v || '').trim();
+        rec[h] = /^\d{1,2}:\d{2}$/.test(s) ? s : '';
+      }
+    } else if (v instanceof Date) {
+      rec[h] = Utilities.formatDate(v, tz, "yyyy-MM-dd");
+    } else {
+      rec[h] = (v !== undefined && v !== null) ? v : '';
+    }
+  }
+  return rec;
 }
 
 // Returns a map of { headerName -> 1-based column index } from the actual sheet header row
@@ -625,18 +624,18 @@ function slGetAll() {
   const sheet = getSlSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
+  const tz         = Session.getScriptTimeZone(); // cache once
   const lastCol    = sheet.getLastColumn();
   const sheetHdrs  = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
   const data       = sheet.getRange(2, 1, lastRow-1, lastCol).getValues();
   const validTime  = t => /^\d{1,2}:\d{2}$/.test(String(t).trim());
   const records = data.filter(r => r[0] !== '').map(row => {
-    // Build value-by-name from actual sheet columns
     const byName = {};
     sheetHdrs.forEach((h, i) => { if (h) byName[h] = row[i]; });
     const rec = {};
     SL_HEADERS_GS.forEach(h => {
       const v = byName.hasOwnProperty(h) ? byName[h] : '';
-      if (SL_TIME_COLS.includes(h)) {
+      if (SL_TIME_COLS.indexOf(h) >= 0) {
         if (v instanceof Date) {
           rec[h] = String(v.getHours()).padStart(2,'0') + ':' + String(v.getMinutes()).padStart(2,'0');
         } else {
@@ -644,7 +643,7 @@ function slGetAll() {
         }
       } else {
         rec[h] = v instanceof Date
-          ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")
+          ? Utilities.formatDate(v, tz, "yyyy-MM-dd")
           : (v !== undefined && v !== null ? v : '');
       }
     });
@@ -761,6 +760,7 @@ function wkGetAll() {
   const sheet = getWkSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
+  const tz       = Session.getScriptTimeZone(); // cache once
   const lastCol  = sheet.getLastColumn();
   const sheetHdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
   const data = sheet.getRange(2, 1, lastRow-1, lastCol).getValues();
@@ -770,7 +770,7 @@ function wkGetAll() {
     const rec = {};
     WK_HEADERS_GS.forEach(h => {
       const v = byName.hasOwnProperty(h) ? byName[h] : '';
-      rec[h] = v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd") : (v !== undefined && v !== null ? v : '');
+      rec[h] = v instanceof Date ? Utilities.formatDate(v, tz, "yyyy-MM-dd") : (v !== undefined && v !== null ? v : '');
     });
     return rec;
   })};
