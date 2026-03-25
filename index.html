@@ -1208,7 +1208,10 @@
 
     <!-- ── HISTORY VIEW ── -->
     <div id="clHistoryView" style="display:none">
-      <input type="text" class="list-search" id="clHistorySearch" placeholder="Search by date or pen…" oninput="renderChecklistHistory()"/>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input type="text" class="list-search" id="clHistorySearch" placeholder="Search by date or pen…" oninput="renderChecklistHistory()" style="flex:1;margin-bottom:0"/>
+        <button onclick="allChecklists=[];loadChecklists()" style="background:#2d6a2d;color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">🔄 Refresh</button>
+      </div>
       <div id="clHistoryContainer"><div class="empty-state">Loading…</div></div>
     </div>
 
@@ -3670,8 +3673,11 @@ function setClView(view) {
   document.getElementById('clFormView').style.display    = view==='form'    ? 'block' : 'none';
   document.getElementById('clHistoryView').style.display = view==='history' ? 'block' : 'none';
   if (view === 'history') {
-    allChecklists = [];
-    loadChecklists();
+    if (allChecklists.length === 0) {
+      loadChecklists();
+    } else {
+      renderChecklistHistory();
+    }
   }
 }
 
