@@ -2394,12 +2394,12 @@ async function apiGet(params) {
   const url = SCRIPT_URL + "?" + new URLSearchParams(params);
   try {
     const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 20000);
+    const tid  = setTimeout(() => ctrl.abort(), 30000);
     const res  = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
     return res.json();
   } catch(e) {
-    if (e.name === 'AbortError') showToast("Request timed out — check your Script URL", true);
+    if (e.name === 'AbortError') showToast("Request timed out (30s) — server may need redeploy", true);
     else showToast("Network error: " + e.message, true);
     return null;
   }
@@ -2409,12 +2409,12 @@ async function apiPost(body) {
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
   try {
     const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 20000);
+    const tid  = setTimeout(() => ctrl.abort(), 30000);
     const res  = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body), signal: ctrl.signal });
     clearTimeout(tid);
     return res.json();
   } catch(e) {
-    if (e.name === 'AbortError') showToast("Request timed out — check your Script URL", true);
+    if (e.name === 'AbortError') showToast("Request timed out (30s) — server may need redeploy", true);
     else showToast("Network error: " + e.message, true);
     return null;
   }
@@ -3952,13 +3952,28 @@ async function saveSection(sec) {
 
 async function loadChecklists() {
   const container = document.getElementById('clHistoryContainer');
+  if (!SCRIPT_URL) {
+    container.innerHTML = '<div class="empty-state">⚠️ No Script URL set. Go to Home → ⚙️ and paste your Apps Script URL.</div>';
+    return;
+  }
   container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p style="margin-top:10px;color:#666;font-size:13px">Loading history…</p></div>';
   let result = null;
-  try { result = await apiGet({ action: 'clGetAll' }); } catch(e) {
-    container.innerHTML = '<div class="empty-state">⚠️ Network error loading history.</div>'; return;
+  try {
+    result = await apiGet({ action: 'clGetAll' });
+  } catch(e) {
+    container.innerHTML = `<div class="empty-state">⚠️ Network error: ${e.message}<br><br><small>Check your internet connection and Script URL.</small></div>`; return;
   }
   if (!result) {
-    container.innerHTML = '<div class="empty-state">⚠️ Could not connect. Check your Script URL.</div>'; return;
+    container.innerHTML = `<div class="empty-state">
+      ⚠️ No response from server — request timed out.<br><br>
+      <strong>Most likely cause:</strong> Code.gs has not been redeployed yet.<br><br>
+      <strong>Fix:</strong><br>
+      1. Open Apps Script editor<br>
+      2. Paste the new Code.gs → Save<br>
+      3. Deploy → Manage deployments → Edit → <strong>New version</strong> → Deploy<br><br>
+      <button onclick="allChecklists=[];loadChecklists()" style="background:#2d6a2d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">🔄 Try Again</button>
+    </div>`;
+    return;
   }
   if (result.success) {
     allChecklists = result.records || [];
@@ -3968,7 +3983,9 @@ async function loadChecklists() {
       renderChecklistHistory();
     }
   } else {
-    container.innerHTML = '<div class="empty-state">⚠️ ' + (result.error || 'Could not load history.') + '</div>';
+    container.innerHTML = `<div class="empty-state">⚠️ Server error: ${result.error || 'Unknown error'}<br><br>
+      <button onclick="allChecklists=[];loadChecklists()" style="background:#2d6a2d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">🔄 Try Again</button>
+    </div>`;
   }
 }
 
