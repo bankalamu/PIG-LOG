@@ -352,19 +352,15 @@ function getClSheet() {
     sheet.setColumnWidth(5, 90);
     sheet.setColumnWidth(6, 180);
     sheet.setColumnWidth(7, 300);
-  }
-  // Always ensure time columns are formatted as plain text
-  // Look up position from ACTUAL sheet header row, not from CL_HEADERS constant
-  const lastRow = Math.max(sheet.getLastRow(), 2);
-  const lastCol = sheet.getLastColumn();
-  if (lastCol > 0) {
-    const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    CL_TIME_COLS.forEach(colName => {
-      const colIdx = hdrs.findIndex(h => String(h).trim() === colName);
-      if (colIdx >= 0) {
-        sheet.getRange(2, colIdx + 1, lastRow, 1).setNumberFormat("@");
-      }
-    });
+    // Format time columns as plain text on first creation only
+    const lastCol = sheet.getLastColumn();
+    if (lastCol > 0) {
+      const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      CL_TIME_COLS.forEach(colName => {
+        const colIdx = hdrs.findIndex(h => String(h).trim() === colName);
+        if (colIdx >= 0) sheet.getRange(2, colIdx + 1, 1000, 1).setNumberFormat("@");
+      });
+    }
   }
   return sheet;
 }
@@ -621,16 +617,6 @@ function getSlSheet() {
     sheet.appendRow(SL_HEADERS_GS);
     sheet.getRange(1,1,1,SL_HEADERS_GS.length).setFontWeight("bold").setBackground("#880e4f").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
-  }
-  // Ensure time columns are stored as plain text — look up from actual sheet headers
-  const lastRow = Math.max(sheet.getLastRow(), 2);
-  const lastCol = sheet.getLastColumn();
-  if (lastCol > 0) {
-    const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-    SL_TIME_COLS.forEach(colName => {
-      const colIdx = hdrs.findIndex(h => String(h).trim() === colName);
-      if (colIdx >= 0) sheet.getRange(2, colIdx + 1, lastRow, 1).setNumberFormat("@");
-    });
   }
   return sheet;
 }
