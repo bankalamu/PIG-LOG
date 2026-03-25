@@ -110,6 +110,7 @@ function doPost(e) {
     if (action === "saveSetting") return corsRespond(saveSetting(payload.key, payload.value));
     if (action === "migrateBoarSow")   return corsRespond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return corsRespond(migrateSowLitterSowId());
+    if (action === "runAIAnalysis")    return corsRespond(runNightlyAIAnalysis(payload.targetDate || null));
     return corsRespond({ error: "Unknown action" });
   } catch (err) {
     return corsRespond({ error: err.message });
@@ -333,6 +334,7 @@ const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes"
                     "PhotoUrl1","PhotoTime1","PhotoUrl2","PhotoTime2","PhotoUrl3","PhotoTime3",
                     "PigCount","Sec1Time","Sec2Time","Sec3Time",
                     "cl_lactating","cl_nursing","cl_weaklings","cl_lightest_today","cl_heaviest_today",
+                    "AIAnalysis",
                     ...CL_KEYS_GS];
 
 function getClSheet() {
@@ -1490,3 +1492,259 @@ function migrateSowLitterSowId() {
   return { success: true, updated, notFound: notFound.length, message: msg };
 }
 
+
+// ============================================================
+//  NIGHTLY AI ANALYSIS ENGINE
+//  Processes Daily Checklist records, fetches photos from
+//  Drive, calls Claude via Anthropic API, appends summary
+//  into the AIAnalysis column.
+//
+//  SETUP:
+//  1. In Apps Script editor → Project Settings → Script Properties
+//     Add: ANTHROPIC_API_KEY = sk-ant-...your key...
+//  2. Run createMidnightTrigger() ONCE manually to set up the
+//     midnight time-driven trigger.
+//  3. Admin can trigger manually via the app's admin panel.
+// ============================================================
+
+// ── Trigger Setup ───────────────────────────────────────────
+
+function createMidnightTrigger() {
+  // Delete any existing nightly triggers to avoid duplicates
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'runNightlyAIAnalysis') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  // Create new trigger: runs daily between midnight and 1am Lusaka time
+  ScriptApp.newTrigger('runNightlyAIAnalysis')
+    .timeBased()
+    .atHour(0)
+    .everyDays(1)
+    .inTimezone('Africa/Lusaka')
+    .create();
+  Logger.log('Midnight trigger created for runNightlyAIAnalysis');
+}
+
+// ── Main Batch Function ─────────────────────────────────────
+
+function runNightlyAIAnalysis(targetDate) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  if (!apiKey) {
+    const msg = 'ANTHROPIC_API_KEY not set in Script Properties. Go to Project Settings → Script Properties and add it.';
+    Logger.log(msg);
+    return { success: false, error: msg };
+  }
+
+  // Default: process yesterday's records (today's are still in progress)
+  const tz = Session.getScriptTimeZone();
+  let processDate;
+  if (targetDate) {
+    processDate = targetDate; // admin override: 'YYYY-MM-DD'
+  } else {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    processDate = Utilities.formatDate(yesterday, tz, 'yyyy-MM-dd');
+  }
+
+  Logger.log('AI Analysis: processing date ' + processDate);
+
+  const sheet   = getClSheet();
+  const colMap  = _clSheetColMap(sheet);
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, processed: 0, message: 'No records.' };
+
+  const lastCol = sheet.getLastColumn();
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const hdrMap  = {};
+  hdrRow.forEach((h, i) => { if (h) hdrMap[String(h).trim()] = i; });
+
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  let processed = 0;
+  let skipped   = 0;
+  const errors  = [];
+
+  data.forEach((row, i) => {
+    const sheetRow  = i + 2;
+    const clId      = row[hdrMap['CL_ID']];
+    const rowDate   = row[hdrMap['Date']];
+    const rowDateStr = rowDate instanceof Date
+      ? Utilities.formatDate(rowDate, tz, 'yyyy-MM-dd')
+      : String(rowDate || '').trim();
+
+    if (rowDateStr !== processDate) return;
+    if (!clId) return;
+
+    // Skip if already analysed (AIAnalysis column has content)
+    const aiCol = hdrMap['AIAnalysis'];
+    if (aiCol !== undefined && String(row[aiCol] || '').trim()) {
+      skipped++;
+      return;
+    }
+
+    // Build record object for this row
+    const rec = {};
+    hdrRow.forEach((h, j) => { rec[h] = row[j]; });
+
+    // Run analysis
+    try {
+      const summary = analyseChecklistRecord(rec, apiKey);
+      if (summary) {
+        // Write to AIAnalysis column
+        if (aiCol !== undefined) {
+          sheet.getRange(sheetRow, aiCol + 1).setValue(summary);
+        } else {
+          // Column doesn't exist yet — run migrateAllSheetHeaders first
+          Logger.log('AIAnalysis column missing in sheet. Run migrateAllSheetHeaders().');
+        }
+        processed++;
+        Utilities.sleep(2000); // rate limit: 0.5 req/s
+      }
+    } catch(e) {
+      errors.push('CL_ID ' + clId + ': ' + e.message);
+      Logger.log('Analysis error for CL_ID ' + clId + ': ' + e.message);
+    }
+  });
+
+  // Also mark any remaining In Progress records from processDate as Incomplete
+  _markIncompleteRecords(processDate, sheet, hdrMap, data);
+
+  const msg = 'AI Analysis complete for ' + processDate
+    + ': ' + processed + ' analysed, ' + skipped + ' already done'
+    + (errors.length ? ', ' + errors.length + ' error(s): ' + errors.join('; ') : '');
+  Logger.log(msg);
+  return { success: true, processed, skipped, errors: errors.length, message: msg, date: processDate };
+}
+
+// ── Mark Incomplete ─────────────────────────────────────────
+
+function _markIncompleteRecords(processDate, sheet, hdrMap, data) {
+  const tz       = Session.getScriptTimeZone();
+  const statusCol = hdrMap['Status'];
+  if (statusCol === undefined) return;
+
+  data.forEach((row, i) => {
+    const sheetRow   = i + 2;
+    const rowDate    = row[hdrMap['Date']];
+    const rowDateStr = rowDate instanceof Date
+      ? Utilities.formatDate(rowDate, tz, 'yyyy-MM-dd')
+      : String(rowDate || '').trim();
+    if (rowDateStr !== processDate) return;
+    const status = String(row[statusCol] || '').trim();
+    if (status === 'In Progress' || status === 'PARTIAL') {
+      sheet.getRange(sheetRow, statusCol + 1).setValue('Incomplete');
+    }
+  });
+}
+
+// ── Per-Record Analysis ─────────────────────────────────────
+
+function analyseChecklistRecord(rec, apiKey) {
+  // Build the check context text
+  const CL_FIELD_LABELS = {
+    tail:'Tail', eyes:'Eyes', stool:'Stool/Droppings', posture:'Posture/Movement',
+    skin:'Skin Condition', breathing:'Breathing', appetite:'Appetite',
+    water:'Water Intake', feed:'Feed Intake', smell:'Smell',
+    pinch:'Pinch Test (Hydration)', belly:'Belly Fill', limbs:'Limbs/Hooves',
+    injuries:'Injuries/Wounds', temp:'Temperature'
+  };
+  const clKeys = Object.keys(CL_FIELD_LABELS);
+  const ok      = clKeys.filter(k => rec[k] === 'ok').map(k => CL_FIELD_LABELS[k]);
+  const bad     = clKeys.filter(k => rec[k] === 'bad').map(k => CL_FIELD_LABELS[k]);
+  const missing = clKeys.filter(k => !rec[k]).map(k => CL_FIELD_LABELS[k]);
+
+  const status    = String(rec['Status']    || '').trim();
+  const pen       = String(rec['Pen']       || '?');
+  const pigCount  = String(rec['PigCount']  || '?');
+  const date      = String(rec['Date']      || '?');
+  const notes     = String(rec['Notes']     || '');
+  const nursing   = String(rec['cl_nursing'] || '');
+  const weaklings = String(rec['cl_weaklings'] || '');
+
+  const contextText = `You are a pig farm health advisor. Analyse this daily health check for PEN ${pen} on ${date}.
+
+PIGS IN PEN: ${pigCount}
+RECORD STATUS: ${status}
+${nursing ? 'NURSING: ' + nursing + ' piglets' + (weaklings ? ', ' + weaklings + ' weaklings' : '') : ''}
+
+CHECK RESULTS:
+- ✅ OK (${ok.length}): ${ok.join(', ') || 'none'}
+- ⚠️ Concerns (${bad.length}): ${bad.join(', ') || 'none'}
+- — Not recorded (${missing.length}): ${missing.join(', ') || 'all recorded'}
+${notes ? '\nFARM NOTES: ' + notes : ''}
+
+${['PhotoUrl1','PhotoUrl2','PhotoUrl3'].filter(k => rec[k]).length} section photo(s) available (analysed below).
+
+Write a concise end-of-day health summary with:
+1. Overall status (1 sentence)
+2. Key observations from photos and checks
+3. Any concerns or action items
+4. Nursing/piglet welfare if applicable
+Keep it under 200 words, practical language for a farm worker.`;
+
+  // Build message content — photos first, then text
+  const messageContent = [];
+
+  ['PhotoUrl1','PhotoUrl2','PhotoUrl3'].forEach((urlKey, i) => {
+    const url = String(rec[urlKey] || '').trim();
+    if (!url) return;
+    try {
+      const b64Result = getPhotoAsBase64(_extractFileId(url));
+      if (b64Result.success && b64Result.dataUrl) {
+        const parts = b64Result.dataUrl.split(',');
+        const mime  = parts[0].replace('data:','').replace(';base64','');
+        messageContent.push({
+          type: 'image',
+          source: { type: 'base64', media_type: mime, data: parts[1] }
+        });
+        messageContent.push({ type: 'text', text: ['[Morning photo]','[Feeding photo]','[Afternoon photo]'][i] });
+      }
+    } catch(e) {
+      Logger.log('Photo fetch error for ' + urlKey + ': ' + e.message);
+    }
+  });
+
+  messageContent.push({ type: 'text', text: contextText });
+
+  if (messageContent.length === 1 && messageContent[0].type === 'text') {
+    // No photos — still run text-only analysis
+  }
+
+  // Call Anthropic API via UrlFetchApp
+  const payload = JSON.stringify({
+    model:      'claude-sonnet-4-20250514',
+    max_tokens: 600,
+    messages:   [{ role: 'user', content: messageContent }]
+  });
+
+  const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method:             'POST',
+    contentType:        'application/json',
+    headers: {
+      'x-api-key':         apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    payload:            payload,
+    muteHttpExceptions: true
+  });
+
+  const code   = response.getResponseCode();
+  const result = JSON.parse(response.getContentText());
+
+  if (code !== 200) {
+    throw new Error('API error ' + code + ': ' + JSON.stringify(result));
+  }
+
+  const text = (result.content || []).map(c => c.text || '').filter(Boolean).join('\n');
+  return '[AI Analysis — ' + new Date().toLocaleDateString() + ']\n' + text;
+}
+
+// ── Helper: extract Drive fileId from any URL format ────────
+
+function _extractFileId(url) {
+  if (!url) return null;
+  if (url.startsWith('drive:')) return url.slice(6);
+  const m = url.match(/\/d\/([A-Za-z0-9_-]{25,})|[?&]id=([A-Za-z0-9_-]{25,})/);
+  return m ? (m[1] || m[2]) : null;
+}

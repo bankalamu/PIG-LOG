@@ -681,7 +681,7 @@
         <span id="migrationStatus" style="margin-left:10px;font-size:11px;color:#555"></span>
       </div>
 
-      <div style="margin-bottom:4px">
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f0d080">
         <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">Migrate SowLitter SowId → DB_ID</div>
         <div style="font-size:11px;color:#666;margin-bottom:8px">Updates the SowId column in the SowLitter tab from PIG ID strings to the matching DB_ID from PigLog. Ensures sow links survive ear tag changes. Safe to run multiple times.</div>
         <button onclick="runSowIdMigration()"
@@ -689,6 +689,19 @@
           🔄 Migrate SowLitter SowId
         </button>
         <span id="sowIdMigrationStatus" style="margin-left:10px;font-size:11px;color:#555"></span>
+      </div>
+
+      <div style="margin-bottom:4px">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🤖 Run AI Health Analysis</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">Analyses all checklist photos from yesterday (or a specific date) using Claude and appends a summary to each record. Also marks any unfinished records as Incomplete. Runs automatically at midnight — use this to trigger manually.</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="date" id="aiAnalysisDate" style="padding:6px 10px;border:1.5px solid #1a3a8a;border-radius:7px;font-size:12px;font-weight:700">
+          <button onclick="runAdminAIAnalysis()"
+            style="background:#1a3a8a;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;color:#fff">
+            🤖 Run Now
+          </button>
+        </div>
+        <span id="aiAnalysisStatus" style="display:block;margin-top:6px;font-size:11px;color:#555"></span>
       </div>
     </div>
   </div>
@@ -2168,6 +2181,36 @@ function updateAdminBadge() {
   });
 }
 
+async function runAdminAIAnalysis() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const statusEl  = document.getElementById('aiAnalysisStatus');
+  const dateInput = document.getElementById('aiAnalysisDate');
+  const targetDate = dateInput?.value || '';
+  if (!targetDate) {
+    // Default to yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (dateInput) dateInput.value = yesterday.toISOString().split('T')[0];
+  }
+  const useDate = dateInput?.value || '';
+  if (!confirm('Run AI Health Analysis for ' + (useDate || 'yesterday') + '?\n\nThis will call the Anthropic API for each checklist record on that date. It may take a minute.')) return;
+  if (statusEl) statusEl.textContent = '⏳ Running AI analysis…';
+  try {
+    const result = await apiPost({ action: 'runAIAnalysis', targetDate: useDate });
+    if (result && result.success) {
+      const msg = '✅ ' + result.message;
+      if (statusEl) statusEl.textContent = msg;
+      showToast('✅ AI Analysis complete — ' + result.processed + ' record(s) analysed');
+    } else {
+      if (statusEl) statusEl.textContent = '❌ ' + (result?.error || 'Failed');
+      showToast(result?.error || 'AI Analysis failed', true);
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Network error';
+    showToast('AI Analysis error: ' + e.message, true);
+  }
+}
+
 async function runSowIdMigration() {
   if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
   const statusEl = document.getElementById('sowIdMigrationStatus');
@@ -3410,17 +3453,6 @@ async function clStartRecord() {
   document.getElementById('clBody').style.display          = 'block';
   clLockForm(locked);
 
-  // If past record still shows In Progress, auto-update to Incomplete
-  if (locked && existing && (existing.Status === 'In Progress' || existing.Status === 'PARTIAL')) {
-    apiPost({ action: 'clUpdate', id: existing.CL_ID, data: { Status: 'Incomplete' } }).then(r => {
-      if (r?.success) {
-        const idx = allChecklists.findIndex(x => String(x.CL_ID) === String(existing.CL_ID));
-        if (idx !== -1) allChecklists[idx].Status = 'Incomplete';
-        showToast('⚠ Day ended — record marked Incomplete');
-      }
-    });
-  }
-
   clUpdateDayTotal();
   clUpdateOfflineBanner();
   if (!existing) await clLoadDraft();
@@ -4100,6 +4132,11 @@ function renderChecklistHistory() {
             </div>
           </div>` : ''}
           ${photoThumb}
+          ${rec.AIAnalysis ? `
+          <div style="margin-top:10px;padding:10px 12px;background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px">
+            <div style="font-size:10px;font-weight:800;color:#1a3a8a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">🤖 AI Health Summary</div>
+            <div style="font-size:12px;color:#222;line-height:1.6;white-space:pre-wrap">${rec.AIAnalysis}</div>
+          </div>` : ''}
         </div>
       </div>`;
     }).join('');
