@@ -2344,7 +2344,14 @@ function showPage(id) {
     if (err) err.style.display = "none";
   }
   if (id === "pageSowLitter") { allSlRecords = []; sowRecordCache = []; boarRecordCache = []; setSlView('active'); }
-  if (id === "pageChecklist") { allChecklists = []; clDateChanged(); }
+  if (id === "pageChecklist") {
+    allChecklists = []; clDateChanged();
+    // Load max pen setting when page opens
+    apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
+      clMaxPen = (r && r.success && r.value) ? (parseInt(r.value, 10) || 50) : 50;
+      _clApplyMaxPen();
+    });
+  }
   if (id === "pageWeekly")   { allWeekly = [];     wkDateChanged(); }
   if (id === "pageMonthly")  { allMonthly = []; _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
   if (id === "pageNotch")    { boarRecordCache = []; sowRecordCache = []; populateNotchDropdowns(); }
@@ -3309,15 +3316,7 @@ function initChecklist() {
   if (dateEl) dateEl.value = today;
   _clShowSetup();
   clUpdateOfflineBanner();
-  // Load max pen from settings (async, non-blocking)
-  apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
-    if (r && r.success && r.value) {
-      clMaxPen = parseInt(r.value, 10) || 50;
-    } else {
-      clMaxPen = 50;
-    }
-    _clApplyMaxPen();
-  });
+  // maxPen setting loaded when page is first navigated to (see showPage)
 }
 
 function _clApplyMaxPen() {
@@ -6081,8 +6080,7 @@ function initSowLitter() {
   const today = new Date().toISOString().split('T')[0];
   const fd = document.getElementById('slFarrowDate');
   if (fd && !fd.value) fd.value = today;
-  populateSlSowDropdown();
-  populateSlBoarDropdown();
+  // Dropdowns populated on navigation to the page, not at init
   slUpdateDayInfo();
 }
 
@@ -6550,7 +6548,12 @@ function setSlView(view, resetForm) {
     if (tab) tab.className = 'cl-tab' + (id === 'slTab'+view.charAt(0).toUpperCase()+view.slice(1) ? ' active' : '');
   });
   if (view === 'form' && resetForm) { resetSowLitter(); }
-  if (view === 'form') { setTimeout(slRefreshColors, 50); }
+  if (view === 'form') {
+    setTimeout(slRefreshColors, 50);
+    // Populate dropdowns when opening form (deferred from init)
+    populateSlSowDropdown();
+    populateSlBoarDropdown();
+  }
   if (view === 'active')  { loadSlActive(); }
   if (view === 'history') { allSlRecords=[]; loadSlHistory(); }
 }
