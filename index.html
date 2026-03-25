@@ -3405,7 +3405,6 @@ async function clStartRecord() {
   if (!date)            { errEl.textContent = 'Please fill in Date.';            errEl.style.display='block'; return; }
   if (!penRaw)          { errEl.textContent = 'Please fill in Pen No.';          errEl.style.display='block'; return; }
 
-  // Validate pen is integer 1–maxPen
   const penNum = parseInt(penRaw, 10);
   if (isNaN(penNum) || penNum < 1 || penNum > clMaxPen || String(penNum) !== penRaw) {
     errEl.textContent = `Pen must be a whole number between 1 and ${clMaxPen}.`;
@@ -3413,10 +3412,9 @@ async function clStartRecord() {
     penEl.style.border = '2px solid #c0392b'; penEl.style.background = '#fde8e8';
     return;
   }
-  const pen = String(penNum); // normalised
+  const pen = String(penNum);
   errEl.style.display = 'none';
 
-  // Validate pig count
   const pigCountRaw = document.getElementById('clPigCount').value.trim();
   const pigCountNum = Number(pigCountRaw);
   if (!pigCountRaw || !Number.isInteger(pigCountNum) || pigCountNum < 1) {
@@ -3429,11 +3427,29 @@ async function clStartRecord() {
   const pigCount = pigCountNum;
   clCurrentPigCount = pigCount;
 
+  const today  = new Date().toISOString().split('T')[0];
+  const locked = date < today && !isAdminEnabled();
+
+  // ── Show form immediately — don't wait for server ──
+  clEditId = null;
+  _clClearAllFields();
+  document.getElementById('clDatePenSetup').style.display  = 'none';
+  document.getElementById('clDatePenLocked').style.display = 'block';
+  document.getElementById('clLockedLabel').textContent     = date + '  —  Pen: ' + pen + '  —  🐷 ' + pigCount + ' pigs';
+  document.getElementById('clLockedSub').textContent       = '(checking for existing record…)';
+  document.getElementById('clExistingBanner').style.display = 'none';
+  document.getElementById('clBody').style.display          = 'block';
+  if (locked) document.getElementById('clLockedBanner').style.display = 'block';
+  clLockForm(locked);
+  clUpdateDayTotal();
+  clUpdateOfflineBanner();
+
+  // ── Load draft while server fetch runs in parallel ──
+  const draftLoaded = await clLoadDraft();
+
+  // ── Now fetch existing records in background ──
   if (allChecklists.length === 0) {
-    const startBtn = document.querySelector('#clDatePenSetup .btn-primary');
-    if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Loading…'; }
     const r = await apiGet({ action: 'clGetAll' });
-    if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Start ▶'; }
     if (r && r.success) allChecklists = r.records || [];
   }
 
@@ -3443,37 +3459,17 @@ async function clStartRecord() {
   );
 
   if (existing) {
-    // Always load into edit mode — never allow a second record for same date+pen
     clEditId = existing.CL_ID;
-    _clClearAllFields();   // start fresh then populate from existing record
+    if (!draftLoaded) _clClearAllFields();
     _populateClForm(existing);
+    document.getElementById('clLockedSub').textContent       = '(existing record)';
     document.getElementById('clExistingBanner').style.display = 'block';
-    document.getElementById('clExistingBanner').textContent   = `✏️ Pen ${pen} already has a record for ${date} — editing existing record.`;
+    document.getElementById('clExistingBanner').textContent   = `✏️ Pen ${pen} already has a record for ${date} — editing existing.`;
     document.getElementById('btnSaveChecklist').textContent   = 'UPDATE CHECKLIST';
   } else {
-    clEditId = null;
-    _clClearAllFields();   // always start completely blank for new records
-    document.getElementById('clExistingBanner').style.display = 'none';
-    document.getElementById('btnSaveChecklist').textContent   = 'SAVE CHECKLIST';
+    document.getElementById('clLockedSub').textContent = '(new record)';
+    document.getElementById('btnSaveChecklist').textContent = 'SAVE CHECKLIST';
   }
-
-  const today  = new Date().toISOString().split('T')[0];
-  const locked = date < today && !isAdminEnabled();
-  if (locked) {
-    document.getElementById('clLockedBanner').style.display   = 'block';
-    document.getElementById('clExistingBanner').style.display = 'none';
-  }
-
-  document.getElementById('clDatePenSetup').style.display  = 'none';
-  document.getElementById('clDatePenLocked').style.display = 'block';
-  document.getElementById('clLockedLabel').textContent     = date + '  —  Pen: ' + pen + '  —  🐷 ' + pigCount + ' pigs';
-  document.getElementById('clLockedSub').textContent       = existing ? '(existing record)' : '(new record)';
-  document.getElementById('clBody').style.display          = 'block';
-  clLockForm(locked);
-
-  clUpdateDayTotal();
-  clUpdateOfflineBanner();
-  if (!existing) await clLoadDraft();
 }
 
 // Clear all form fields and state WITHOUT resetting the date/pen setup panel
