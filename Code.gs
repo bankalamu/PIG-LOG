@@ -383,20 +383,52 @@ function clGetAll() {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const tz        = Session.getScriptTimeZone();
-  const lastCol   = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
-  const sheetHdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
-  const data      = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  const records   = data
+  const tz      = Session.getScriptTimeZone();
+  const lastCol = sheet.getLastColumn();
+
+  // Read header row to build column index map
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const colMap  = {}; // headerName → 0-based index
+  hdrRow.forEach((h, i) => {
+    const hs = String(h||'').trim();
+    if (hs && !hs.startsWith('—') && !colMap[hs]) colMap[hs] = i;
+  });
+
+  // Only read columns we actually need (skip orphans)
+  const neededCols = CL_HEADERS.filter(h => colMap[h] !== undefined);
+  const colIndices = neededCols.map(h => colMap[h]); // 0-based
+
+  // Read all data rows at once
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  const records = data
     .filter(r => r[0] !== "" && r[0] !== null && r[0] !== undefined)
     .map(row => {
-      const rec = rowToClRecord(row, sheetHdrs, tz);
-      // Truncate AIAnalysis to 500 chars for list view — full text not needed until expanded
+      const rec = {};
+      neededCols.forEach((h, i) => {
+        const v = row[colIndices[i]];
+        if (CL_TIME_COLS.indexOf(h) >= 0) {
+          if (v instanceof Date) {
+            rec[h] = String(v.getHours()).padStart(2,'0') + ':' + String(v.getMinutes()).padStart(2,'0');
+          } else {
+            const s = String(v||'').trim();
+            rec[h] = /^\d{1,2}:\d{2}$/.test(s) ? s : '';
+          }
+        } else if (v instanceof Date) {
+          rec[h] = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+        } else {
+          rec[h] = (v !== undefined && v !== null) ? v : '';
+        }
+      });
+      // Truncate large fields
       if (rec.AIAnalysis && String(rec.AIAnalysis).length > 500) {
         rec.AIAnalysis = String(rec.AIAnalysis).substring(0, 500) + '…';
       }
+      // Fill missing headers with empty string
+      CL_HEADERS.forEach(h => { if (!(h in rec)) rec[h] = ''; });
       return rec;
     });
+
   return { success: true, records };
 }
 
@@ -467,27 +499,49 @@ function clGetRecent(days) {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: true, records: [] };
-  const tz        = Session.getScriptTimeZone();
-  const cutoff    = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
+  const tz      = Session.getScriptTimeZone();
+  const cutoff  = new Date(); cutoff.setDate(cutoff.getDate() - days);
   const cutoffStr = Utilities.formatDate(cutoff, tz, 'yyyy-MM-dd');
-  const lastCol   = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
-  const sheetHdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
-  const data      = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-  const dateIdx   = sheetHdrs.indexOf('Date');
-  const records   = data
+  const lastCol = sheet.getLastColumn();
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const colMap  = {};
+  hdrRow.forEach((h, i) => {
+    const hs = String(h||'').trim();
+    if (hs && !hs.startsWith('—') && !colMap[hs]) colMap[hs] = i;
+  });
+  const neededCols = CL_HEADERS.filter(h => colMap[h] !== undefined);
+  const colIndices = neededCols.map(h => colMap[h]);
+  const dateColIdx = colMap['Date'];
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const records = data
     .filter(r => {
       if (!r[0]) return false;
-      if (dateIdx < 0) return true;
-      const d = r[dateIdx];
+      if (dateColIdx === undefined) return true;
+      const d = r[dateColIdx];
       const ds = d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d||'').substring(0,10);
       return ds >= cutoffStr;
     })
     .map(row => {
-      const rec = rowToClRecord(row, sheetHdrs, tz);
+      const rec = {};
+      neededCols.forEach((h, i) => {
+        const v = row[colIndices[i]];
+        if (CL_TIME_COLS.indexOf(h) >= 0) {
+          if (v instanceof Date) {
+            rec[h] = String(v.getHours()).padStart(2,'0') + ':' + String(v.getMinutes()).padStart(2,'0');
+          } else {
+            const s = String(v||'').trim();
+            rec[h] = /^\d{1,2}:\d{2}$/.test(s) ? s : '';
+          }
+        } else if (v instanceof Date) {
+          rec[h] = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+        } else {
+          rec[h] = (v !== undefined && v !== null) ? v : '';
+        }
+      });
       if (rec.AIAnalysis && String(rec.AIAnalysis).length > 500) {
         rec.AIAnalysis = String(rec.AIAnalysis).substring(0, 500) + '…';
       }
+      CL_HEADERS.forEach(h => { if (!(h in rec)) rec[h] = ''; });
       return rec;
     });
   return { success: true, records, days, cutoff: cutoffStr };
