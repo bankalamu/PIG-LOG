@@ -70,6 +70,9 @@ function doGet(e) {
   try {
     if (action === "getAll")       return respond(getAllRecords());
     if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString() });
+    if (action === "clCount")      return respond(clCount());
+    if (action === "clGetRecent")  return respond(clGetRecent(parseInt(e.parameter.days||'30')));
+    if (action === "clDebug")      return respond(clDebug());
     if (action === "getNextDbId")  return respond({ success: true, nextId: getNextId(getSheet()) });
     if (action === "getByPigId") return respond(getByPigId(e.parameter.pigId));
     if (action === "clGetAll")   return respond(clGetAll());
@@ -424,7 +427,71 @@ function rowToClRecord(row, sheetHeaders, tz) {
   return rec;
 }
 
-// Returns a map of { headerName -> 1-based column index } from the actual sheet header row
+// Diagnostic: returns sheet info without processing any rows
+function clDebug() {
+  try {
+    const t0    = new Date().getTime();
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const t1    = new Date().getTime();
+    const sheet = ss.getSheetByName('DailyChecklist');
+    const t2    = new Date().getTime();
+    if (!sheet) return { success: false, error: 'DailyChecklist sheet not found', sheets: ss.getSheets().map(s=>s.getName()) };
+    const lastRow = sheet.getLastRow();
+    const lastCol = sheet.getLastColumn();
+    const t3    = new Date().getTime();
+    const hdrs  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    const t4    = new Date().getTime();
+    return {
+      success:  true,
+      rows:     lastRow - 1,
+      cols:     lastCol,
+      headers:  hdrs.map(h => String(h).trim()).filter(Boolean),
+      timings:  { getSpreadsheet: t1-t0, getSheet: t2-t1, getDimensions: t3-t2, getHeaders: t4-t3, total: t4-t0 }
+    };
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// Just return row count — fast diagnostic
+function clCount() {
+  const sheet = getClSheet();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  return { success: true, rows: lastRow - 1, cols: lastCol };
+}
+
+// Return only records from the last N days — much faster than clGetAll for large sheets
+function clGetRecent(days) {
+  days = days || 30;
+  const sheet = getClSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, records: [] };
+  const tz        = Session.getScriptTimeZone();
+  const cutoff    = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = Utilities.formatDate(cutoff, tz, 'yyyy-MM-dd');
+  const lastCol   = Math.max(sheet.getLastColumn(), CL_HEADERS.length);
+  const sheetHdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
+  const data      = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const dateIdx   = sheetHdrs.indexOf('Date');
+  const records   = data
+    .filter(r => {
+      if (!r[0]) return false;
+      if (dateIdx < 0) return true;
+      const d = r[dateIdx];
+      const ds = d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d||'').substring(0,10);
+      return ds >= cutoffStr;
+    })
+    .map(row => {
+      const rec = rowToClRecord(row, sheetHdrs, tz);
+      if (rec.AIAnalysis && String(rec.AIAnalysis).length > 500) {
+        rec.AIAnalysis = String(rec.AIAnalysis).substring(0, 500) + '…';
+      }
+      return rec;
+    });
+  return { success: true, records, days, cutoff: cutoffStr };
+}
 function _clSheetColMap(sheet) {
   const lastCol = sheet.getLastColumn();
   if (lastCol === 0) return {};

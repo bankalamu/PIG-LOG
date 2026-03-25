@@ -2354,23 +2354,41 @@ async function testConnection() {
   const resultEl = document.getElementById("connectionTestResult");
   const testUrl  = (urlInput?.value.trim()) || SCRIPT_URL;
   if (!testUrl) { showToast("Enter a Script URL first", true); return; }
-  if (resultEl) resultEl.textContent = "⏳ Testing…";
+  if (resultEl) resultEl.innerHTML = "⏳ Testing connection…";
+
   try {
+    // Step 1: ping
     const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 15000);
-    const res  = await fetch(testUrl + "?action=ping", { signal: ctrl.signal });
-    clearTimeout(tid);
-    const data = await res.json();
-    if (data && data.success) {
-      if (resultEl) resultEl.innerHTML = '<span style="color:#2d6a2d">✅ Connected! Server time: ' + data.time + '</span>';
-      showToast("✅ Connection successful!");
-    } else {
-      if (resultEl) resultEl.innerHTML = '<span style="color:#c0392b">⚠ Server responded but returned error: ' + JSON.stringify(data) + '</span>';
+    setTimeout(() => ctrl.abort(), 15000);
+    const pingRes  = await fetch(testUrl + "?action=ping", { signal: ctrl.signal });
+    const pingData = await pingRes.json();
+    if (!pingData?.success) {
+      if (resultEl) resultEl.innerHTML = `<span style="color:#c0392b">⚠ Ping failed: ${JSON.stringify(pingData)}</span>`;
+      return;
     }
+
+    if (resultEl) resultEl.innerHTML = "✅ Ping OK — now checking sheet…";
+
+    // Step 2: clDebug
+    const dbgRes  = await fetch(testUrl + "?action=clDebug");
+    const dbgData = await dbgRes.json();
+
+    if (!dbgData?.success) {
+      if (resultEl) resultEl.innerHTML = `<span style="color:#c0392b">❌ Sheet error: ${dbgData?.error || JSON.stringify(dbgData)}</span>`;
+      return;
+    }
+
+    const t = dbgData.timings;
+    if (resultEl) resultEl.innerHTML = `
+      <span style="color:#2d6a2d">✅ Connected — Sheet OK</span><br>
+      <span style="font-size:11px;color:#333">
+        📊 ${dbgData.rows} rows × ${dbgData.cols} cols<br>
+        ⏱ Timings: getSpreadsheet ${t.getSpreadsheet}ms · getSheet ${t.getSheet}ms · dimensions ${t.getDimensions}ms · headers ${t.getHeaders}ms · <strong>total ${t.total}ms</strong><br>
+        📋 Columns: ${dbgData.headers.slice(0,10).join(', ')}${dbgData.headers.length > 10 ? '…' : ''}
+      </span>`;
   } catch(e) {
-    const msg = e.name === 'AbortError' ? 'Timed out after 15s — script may not be deployed' : e.message;
-    if (resultEl) resultEl.innerHTML = '<span style="color:#c0392b">❌ ' + msg + '</span>';
-    showToast("Connection failed: " + msg, true);
+    const msg = e.name === 'AbortError' ? 'Timed out after 15s' : e.message;
+    if (resultEl) resultEl.innerHTML = `<span style="color:#c0392b">❌ ${msg}</span>`;
   }
 }
 
@@ -3983,27 +4001,24 @@ async function saveSection(sec) {
   }
 }
 
-async function loadChecklists() {
+async function loadChecklists(loadAll) {
   const container = document.getElementById('clHistoryContainer');
   if (!SCRIPT_URL) {
-    container.innerHTML = '<div class="empty-state">⚠️ No Script URL set. Go to Home → ⚙️ and paste your Apps Script URL.</div>';
+    container.innerHTML = '<div class="empty-state">⚠️ No Script URL set.</div>';
     return;
   }
   container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p style="margin-top:10px;color:#666;font-size:13px">Loading history…</p></div>';
   let result = null;
   try {
-    result = await apiGet({ action: 'clGetAll' });
+    // Use clGetRecent (last 30 days) by default — much faster than loading everything
+    result = await apiGet(loadAll ? { action: 'clGetAll' } : { action: 'clGetRecent', days: 30 });
   } catch(e) {
-    container.innerHTML = `<div class="empty-state">⚠️ Network error: ${e.message}<br><br><small>Check your internet connection and Script URL.</small></div>`; return;
+    container.innerHTML = `<div class="empty-state">⚠️ Network error: ${e.message}</div>`; return;
   }
   if (!result) {
     container.innerHTML = `<div class="empty-state">
-      ⚠️ No response from server — request timed out.<br><br>
-      <strong>Most likely cause:</strong> Code.gs has not been redeployed yet.<br><br>
-      <strong>Fix:</strong><br>
-      1. Open Apps Script editor<br>
-      2. Paste the new Code.gs → Save<br>
-      3. Deploy → Manage deployments → Edit → <strong>New version</strong> → Deploy<br><br>
+      ⚠️ No response from server (timed out).<br><br>
+      Go to Admin panel → 🔌 Test Now to diagnose.<br><br>
       <button onclick="allChecklists=[];loadChecklists()" style="background:#2d6a2d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">🔄 Try Again</button>
     </div>`;
     return;
@@ -4011,14 +4026,19 @@ async function loadChecklists() {
   if (result.success) {
     allChecklists = result.records || [];
     if (allChecklists.length === 0) {
-      container.innerHTML = '<div class="empty-state">No checklist records yet.</div>';
+      container.innerHTML = '<div class="empty-state">No checklist records in the last 30 days.</div>';
     } else {
       renderChecklistHistory();
+      // Show load-all option if we only loaded recent
+      if (!loadAll) {
+        const loadAllBtn = document.createElement('div');
+        loadAllBtn.style.cssText = 'text-align:center;padding:12px';
+        loadAllBtn.innerHTML = `<button onclick="allChecklists=[];loadChecklists(true)" style="background:#f0f4f0;color:#2d6a2d;border:1.5px solid #2d6a2d;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">📅 Load All History</button>`;
+        container.appendChild(loadAllBtn);
+      }
     }
   } else {
-    container.innerHTML = `<div class="empty-state">⚠️ Server error: ${result.error || 'Unknown error'}<br><br>
-      <button onclick="allChecklists=[];loadChecklists()" style="background:#2d6a2d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">🔄 Try Again</button>
-    </div>`;
+    container.innerHTML = `<div class="empty-state">⚠️ Server error: ${result.error || 'Unknown'}</div>`;
   }
 }
 
