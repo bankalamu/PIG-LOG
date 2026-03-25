@@ -1172,6 +1172,23 @@
         <button class="btn-primary btn-green" id="btnSaveChecklist" onclick="saveChecklist()">💾 Save Notes &amp; Nursing</button>
       </div>
 
+      <!-- AI Health Summary -->
+      <div style="margin-top:10px">
+        <button onclick="clGenerateAISummary()"
+          style="width:100%;background:#1a3a8a;color:#fff;border:none;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          🤖 Generate AI Health Summary
+        </button>
+        <div id="clAISummaryBox" style="display:none;margin-top:12px;background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:10px;padding:14px 16px">
+          <div style="font-size:11px;font-weight:800;color:#1a3a8a;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">🤖 AI Health Summary</div>
+          <div id="clAISummaryText" style="font-size:13px;color:#222;line-height:1.7;white-space:pre-wrap"></div>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button onclick="clCopySummary()" style="background:#1a3a8a;color:#fff;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer">📋 Copy</button>
+            <button onclick="clAppendSummaryToNotes()" style="background:#2d6a2d;color:#fff;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer">➕ Add to Notes</button>
+            <button onclick="document.getElementById('clAISummaryBox').style.display='none'" style="background:#aaa;color:#fff;border:none;border-radius:7px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer">✕ Close</button>
+          </div>
+        </div>
+      </div>
+
       </div><!-- end clBody -->
 
     </div><!-- end clFormView -->
@@ -3228,6 +3245,20 @@ function _clNowTime() {
   return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
 }
 
+// Calculate the correct checklist status based on sections saved and check results
+// ALL OK     = all 3 sections saved, all checks toggled, no concerns
+// Complete   = all 3 sections saved, all checks toggled, has concerns
+// In Progress= some sections saved but not all 3
+// Incomplete = day closed, not all sections saved (set externally)
+function _clCalcStatus(willAllBeSaved) {
+  const allConcerns  = CL_KEYS.filter(k => clState[k] === 'bad');
+  const allAnswered  = CL_KEYS.every(k => clState[k] !== null && clState[k] !== undefined);
+  if (!willAllBeSaved) return { status: 'In Progress', concerns: allConcerns };
+  if (allAnswered && allConcerns.length === 0) return { status: 'ALL OK',   concerns: allConcerns };
+  if (allAnswered && allConcerns.length > 0)  return { status: 'Complete', concerns: allConcerns };
+  return { status: 'In Progress', concerns: allConcerns };
+}
+
 function initChecklist() {
   CL_KEYS.forEach(k => { clState[k] = null; });
   const today = new Date().toISOString().split('T')[0];
@@ -3378,9 +3409,20 @@ async function clStartRecord() {
   document.getElementById('clLockedSub').textContent       = existing ? '(existing record)' : '(new record)';
   document.getElementById('clBody').style.display          = 'block';
   clLockForm(locked);
+
+  // If past record still shows In Progress, auto-update to Incomplete
+  if (locked && existing && (existing.Status === 'In Progress' || existing.Status === 'PARTIAL')) {
+    apiPost({ action: 'clUpdate', id: existing.CL_ID, data: { Status: 'Incomplete' } }).then(r => {
+      if (r?.success) {
+        const idx = allChecklists.findIndex(x => String(x.CL_ID) === String(existing.CL_ID));
+        if (idx !== -1) allChecklists[idx].Status = 'Incomplete';
+        showToast('⚠ Day ended — record marked Incomplete');
+      }
+    });
+  }
+
   clUpdateDayTotal();
   clUpdateOfflineBanner();
-  // Restore any offline draft for this date+pen
   if (!existing) await clLoadDraft();
 }
 
@@ -3658,7 +3700,8 @@ async function saveChecklist() {
     return;
   }
   const concerns = CL_KEYS.filter(k => clState[k] === 'bad');
-  // Re-read from DOM in case user changed it; fall back to clCurrentPigCount
+  const allSaved = clSecSaved[1] && clSecSaved[2] && clSecSaved[3];
+  const { status: overallStatus } = _clCalcStatus(allSaved);
   const pigCountRaw = (document.getElementById('clPigCount')?.value || '').trim();
   const pigCountParsed = Number(pigCountRaw);
   const pigCount = (pigCountRaw !== '' && Number.isInteger(pigCountParsed) && pigCountParsed >= 1)
@@ -3670,8 +3713,9 @@ async function saveChecklist() {
   const data = {
     Date: date, Pen: pen, CheckedBy: checkedBy,
     Notes: notes, Concerns: concerns.join(','),
-    Status: concerns.length > 0 ? 'CONCERNS' : 'ALL OK',
+    Status: overallStatus,
     PigCount: pigCount,
+    // Only send SecTimes if they have values — backend will preserve existing if blank
     Sec1Time: clSecTimes.sec1 || '',
     Sec2Time: clSecTimes.sec2 || '',
     Sec3Time: clSecTimes.sec3 || '',
@@ -3774,17 +3818,10 @@ async function saveSection(sec) {
 
   // Determine overall status:
   // Only mark ALL OK when all 3 sections are saved with no concerns.
-  // Until then use PARTIAL to avoid false "All OK" display.
-  const allSecsSaved = clSecSaved[1] && clSecSaved[2] && clSecSaved[3];
-  // After this section saves, check if all will be saved
   const willAllBeSaved = (sec === 1 ? true : clSecSaved[1])
                       && (sec === 2 ? true : clSecSaved[2])
                       && (sec === 3 ? true : clSecSaved[3]);
-  // Accumulate concerns across all saved sections
-  const allConcerns = CL_KEYS.filter(k => clState[k] === 'bad');
-  const overallStatus = allConcerns.length > 0 ? 'CONCERNS'
-                      : willAllBeSaved ? 'ALL OK'
-                      : 'PARTIAL';
+  const { status: overallStatus, concerns: allConcerns } = _clCalcStatus(willAllBeSaved);
 
   const data = {
     Date: date, Pen: pen, CheckedBy: checkedBy,
@@ -3792,7 +3829,7 @@ async function saveSection(sec) {
     Status:   overallStatus,
     Concerns: allConcerns.join(',')
   };
-  // Section-specific time stamp
+  // Section-specific timestamp — preserve original, don't re-stamp
   const secKey = 'sec' + sec;
   data['Sec' + sec + 'Time'] = clSecTimes[secKey] || _clNowTime();
   // Section check values
@@ -3912,8 +3949,8 @@ function renderChecklistHistory() {
     const recs      = byDate[date];
     const isToday   = date === today;
     const isPast    = date < today;
-    const concerns  = recs.filter(r => r.Status === 'CONCERNS').length;
-    const partials  = recs.filter(r => r.Status === 'PARTIAL').length;
+    const concerns  = recs.filter(r => ['CONCERNS','Complete'].includes(r.Status)).length;
+    const partials  = recs.filter(r => ['In Progress','Incomplete','PARTIAL'].includes(r.Status)).length;
     const totalPens = recs.length;
 
     // Day-level badges
@@ -3934,14 +3971,20 @@ function renderChecklistHistory() {
 
     // Pen cards inside the folder
     const penCards = recs.map(rec => {
-      const hasConcerns = rec.Status === 'CONCERNS';
-      const isPartial   = rec.Status === 'PARTIAL';
+      const status      = rec.Status || '';
       const concernList = (rec.Concerns||'').split(',').filter(Boolean);
-      const badge = hasConcerns
-        ? `<span class="cl-concern-badge">⚠ ${concernList.length} concern(s)</span>`
-        : isPartial
+      const badge =
+        status === 'ALL OK'
+          ? `<span class="cl-ok-badge">✓ All OK</span>`
+        : status === 'Complete'
+          ? `<span style="background:#fff3e0;color:#7a3000;border:1px solid #e07b00;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">⚠ Complete — ${concernList.length} concern(s)</span>`
+        : status === 'In Progress' || status === 'PARTIAL'
           ? `<span style="background:#fff3e0;color:#e65100;border:1px solid #ff9800;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">⏳ In Progress</span>`
-          : `<span class="cl-ok-badge">✓ All OK</span>`;
+        : status === 'Incomplete'
+          ? `<span style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">❌ Incomplete</span>`
+        : status === 'CONCERNS'
+          ? `<span class="cl-concern-badge">⚠ ${concernList.length} concern(s)</span>`
+        : `<span style="background:#f0f0f0;color:#666;border-radius:10px;padding:2px 8px;font-size:11px">—</span>`;
 
       // Edit: today editable by all; past records admin only
       const canEdit = isAdmin || !isPast;
@@ -4389,6 +4432,149 @@ function _clTimeSince(isoString) {
     if (secs < 3600) return Math.floor(secs/60) + 'm';
     return Math.floor(secs/3600) + 'h';
   } catch(e) { return ''; }
+}
+
+// ── AI Health Summary ─────────────────────────────────────────
+async function clGenerateAISummary() {
+  const summaryBox  = document.getElementById('clAISummaryBox');
+  const summaryText = document.getElementById('clAISummaryText');
+  if (!summaryBox || !summaryText) return;
+
+  // Gather available photos — prefer base64 data, fall back to fetching from Drive URL
+  const photoContents = [];
+  const secLabels = { 1: 'Morning', 2: 'Feeding', 3: 'Afternoon' };
+  for (const sec of [1, 2, 3]) {
+    const p = clPhotos[sec];
+    if (!p) continue;
+    if (p.data) {
+      // Fresh base64 photo
+      photoContents.push({
+        type: 'image',
+        source: { type: 'base64', media_type: p.mime || 'image/jpeg', data: p.data },
+        label: secLabels[sec]
+      });
+    } else if (p.url) {
+      // URL-based photo — fetch via proxy
+      try {
+        let fileId = null;
+        if (p.url.startsWith('drive:')) fileId = p.url.slice(6);
+        else { const m = p.url.match(/\/d\/([A-Za-z0-9_-]{25,})|[?&]id=([A-Za-z0-9_-]{25,})/); if (m) fileId = m[1] || m[2]; }
+        if (fileId) {
+          const r = await apiGet({ action: 'getPhoto', fileId });
+          if (r?.success && r.dataUrl) {
+            const parts = r.dataUrl.split(',');
+            const mime  = parts[0].replace('data:', '').replace(';base64', '');
+            photoContents.push({
+              type: 'image',
+              source: { type: 'base64', media_type: mime, data: parts[1] },
+              label: secLabels[sec]
+            });
+          }
+        }
+      } catch(e) { /* skip photo if fetch fails */ }
+    }
+  }
+
+  // Gather check state summary
+  const concerns   = CL_KEYS.filter(k => clState[k] === 'bad');
+  const checksOk   = CL_KEYS.filter(k => clState[k] === 'ok');
+  const unanswered = CL_KEYS.filter(k => !clState[k]);
+  const pen        = document.getElementById('clPen')?.value || '?';
+  const pigCount   = document.getElementById('clPigCount')?.value || '?';
+  const date       = document.getElementById('clDate')?.value || 'today';
+  const notes      = document.getElementById('clNotes')?.value || '';
+  const nursing    = document.getElementById('cl_nursing')?.value || '';
+  const weaklings  = document.getElementById('cl_weaklings')?.value || '';
+
+  const currentStatus = allChecklists.find(r => String(r.CL_ID) === String(clEditId))?.Status || 'In Progress';
+  const statusContext  = currentStatus === 'ALL OK'     ? 'All checks complete — no concerns.'
+                       : currentStatus === 'Complete'   ? 'All checks complete — concerns were noted.'
+                       : currentStatus === 'Incomplete' ? 'Day ended — not all sections were completed.'
+                       : 'In Progress — some sections still pending.';
+
+  // Build message content array for Claude
+  const textPrompt = `You are a pig farm health advisor. Analyse the following daily health checklist data and the farm photos provided, then write a clear, practical health summary for the farm worker.
+
+DATE: ${date}
+PEN: ${pen} | PIGS IN PEN: ${pigCount}
+${nursing ? 'NURSING SOW: ' + nursing + ' piglets nursing' + (weaklings ? ', ' + weaklings + ' weaklings' : '') : ''}
+
+HEALTH CHECK RESULTS:
+- ✅ OK checks (${checksOk.length}): ${checksOk.join(', ') || 'none'}
+- ⚠️ Concerns flagged (${concerns.length}): ${concerns.join(', ') || 'none'}
+- — Not recorded (${unanswered.length}): ${unanswered.length > 0 ? unanswered.join(', ') : 'all recorded'}
+${notes ? '\nFARM WORKER NOTES: ' + notes : ''}
+
+CHECKLIST STATUS: ${currentStatus} — ${statusContext}
+PHOTOS: ${photoContents.length} section photo(s) provided (${photoContents.map(p => p.label).join(', ')}).
+
+Please provide:
+1. **Overall Health Status** — one sentence verdict (Healthy / Monitor / Action Required)
+2. **Key Observations** — what you see in the photos and checks (pen cleanliness, pig condition, body posture, any visible issues)
+3. **Concerns** — flag anything that needs attention based on the photos or failed checks
+4. **Recommended Actions** — specific practical steps for today or tomorrow
+5. **Nursing Status** — if applicable, comment on piglet welfare
+
+Keep the summary concise and practical — written for a farm worker, not a vet.`;
+
+  const messageContent = [];
+  // Add photos first (Claude sees images before the prompt for better analysis)
+  photoContents.forEach(p => {
+    messageContent.push({
+      type: 'image',
+      source: p.source
+    });
+    messageContent.push({ type: 'text', text: `[${p.label} check photo]` });
+  });
+  messageContent.push({ type: 'text', text: textPrompt });
+
+  if (photoContents.length === 0) {
+    summaryBox.style.display = 'block';
+    summaryText.textContent  = '⚠ No photos available yet. Save at least one section with a photo first, then generate the summary.';
+    return;
+  }
+
+  // Show loading state
+  summaryBox.style.display = 'block';
+  summaryText.textContent  = '⏳ Analysing photos and health data…';
+  summaryBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: messageContent }]
+      })
+    });
+    const data = await response.json();
+    const text = data?.content?.map(c => c.text || '').filter(Boolean).join('\n') || '';
+    if (text) {
+      summaryText.textContent = text;
+    } else {
+      summaryText.textContent = '⚠ Could not generate summary. Please try again.';
+    }
+  } catch(e) {
+    summaryText.textContent = '⚠ Error: ' + e.message;
+  }
+}
+
+function clCopySummary() {
+  const text = document.getElementById('clAISummaryText')?.textContent || '';
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => showToast('✓ Summary copied to clipboard'));
+}
+
+function clAppendSummaryToNotes() {
+  const summary  = document.getElementById('clAISummaryText')?.textContent || '';
+  const notesEl  = document.getElementById('clNotes');
+  if (!summary || !notesEl) return;
+  const existing = notesEl.value.trim();
+  notesEl.value  = existing ? existing + '\n\n--- AI Summary ---\n' + summary : '--- AI Summary ---\n' + summary;
+  notesEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  showToast('✓ Summary added to Notes');
 }
 
 async function clClearDraft() {

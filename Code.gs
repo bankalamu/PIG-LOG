@@ -498,12 +498,23 @@ function clUpdate(clId, data) {
   const rowIndex = ids.findIndex(id => Number(id) === Number(clId));
   if (rowIndex === -1) return { success: false, error: "Record not found" };
   const sheetRow = rowIndex + 2;
-  // Write each field to its ACTUAL column position in the sheet
+
+  // Read existing row to preserve timestamp values
+  const lastCol = sheet.getLastColumn();
+  const existingRow = sheet.getRange(sheetRow, 1, 1, lastCol).getValues()[0];
+
   Object.keys(data).forEach(h => {
     const col = colMap[h];
     if (!col || h === "CL_ID") return;
-    const v = CL_TIME_COLS.includes(h) ? String(data[h]) : data[h];
-    sheet.getRange(sheetRow, col).setValue(v);
+    // Preserve existing timestamps — never overwrite with blank
+    if (CL_TIME_COLS.includes(h)) {
+      const newVal      = String(data[h] || '').trim();
+      const existingVal = String(existingRow[col - 1] || '').trim();
+      if (!newVal && existingVal) return; // keep existing timestamp
+      sheet.getRange(sheetRow, col).setValue(newVal);
+    } else {
+      sheet.getRange(sheetRow, col).setValue(data[h]);
+    }
   });
   return { success: true };
 }
