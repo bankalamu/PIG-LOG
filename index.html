@@ -1229,7 +1229,7 @@
     <!-- ── ACTIVE LIST VIEW ── -->
     <div id="slActiveView">
       <input type="text" class="list-search" id="slActiveSearch" placeholder="Search by sow ID or pen…" oninput="renderSlActive()"/>
-      <div id="slActiveContainer"><div class="loading-state"><div class="spinner"></div></div></div>
+      <div id="slActiveContainer"><div class="empty-state" style="color:#aaa;font-size:12px">Navigate here to load records</div></div>
     </div>
 
     <!-- ── FORM VIEW (New / Edit) ── -->
@@ -2343,17 +2343,21 @@ function showPage(id) {
     const err = document.getElementById("searchError");
     if (err) err.style.display = "none";
   }
-  if (id === "pageSowLitter") { allSlRecords = []; sowRecordCache = []; boarRecordCache = []; setSlView('active'); }
+  if (id === "pageSowLitter") { sowRecordCache = []; boarRecordCache = []; setSlView('active'); }
   if (id === "pageChecklist") {
-    allChecklists = []; clDateChanged();
-    // Load max pen setting when page opens
-    apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
-      clMaxPen = (r && r.success && r.value) ? (parseInt(r.value, 10) || 50) : 50;
-      _clApplyMaxPen();
-    });
+    clDateChanged();
+    // Load max pen setting only once
+    if (clMaxPen === 50) {
+      apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
+        if (r && r.success && r.value) {
+          clMaxPen = parseInt(r.value, 10) || 50;
+          _clApplyMaxPen();
+        }
+      });
+    }
   }
-  if (id === "pageWeekly")   { allWeekly = [];     wkDateChanged(); }
-  if (id === "pageMonthly")  { allMonthly = []; _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
+  if (id === "pageWeekly")   { wkDateChanged(); }
+  if (id === "pageMonthly")  { _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
   if (id === "pageNotch")    { boarRecordCache = []; sowRecordCache = []; populateNotchDropdowns(); }
 }
 
@@ -3414,7 +3418,10 @@ async function clStartRecord() {
   clCurrentPigCount = pigCount;
 
   if (allChecklists.length === 0) {
+    const startBtn = document.querySelector('#clDatePenSetup .btn-primary');
+    if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Loading…'; }
     const r = await apiGet({ action: 'clGetAll' });
+    if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Start ▶'; }
     if (r && r.success) allChecklists = r.records || [];
   }
 
