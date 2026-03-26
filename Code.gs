@@ -82,6 +82,7 @@ function doGet(e) {
     if (action === "moDedup")    return respond(moDeduplicateAll());
     if (action === "getSetting") return respond(getSetting(e.parameter.key));
     if (action === "getPhoto")   return respond(getPhotoAsBase64(e.parameter.fileId));
+    if (action === "waGetAll")   return respond(waGetAll());
     return respond({ error: "Unknown action" });
   } catch (err) {
     return respond({ error: err.message });
@@ -112,6 +113,9 @@ function doPost(e) {
     if (action === "moUpdate") return corsRespond(moUpdate(payload.id, payload.data));
     if (action === "moDelete") return corsRespond(moDelete(payload.id));
     if (action === "saveSetting") return corsRespond(saveSetting(payload.key, payload.value));
+    if (action === "waAdd")       return corsRespond(waAdd(payload.data));
+    if (action === "waUpdate")    return corsRespond(waUpdate(payload.id, payload.data));
+    if (action === "waDelete")    return corsRespond(waDelete(payload.id));
     if (action === "migrateBoarSow")   return corsRespond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return corsRespond(migrateSowLitterSowId());
     if (action === "runAIAnalysis")    return corsRespond(runNightlyAIAnalysis(payload.targetDate || null));
@@ -1936,4 +1940,105 @@ function _extractFileId(url) {
   if (url.startsWith('drive:')) return url.slice(6);
   const m = url.match(/\/d\/([A-Za-z0-9_-]{25,})|[?&]id=([A-Za-z0-9_-]{25,})/);
   return m ? (m[1] || m[2]) : null;
+}
+
+// ============================================================
+//  WORKER ACTIONS
+//  Sheet: WorkerActions
+//  Tracks tasks assigned to farm workers
+// ============================================================
+
+const WA_SHEET = 'WorkerActions';
+const WA_HEADERS = ['ACTION_ID','Date','Worker','Category','Action','Priority','Status','DueDate','Notes','CompletedAt'];
+
+function getWaSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(WA_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(WA_SHEET);
+    sheet.appendRow(WA_HEADERS);
+    sheet.getRange(1,1,1,WA_HEADERS.length).setFontWeight('bold').setBackground('#e65100').setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 80);
+    sheet.setColumnWidth(3, 120);
+    sheet.setColumnWidth(5, 250);
+    sheet.setColumnWidth(9, 200);
+  }
+  return sheet;
+}
+
+function _waColMap(sheet) {
+  const hdrs = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+  const map = {};
+  hdrs.forEach((h,i) => { if (h) map[String(h).trim()] = i+1; });
+  return map;
+}
+
+function waGetAll() {
+  const sheet = getWaSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, records: [] };
+  const tz     = Session.getScriptTimeZone();
+  const lastCol = sheet.getLastColumn();
+  const hdrs   = sheet.getRange(1,1,1,lastCol).getValues()[0].map(v => String(v).trim());
+  const data   = sheet.getRange(2,1,lastRow-1,lastCol).getValues();
+  const records = data.filter(r => r[0] !== '' && r[0] !== null).map(row => {
+    const rec = {};
+    hdrs.forEach((h,i) => {
+      const v = row[i];
+      rec[h] = v instanceof Date ? Utilities.formatDate(v, tz, 'yyyy-MM-dd') : (v !== null && v !== undefined ? v : '');
+    });
+    return rec;
+  });
+  return { success: true, records };
+}
+
+function waAdd(data) {
+  const sheet = getWaSheet();
+  const id    = _waNextId(sheet);
+  const tz    = Session.getScriptTimeZone();
+  const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const row   = WA_HEADERS.map(h => {
+    if (h === 'ACTION_ID') return id;
+    if (h === 'Date')      return data.Date || today;
+    if (h === 'Status')    return data.Status || 'Pending';
+    return data[h] !== undefined ? data[h] : '';
+  });
+  sheet.appendRow(row);
+  return { success: true, action_id: id };
+}
+
+function waUpdate(id, data) {
+  const sheet  = getWaSheet();
+  const colMap = _waColMap(sheet);
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: false, error: 'No records' };
+  const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat();
+  const rowIndex = ids.findIndex(r => Number(r) === Number(id));
+  if (rowIndex === -1) return { success: false, error: 'Record not found' };
+  const sheetRow = rowIndex + 2;
+  Object.keys(data).forEach(h => {
+    const col = colMap[h];
+    if (!col || h === 'ACTION_ID') return;
+    sheet.getRange(sheetRow, col).setValue(data[h]);
+  });
+  return { success: true };
+}
+
+function waDelete(id) {
+  const sheet = getWaSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: false, error: 'No records' };
+  const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat();
+  const rowIndex = ids.findIndex(r => Number(r) === Number(id));
+  if (rowIndex === -1) return { success: false, error: 'Record not found' };
+  sheet.deleteRow(rowIndex + 2);
+  return { success: true };
+}
+
+function _waNextId(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return 1;
+  const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat().filter(v => v !== '');
+  return ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
 }

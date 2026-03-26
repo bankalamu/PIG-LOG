@@ -663,6 +663,14 @@
       </div>
     </button>
 
+    <button class="action-card" style="border-color:#e65100;background:#fff" onclick="showPage('pageWorkers')">
+      <div class="card-icon" style="background:#fff3e0">👷</div>
+      <div>
+        <div class="card-title" style="color:#e65100">Worker Actions</div>
+        <div class="card-desc">Assign &amp; track farm worker tasks</div>
+      </div>
+    </button>
+
     <button class="action-card" style="border-color:#4a148c;background:#fff" onclick="showPage('pageMonthly')">
       <div class="card-icon" style="background:#f3e5f5">📆</div>
       <div>
@@ -2136,9 +2144,100 @@
         <div class="notch-result-val" id="resultPigId" style="font-size:15px">—</div>
       </div>
     </div>
-  </div>
+  </div><!-- end pageNotch -->
 
-</div>
+  <!-- WORKER ACTIONS -->
+  <div id="pageWorkers" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div class="section-title" style="color:#e65100;margin-bottom:0">👷 Worker Actions</div>
+      <button onclick="waShowAddForm()" style="background:#e65100;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer">+ Add Task</button>
+    </div>
+    <div class="section-sub" style="color:#555;margin-bottom:12px">Assign and track tasks for farm workers</div>
+
+    <!-- Filters -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select id="waFilterWorker" class="form-select" style="flex:1;min-width:120px;font-size:12px" onchange="waRender()">
+        <option value="">All Workers</option>
+      </select>
+      <select id="waFilterStatus" class="form-select" style="flex:1;min-width:110px;font-size:12px" onchange="waRender()">
+        <option value="">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Done">Done</option>
+        <option value="Overdue">Overdue</option>
+      </select>
+      <button onclick="allWaRecords=[];loadWorkerActions()" style="background:#f0f0f0;border:1.5px solid #ddd;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">🔄</button>
+    </div>
+
+    <!-- Add/Edit Form (hidden by default) -->
+    <div id="waFormBox" style="display:none;background:#fff8f0;border:1.5px solid #e65100;border-radius:12px;padding:14px 16px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:800;color:#e65100;margin-bottom:12px" id="waFormTitle">➕ New Task</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label class="form-label">Worker ✱</label>
+          <select id="waWorker" class="form-select"></select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label class="form-label">Priority</label>
+          <select id="waPriority" class="form-select">
+            <option value="Normal">Normal</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label class="form-label">Category</label>
+          <select id="waCategory" class="form-select">
+            <option value="Health">Health</option>
+            <option value="Feeding">Feeding</option>
+            <option value="Cleaning">Cleaning</option>
+            <option value="Medication">Medication</option>
+            <option value="Farrowing">Farrowing</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Records">Records</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label class="form-label">Due Date</label>
+          <input type="date" id="waDueDate" class="form-input">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;grid-column:1/-1">
+          <label class="form-label">Action / Task Description ✱</label>
+          <input type="text" id="waAction" class="form-input" placeholder="Describe the task…">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;grid-column:1/-1">
+          <label class="form-label">Notes</label>
+          <textarea id="waNotes" class="form-textarea" rows="2" placeholder="Any additional details…"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="waSaveTask()" style="background:#e65100;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:800;cursor:pointer;flex:1" id="waSaveBtn">💾 Save Task</button>
+        <button onclick="waCancelForm()" style="background:#f0f0f0;border:1.5px solid #ddd;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Manage Workers (admin only) -->
+    <div id="waManageWorkers" style="display:none;background:#f0f7ff;border:1.5px solid #1a3a8a;border-radius:10px;padding:12px 14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:800;color:#1a3a8a;margin-bottom:8px">👷 Manage Worker List</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input type="text" id="waNewWorkerName" class="form-input" placeholder="Worker name…" style="flex:1;font-size:12px">
+        <button onclick="waAddWorker()" style="background:#1a3a8a;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer">Add</button>
+      </div>
+      <div id="waWorkerList" style="font-size:12px;color:#333"></div>
+    </div>
+
+    <!-- Task List -->
+    <div id="waContainer"><div class="loading-state"><div class="spinner"></div></div></div>
+
+    <!-- Admin: manage workers button -->
+    <div id="waAdminBtn" style="display:none;margin-top:12px;text-align:center">
+      <button onclick="waToggleManageWorkers()" style="background:#f0f0f0;border:1.5px solid #1a3a8a;color:#1a3a8a;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">⚙️ Manage Workers</button>
+    </div>
+  </div><!-- end pageWorkers -->
+
+</div><!-- end #app -->
 
 <script>
 // ══════════════════════════════════════════════════
@@ -2220,7 +2319,8 @@ function updateAdminBadge() {
     homeAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
     if (isAdminEnabled()) loadAIAutoRunSetting(); // load current toggle state
   }
-  // Show delete button on edit form only in admin mode
+  const waAdmin = document.getElementById('waAdminBtn');
+  if (waAdmin) waAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
   const delBtn = document.getElementById('btnDeleteRecord');
   if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
   const delSlBtn = document.getElementById('btnDeleteSl');
@@ -2514,6 +2614,7 @@ function showPage(id) {
   if (id === "pageWeekly")   { wkDateChanged(); }
   if (id === "pageMonthly")  { _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
   if (id === "pageNotch")    { boarRecordCache = []; sowRecordCache = []; populateNotchDropdowns(); }
+  if (id === "pageWorkers")  { initWorkerActions(); }
 }
 
 function goHome() { showPage("pageHome"); }
@@ -7356,6 +7457,313 @@ function clSetPhotoImg(sec, storedUrl, time) {
     this.parentElement.insertBefore(a, this);
   };
   img.src = 'https://lh3.googleusercontent.com/d/' + fileId;
+}
+
+// ══════════════════════════════════════════════════
+//  WORKER ACTIONS
+// ══════════════════════════════════════════════════
+
+let allWaRecords  = [];
+let waEditId      = null;
+let waWorkerNames = []; // loaded from Settings
+
+const WA_PRIORITIES = {
+  'Urgent':   { color: '#c0392b', bg: '#fde8e8', icon: '🔴' },
+  'High':     { color: '#e65100', bg: '#fff3e0', icon: '🟠' },
+  'Normal':   { color: '#2d6a2d', bg: '#e8f5e8', icon: '🟢' },
+  'Low':      { color: '#888',    bg: '#f5f5f5', icon: '⚪' }
+};
+const WA_STATUS_COLORS = {
+  'Pending':     { color: '#1a3a8a', bg: '#e8f0ff', border: '#1a3a8a' },
+  'In Progress': { color: '#e65100', bg: '#fff3e0', border: '#e65100' },
+  'Done':        { color: '#2d6a2d', bg: '#e8f5e8', border: '#2d6a2d' },
+  'Overdue':     { color: '#c0392b', bg: '#fde8e8', border: '#c0392b' }
+};
+
+async function initWorkerActions() {
+  // Show/hide admin manage button
+  const adminBtn = document.getElementById('waAdminBtn');
+  if (adminBtn) adminBtn.style.display = isAdminEnabled() ? 'block' : 'none';
+
+  await waLoadWorkers();
+  waPopulateWorkerDropdowns();
+
+  if (allWaRecords.length === 0) {
+    await loadWorkerActions();
+  } else {
+    waRender();
+  }
+}
+
+async function waLoadWorkers() {
+  try {
+    const r = await apiGet({ action: 'getSetting', key: 'WORKER_NAMES' });
+    const raw = r?.value || '';
+    waWorkerNames = raw ? raw.split('|').map(w => w.trim()).filter(Boolean) : [];
+  } catch(e) { waWorkerNames = []; }
+}
+
+async function waSaveWorkers() {
+  await apiPost({ action: 'saveSetting', key: 'WORKER_NAMES', value: waWorkerNames.join('|') });
+}
+
+function waPopulateWorkerDropdowns() {
+  // Form dropdown
+  const sel = document.getElementById('waWorker');
+  if (sel) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Select Worker —</option>';
+    waWorkerNames.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w; opt.textContent = w;
+      if (w === cur) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+  // Filter dropdown
+  const fsel = document.getElementById('waFilterWorker');
+  if (fsel) {
+    const cur = fsel.value;
+    fsel.innerHTML = '<option value="">All Workers</option>';
+    waWorkerNames.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w; opt.textContent = w;
+      if (w === cur) opt.selected = true;
+      fsel.appendChild(opt);
+    });
+  }
+  // Worker management list
+  const list = document.getElementById('waWorkerList');
+  if (list) {
+    if (waWorkerNames.length === 0) {
+      list.innerHTML = '<span style="color:#aaa;font-size:11px">No workers added yet</span>';
+    } else {
+      list.innerHTML = waWorkerNames.map((w, i) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:#fff;border-radius:6px;margin-bottom:4px;border:1px solid #ddd">
+          <span style="font-weight:700">👷 ${w}</span>
+          <button onclick="waRemoveWorker(${i})" style="background:#fde8e8;border:none;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;color:#c0392b;cursor:pointer">✕ Remove</button>
+        </div>`
+      ).join('');
+    }
+  }
+}
+
+async function waAddWorker() {
+  const input = document.getElementById('waNewWorkerName');
+  const name  = (input?.value || '').trim();
+  if (!name) { showToast('Enter a worker name', true); return; }
+  if (waWorkerNames.includes(name)) { showToast('Worker already exists', true); return; }
+  waWorkerNames.push(name);
+  await waSaveWorkers();
+  if (input) input.value = '';
+  waPopulateWorkerDropdowns();
+  showToast('✅ Worker "' + name + '" added');
+}
+
+async function waRemoveWorker(index) {
+  const name = waWorkerNames[index];
+  if (!confirm(`Remove worker "${name}"?\n\nExisting tasks assigned to this worker will not be deleted.`)) return;
+  waWorkerNames.splice(index, 1);
+  await waSaveWorkers();
+  waPopulateWorkerDropdowns();
+  showToast('Worker removed');
+}
+
+function waToggleManageWorkers() {
+  const box = document.getElementById('waManageWorkers');
+  if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function loadWorkerActions() {
+  const container = document.getElementById('waContainer');
+  if (!container) return;
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p style="color:#666;font-size:13px;margin-top:10px">Loading tasks…</p></div>';
+  try {
+    const r = await apiGet({ action: 'waGetAll' });
+    if (r?.success) {
+      allWaRecords = r.records || [];
+      waRender();
+    } else {
+      container.innerHTML = '<div class="empty-state">⚠️ Could not load tasks</div>';
+    }
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state">⚠️ Network error</div>';
+  }
+}
+
+function waRender() {
+  const container = document.getElementById('waContainer');
+  if (!container) return;
+
+  const filterWorker = document.getElementById('waFilterWorker')?.value || '';
+  const filterStatus = document.getElementById('waFilterStatus')?.value || '';
+  const today = new Date().toISOString().split('T')[0];
+
+  // Auto-mark overdue
+  let filtered = allWaRecords.map(r => {
+    const rec = { ...r };
+    if (rec.Status !== 'Done' && rec.DueDate && rec.DueDate < today) {
+      rec.Status = 'Overdue';
+    }
+    return rec;
+  });
+
+  if (filterWorker) filtered = filtered.filter(r => r.Worker === filterWorker);
+  if (filterStatus) filtered = filtered.filter(r => r.Status === filterStatus);
+
+  // Sort: Urgent first, then by due date
+  const priorityOrder = { Urgent: 0, High: 1, Normal: 2, Low: 3 };
+  filtered.sort((a, b) => {
+    const pa = priorityOrder[a.Priority] ?? 2;
+    const pb = priorityOrder[b.Priority] ?? 2;
+    if (pa !== pb) return pa - pb;
+    return (a.DueDate || '9999') < (b.DueDate || '9999') ? -1 : 1;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state">${allWaRecords.length === 0 ? '📋 No tasks yet — tap + Add Task to get started' : '🔍 No tasks match the current filter'}</div>`;
+    return;
+  }
+
+  // Group by status
+  const groups = { Overdue: [], Pending: [], 'In Progress': [], Done: [] };
+  filtered.forEach(r => { (groups[r.Status] || groups['Pending']).push(r); });
+
+  let html = '';
+  ['Overdue', 'Pending', 'In Progress', 'Done'].forEach(status => {
+    const recs = groups[status];
+    if (!recs.length) return;
+    const sc = WA_STATUS_COLORS[status] || WA_STATUS_COLORS['Pending'];
+    html += `<div style="margin-bottom:4px;font-size:11px;font-weight:800;color:${sc.color};text-transform:uppercase;letter-spacing:0.08em;padding:4px 0">${status} (${recs.length})</div>`;
+    recs.forEach(rec => {
+      const pr = WA_PRIORITIES[rec.Priority] || WA_PRIORITIES['Normal'];
+      const sc2 = WA_STATUS_COLORS[rec.Status] || WA_STATUS_COLORS['Pending'];
+      const overdue = rec.Status === 'Overdue';
+      const done    = rec.Status === 'Done';
+      html += `
+      <div style="background:#fff;border:1.5px solid ${sc2.border};border-radius:10px;padding:12px 14px;margin-bottom:8px;${overdue ? 'border-left:4px solid #c0392b' : done ? 'opacity:0.7' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+          <div style="flex:1">
+            <span style="font-size:13px;font-weight:800;color:#000;${done ? 'text-decoration:line-through;color:#aaa' : ''}">${rec.Action || '—'}</span>
+            ${rec.Category ? `<span style="margin-left:6px;font-size:10px;background:#f0f0f0;color:#555;border-radius:10px;padding:1px 7px;font-weight:700">${rec.Category}</span>` : ''}
+          </div>
+          <span style="font-size:10px;font-weight:800;color:${pr.color};background:${pr.bg};border-radius:8px;padding:2px 8px;white-space:nowrap">${pr.icon} ${rec.Priority || 'Normal'}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">
+          <span style="font-size:12px;font-weight:700;color:#1a3a8a">👷 ${rec.Worker || '—'}</span>
+          ${rec.DueDate ? `<span style="font-size:11px;color:${overdue ? '#c0392b' : '#555'};font-weight:${overdue ? '800' : '600'}">📅 Due: ${rec.DueDate}${overdue ? ' ⚠ OVERDUE' : ''}</span>` : ''}
+          <span style="font-size:10px;font-weight:700;color:${sc2.color};background:${sc2.bg};border:1px solid ${sc2.border};border-radius:8px;padding:1px 7px">${rec.Status}</span>
+        </div>
+        ${rec.Notes ? `<div style="font-size:11px;color:#555;font-style:italic;margin-bottom:8px;padding:6px 8px;background:#f9f9f9;border-radius:6px">${rec.Notes}</div>` : ''}
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${rec.Status !== 'Done' ? `
+            ${rec.Status !== 'In Progress' ? `<button onclick="waSetStatus('${rec.ACTION_ID}','In Progress')" style="background:#fff3e0;border:1px solid #e65100;color:#e65100;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">▶ Start</button>` : ''}
+            <button onclick="waSetStatus('${rec.ACTION_ID}','Done')" style="background:#e8f5e8;border:1px solid #2d6a2d;color:#2d6a2d;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">✓ Done</button>
+          ` : `<span style="font-size:11px;color:#2d6a2d;font-weight:700">✅ Completed${rec.CompletedAt ? ' ' + rec.CompletedAt : ''}</span>`}
+          <button onclick="waEditTask('${rec.ACTION_ID}')" style="background:#f0f0f0;border:1px solid #ddd;color:#333;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">✏️ Edit</button>
+          ${isAdminEnabled() ? `<button onclick="waDeleteTask('${rec.ACTION_ID}')" style="background:#fde8e8;border:1px solid #c0392b;color:#c0392b;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑</button>` : ''}
+        </div>
+      </div>`;
+    });
+  });
+  container.innerHTML = html;
+}
+
+function waShowAddForm() {
+  waEditId = null;
+  document.getElementById('waFormTitle').textContent = '➕ New Task';
+  document.getElementById('waWorker').value    = '';
+  document.getElementById('waPriority').value  = 'Normal';
+  document.getElementById('waCategory').value  = 'Health';
+  document.getElementById('waAction').value    = '';
+  document.getElementById('waNotes').value     = '';
+  document.getElementById('waDueDate').value   = '';
+  document.getElementById('waSaveBtn').textContent = '💾 Save Task';
+  document.getElementById('waFormBox').style.display = 'block';
+  document.getElementById('waAction').focus();
+  document.getElementById('waFormBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function waEditTask(id) {
+  const rec = allWaRecords.find(r => String(r.ACTION_ID) === String(id));
+  if (!rec) return;
+  waEditId = id;
+  document.getElementById('waFormTitle').textContent = '✏️ Edit Task';
+  document.getElementById('waWorker').value    = rec.Worker || '';
+  document.getElementById('waPriority').value  = rec.Priority || 'Normal';
+  document.getElementById('waCategory').value  = rec.Category || 'Health';
+  document.getElementById('waAction').value    = rec.Action || '';
+  document.getElementById('waNotes').value     = rec.Notes || '';
+  document.getElementById('waDueDate').value   = rec.DueDate || '';
+  document.getElementById('waSaveBtn').textContent = '💾 Update Task';
+  document.getElementById('waFormBox').style.display = 'block';
+  document.getElementById('waFormBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function waCancelForm() {
+  waEditId = null;
+  document.getElementById('waFormBox').style.display = 'none';
+}
+
+async function waSaveTask() {
+  const worker   = document.getElementById('waWorker').value;
+  const action   = document.getElementById('waAction').value.trim();
+  if (!worker)  { showToast('Please select a worker', true); return; }
+  if (!action)  { showToast('Please enter a task description', true); return; }
+
+  const data = {
+    Worker:   worker,
+    Priority: document.getElementById('waPriority').value,
+    Category: document.getElementById('waCategory').value,
+    Action:   action,
+    Notes:    document.getElementById('waNotes').value.trim(),
+    DueDate:  document.getElementById('waDueDate').value,
+    Status:   waEditId ? (allWaRecords.find(r => String(r.ACTION_ID) === String(waEditId))?.Status || 'Pending') : 'Pending'
+  };
+
+  const btn = document.getElementById('waSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const result = waEditId
+    ? await apiPost({ action: 'waUpdate', id: waEditId, data })
+    : await apiPost({ action: 'waAdd',    data });
+
+  btn.disabled = false; btn.textContent = waEditId ? '💾 Update Task' : '💾 Save Task';
+
+  if (result?.success) {
+    showToast(waEditId ? '✅ Task updated' : '✅ Task added');
+    waCancelForm();
+    allWaRecords = [];
+    await loadWorkerActions();
+  } else {
+    showToast(result?.error || 'Save failed', true);
+  }
+}
+
+async function waSetStatus(id, newStatus) {
+  const today = new Date().toISOString().split('T')[0];
+  const data  = { Status: newStatus };
+  if (newStatus === 'Done') data.CompletedAt = today;
+  const result = await apiPost({ action: 'waUpdate', id, data });
+  if (result?.success) {
+    const idx = allWaRecords.findIndex(r => String(r.ACTION_ID) === String(id));
+    if (idx !== -1) { allWaRecords[idx].Status = newStatus; if (newStatus === 'Done') allWaRecords[idx].CompletedAt = today; }
+    waRender();
+    showToast(newStatus === 'Done' ? '✅ Task marked complete' : '▶ Task started');
+  } else {
+    showToast(result?.error || 'Update failed', true);
+  }
+}
+
+async function waDeleteTask(id) {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+  const result = await apiPost({ action: 'waDelete', id });
+  if (result?.success) {
+    allWaRecords = allWaRecords.filter(r => String(r.ACTION_ID) !== String(id));
+    waRender();
+    showToast('Task deleted');
+  }
 }
 
 function calcToNotches() {
