@@ -7601,10 +7601,11 @@ async function loadWorkerActions() {
       allWaRecords = r.records || [];
       waRender();
     } else {
-      container.innerHTML = '<div class="empty-state">⚠️ Could not load tasks</div>';
+      const errMsg = r?.error || JSON.stringify(r);
+      container.innerHTML = `<div class="empty-state">⚠️ ${errMsg}<br><br><small>The WorkerActions feature requires Code.gs to be redeployed.<br>Paste new Code.gs → Save → Deploy new version.</small><br><br><button onclick="allWaRecords=[];loadWorkerActions()" style="background:#e65100;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;margin-top:8px">🔄 Retry</button></div>`;
     }
   } catch(e) {
-    container.innerHTML = '<div class="empty-state">⚠️ Network error</div>';
+    container.innerHTML = `<div class="empty-state">⚠️ Network error: ${e.message}</div>`;
   }
 }
 
