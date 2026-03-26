@@ -382,7 +382,7 @@ function getNextClId(sheet) {
   return Math.max(...ids.map(Number)) + 1;
 }
 
-const CL_TIME_COLS = ["PhotoTime1","PhotoTime2","PhotoTime3","Sec1Time","Sec2Time","Sec3Time"];
+const CL_TIME_COLS = ["Sec1Time","Sec2Time","Sec3Time"];
 
 function clGetAll() {
   const sheet = getClSheet();
@@ -413,11 +413,20 @@ function clGetAll() {
       neededCols.forEach((h, i) => {
         const v = row[colIndices[i]];
         if (CL_TIME_COLS.indexOf(h) >= 0) {
+          // Sec1/2/3Time — pure HH:mm values
           if (v instanceof Date) {
             rec[h] = String(v.getHours()).padStart(2,'0') + ':' + String(v.getMinutes()).padStart(2,'0');
           } else {
             const s = String(v||'').trim();
             rec[h] = /^\d{1,2}:\d{2}$/.test(s) ? s : '';
+          }
+        } else if (h === 'PhotoTime1' || h === 'PhotoTime2' || h === 'PhotoTime3') {
+          // PhotoTime stores full datetime string e.g. "2026-03-25 09:00"
+          // Return as-is — do NOT convert via getHours() which shifts timezone
+          if (v instanceof Date) {
+            rec[h] = Utilities.formatDate(v, tz, 'yyyy-MM-dd HH:mm');
+          } else {
+            rec[h] = String(v||'').trim();
           }
         } else if (v instanceof Date) {
           rec[h] = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
@@ -439,7 +448,6 @@ function clGetAll() {
 
 function rowToClRecord(row, sheetHeaders, tz) {
   if (!tz) tz = Session.getScriptTimeZone();
-  // Build index map once
   const valMap = {};
   for (let i = 0; i < sheetHeaders.length; i++) {
     if (sheetHeaders[i]) valMap[sheetHeaders[i]] = row[i];
@@ -449,11 +457,19 @@ function rowToClRecord(row, sheetHeaders, tz) {
     const h = CL_HEADERS[hi];
     const v = valMap.hasOwnProperty(h) ? valMap[h] : '';
     if (CL_TIME_COLS.indexOf(h) >= 0) {
+      // Sec1/2/3Time — pure HH:mm
       if (v instanceof Date) {
         rec[h] = Utilities.formatDate(v, tz, "HH:mm");
       } else {
         const s = String(v || '').trim();
         rec[h] = /^\d{1,2}:\d{2}$/.test(s) ? s : '';
+      }
+    } else if (h === 'PhotoTime1' || h === 'PhotoTime2' || h === 'PhotoTime3') {
+      // PhotoTime — full datetime string, preserve as-is
+      if (v instanceof Date) {
+        rec[h] = Utilities.formatDate(v, tz, 'yyyy-MM-dd HH:mm');
+      } else {
+        rec[h] = String(v || '').trim();
       }
     } else if (v instanceof Date) {
       rec[h] = Utilities.formatDate(v, tz, "yyyy-MM-dd");
@@ -638,11 +654,15 @@ function clUpdate(clId, data) {
     const col = colMap[h];
     if (!col || h === "CL_ID") return;
     // Preserve existing timestamps — never overwrite with blank
-    if (CL_TIME_COLS.includes(h)) {
+    const isTimeCol  = CL_TIME_COLS.includes(h) || h === 'PhotoTime1' || h === 'PhotoTime2' || h === 'PhotoTime3';
+    const isPhotoTime = h === 'PhotoTime1' || h === 'PhotoTime2' || h === 'PhotoTime3';
+    if (isTimeCol) {
       const newVal      = String(data[h] || '').trim();
       const existingVal = String(existingRow[col - 1] || '').trim();
       if (!newVal && existingVal) return; // keep existing timestamp
-      sheet.getRange(sheetRow, col).setValue(newVal);
+      const cell = sheet.getRange(sheetRow, col);
+      if (isPhotoTime) cell.setNumberFormat('@'); // force plain text
+      cell.setValue(newVal);
     } else {
       sheet.getRange(sheetRow, col).setValue(data[h]);
     }
@@ -684,7 +704,9 @@ function clSavePhoto(clId, photoBase64, mimeType, photoTime, section) {
     // Store the viewUrl — frontend extracts fileId and builds lh3.googleusercontent.com URL
     const updateData = {};
     updateData['PhotoUrl'  + sec] = viewUrl;
-    if (photoTime) updateData['PhotoTime' + sec] = photoTime;
+    // Force plain text storage by writing to cell directly with text format
+    // to prevent Google Sheets auto-converting "2026-03-25 09:00" to a Date object
+    if (photoTime) updateData['PhotoTime' + sec] = String(photoTime);
     const result = clUpdate(clId, updateData);
     if (!result.success) return { success: false, error: "Photo saved to Drive but sheet update failed: " + result.error };
 
@@ -2041,4 +2063,38 @@ function _waNextId(sheet) {
   if (lastRow <= 1) return 1;
   const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat().filter(v => v !== '');
   return ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
+}
+
+// ── Fix PhotoTime timezone — run once to correct existing records ────
+// Run this in the Apps Script editor to re-format all PhotoTime columns
+// as plain text strings in Lusaka time
+function fixPhotoTimestamps() {
+  const sheet  = getClSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) { Logger.log('No records'); return; }
+  const tz      = Session.getScriptTimeZone(); // Africa/Lusaka
+  const lastCol = sheet.getLastColumn();
+  const hdrs    = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const colMap  = {};
+  hdrs.forEach((h, i) => { if (h) colMap[String(h).trim()] = i + 1; });
+  const photoCols = ['PhotoTime1','PhotoTime2','PhotoTime3'].filter(h => colMap[h]);
+  if (!photoCols.length) { Logger.log('No PhotoTime columns found'); return; }
+  let fixed = 0;
+  photoCols.forEach(colName => {
+    const col   = colMap[colName];
+    const range = sheet.getRange(2, col, lastRow - 1, 1);
+    range.setNumberFormat('@'); // force plain text
+    const vals  = range.getValues();
+    const fixed_vals = vals.map(([v]) => {
+      if (!v) return [''];
+      if (v instanceof Date) {
+        // Convert from whatever timezone sheets used back to Lusaka local
+        return [Utilities.formatDate(v, tz, 'yyyy-MM-dd HH:mm')];
+      }
+      return [String(v).trim()];
+    });
+    range.setValues(fixed_vals);
+    fixed += fixed_vals.filter(([v]) => v).length;
+  });
+  Logger.log('Fixed ' + fixed + ' PhotoTime values in timezone: ' + tz);
 }
