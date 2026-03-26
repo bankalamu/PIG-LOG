@@ -714,8 +714,19 @@
       </div>
 
       <div style="margin-bottom:4px">
-        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🤖 Run AI Health Analysis</div>
-        <div style="font-size:11px;color:#666;margin-bottom:8px">Analyses all checklist photos from yesterday (or a specific date) using Claude and appends a summary to each record. Also marks any unfinished records as Incomplete. Runs automatically at midnight — use this to trigger manually.</div>
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🤖 AI Health Analysis</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">When enabled, automatically analyses checklist photos at midnight using Claude and appends a summary to each record. Disable to save API tokens — you can still run manually anytime.</div>
+
+        <!-- Auto-run toggle -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 12px;background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px">
+          <span style="font-size:12px;font-weight:700;color:#1a3a8a;flex:1">🌙 Auto-run at midnight</span>
+          <button id="aiAutoToggleBtn" onclick="toggleAIAutoRun()"
+            style="background:#ccc;border:none;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:800;cursor:pointer;color:#fff;min-width:70px">
+            Loading…
+          </button>
+        </div>
+
+        <!-- Manual run -->
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input type="date" id="aiAnalysisDate" style="padding:6px 10px;border:1.5px solid #1a3a8a;border-radius:7px;font-size:12px;font-weight:700">
           <button onclick="runAdminAIAnalysis()"
@@ -2131,7 +2142,7 @@
 // ══════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════
-const APP_VERSION    = "4.0";
+const APP_VERSION    = "3.0";
 const SCRIPT_URL_KEY = "piglog_script_url";
 const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
 
@@ -2203,7 +2214,10 @@ function updateAdminBadge() {
   const wkAdmin   = document.getElementById('wkAdminSettings');
   if (wkAdmin) wkAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
   const homeAdmin = document.getElementById('homeAdminPanel');
-  if (homeAdmin) homeAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
+  if (homeAdmin) {
+    homeAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
+    if (isAdminEnabled()) loadAIAutoRunSetting(); // load current toggle state
+  }
   // Show delete button on edit form only in admin mode
   const delBtn = document.getElementById('btnDeleteRecord');
   if (delBtn) delBtn.style.display = isAdminEnabled() ? 'block' : 'none';
@@ -2236,6 +2250,38 @@ async function runAdminCloseout() {
   } catch(e) {
     if (statusEl) statusEl.textContent = '❌ Error: ' + e.message;
     showToast('Closeout error: ' + e.message, true);
+  }
+}
+
+// ── AI Auto-run Toggle ─────────────────────────────
+let _aiAutoEnabled = false;
+
+async function loadAIAutoRunSetting() {
+  const btn = document.getElementById('aiAutoToggleBtn');
+  try {
+    const r = await apiGet({ action: 'getSetting', key: 'AI_ANALYSIS_ENABLED' });
+    _aiAutoEnabled = (r?.value === 'true');
+  } catch(e) { _aiAutoEnabled = false; }
+  _updateAIToggleBtn(btn);
+}
+
+function _updateAIToggleBtn(btn) {
+  if (!btn) return;
+  btn.textContent    = _aiAutoEnabled ? 'ON' : 'OFF';
+  btn.style.background = _aiAutoEnabled ? '#2d6a2d' : '#aaa';
+}
+
+async function toggleAIAutoRun() {
+  const btn = document.getElementById('aiAutoToggleBtn');
+  _aiAutoEnabled = !_aiAutoEnabled;
+  _updateAIToggleBtn(btn);
+  try {
+    await apiPost({ action: 'saveSetting', key: 'AI_ANALYSIS_ENABLED', value: String(_aiAutoEnabled) });
+    showToast(_aiAutoEnabled ? '✅ AI auto-run enabled at midnight' : '⏸ AI auto-run disabled');
+  } catch(e) {
+    showToast('Failed to save setting', true);
+    _aiAutoEnabled = !_aiAutoEnabled; // revert
+    _updateAIToggleBtn(btn);
   }
 }
 
@@ -3734,17 +3780,17 @@ function _populateClForm(rec) {
       // Load photo directly into img element
       clSetPhotoImg(sec, url, time);
     }
-    // Mark section as saved if record has data for it
-    const secKeys = CL_SEC_KEYS_MAP[sec];
+    // Mark section as saved if record has check data for it (with or without photo)
+    const secKeys    = CL_SEC_KEYS_MAP[sec];
     const secHasData = secKeys.some(k => rec[k] === 'ok' || rec[k] === 'bad');
-    if (secHasData && url) {
+    const secHasTime = !!(rec['Sec' + sec + 'Time']);
+    if (secHasData || secHasTime) {
       clSecSaved[sec] = true;
       const btn   = document.getElementById('btnSaveSec'    + sec);
       const badge = document.getElementById('clSec'         + sec + 'SavedBadge');
       if (btn)      { btn.textContent = '✅ ' + CL_SEC_LABELS[sec] + ' Saved'; btn.style.background = '#2d6a2d'; btn.disabled = true; }
       if (badge)    badge.style.display = 'inline-block';
       if (statusEl) { statusEl.textContent = '✅ Saved'; statusEl.style.background = '#e8f5e8'; statusEl.style.color = '#2d6a2d'; statusEl.style.border = '1px solid #2d6a2d'; }
-      // Lock section for non-admin
       if (!isAdminEnabled()) clLockSection(sec, true);
     }
   });
@@ -4031,7 +4077,15 @@ async function saveSection(sec) {
   } else {
     if (btn) { btn.disabled = false; btn.textContent = '💾 Save ' + label + ' Section'; btn.style.background = '#2d6a2d'; btn.style.cursor = 'pointer'; }
     clSaveDraft();
-    showToast((result?.error || 'Save failed') + ' — draft kept locally', true);
+    // Queue the save for retry when back online
+    if (!navigator.onLine) {
+      const queuePayload = clEditId
+        ? { action: 'clUpdate', id: clEditId, data }
+        : { action: 'clUpsert', data };
+      _clQueueSave(queuePayload);
+    } else {
+      showToast((result?.error || 'Save failed') + ' — draft kept locally', true);
+    }
   }
 }
 
@@ -4656,29 +4710,39 @@ async function clGenerateAISummary() {
                        : 'In Progress — some sections still pending.';
 
   // Build message content array for Claude
-  const textPrompt = `You are a pig farm health advisor. Analyse the following daily health checklist data and the farm photos provided, then write a clear, practical health summary for the farm worker.
+  const textPrompt = `You are an experienced pig farm veterinary advisor. You have been provided with ${photoContents.length} farm photo(s) plus the health checklist data below. Study each photo carefully and provide a thorough analysis.
 
-DATE: ${date}
-PEN: ${pen} | PIGS IN PEN: ${pigCount}
+DATE: ${date} | PEN: ${pen} | PIGS IN PEN: ${pigCount}
 ${nursing ? 'NURSING SOW: ' + nursing + ' piglets nursing' + (weaklings ? ', ' + weaklings + ' weaklings' : '') : ''}
 
 HEALTH CHECK RESULTS:
-- ✅ OK checks (${checksOk.length}): ${checksOk.join(', ') || 'none'}
-- ⚠️ Concerns flagged (${concerns.length}): ${concerns.join(', ') || 'none'}
-- — Not recorded (${unanswered.length}): ${unanswered.length > 0 ? unanswered.join(', ') : 'all recorded'}
+✅ All Clear (${checksOk.length}): ${checksOk.join(', ') || 'none'}
+⚠️ Concerns Flagged (${concerns.length}): ${concerns.join(', ') || 'none'}
+— Not Recorded (${unanswered.length}): ${unanswered.length > 0 ? unanswered.join(', ') : 'all recorded'}
 ${notes ? '\nFARM WORKER NOTES: ' + notes : ''}
-
 CHECKLIST STATUS: ${currentStatus} — ${statusContext}
-PHOTOS: ${photoContents.length} section photo(s) provided (${photoContents.map(p => p.label).join(', ')}).
 
-Please provide:
-1. **Overall Health Status** — one sentence verdict (Healthy / Monitor / Action Required)
-2. **Key Observations** — what you see in the photos and checks (pen cleanliness, pig condition, body posture, any visible issues)
-3. **Concerns** — flag anything that needs attention based on the photos or failed checks
-4. **Recommended Actions** — specific practical steps for today or tomorrow
-5. **Nursing Status** — if applicable, comment on piglet welfare
+Please provide a thorough health report:
 
-Keep the summary concise and practical — written for a farm worker, not a vet.`;
+1. **OVERALL STATUS** — One clear verdict: Healthy / Monitor Closely / Action Required
+
+2. **PHOTO ANALYSIS** — For each photo describe in detail:
+   • Pen cleanliness and bedding condition
+   • Pig body condition (coat, skin, visible weight)
+   • Posture and behaviour (normal lying, huddled, lethargic?)
+   • Feed/water troughs if visible
+   • Any visible injuries, swelling, discharge, or abnormalities
+   • Environmental conditions (overcrowding, ventilation)
+
+3. **HEALTH CHECK SUMMARY** — Interpret checklist results in context of what you see in photos
+
+4. **CONCERNS & RISKS** — List specific risks with severity (Low / Medium / High)
+
+5. **RECOMMENDED ACTIONS** — Priority actions for next 24 hours
+
+6. **NURSING & PIGLET WELFARE** — If applicable, assess sow and piglet condition from photos
+
+Be specific about what you actually see — do not be vague.`;
 
   const messageContent = [];
   // Add photos first (Claude sees images before the prompt for better analysis)
@@ -4708,7 +4772,7 @@ Keep the summary concise and practical — written for a farm worker, not a vet.
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 1000,
+        max_tokens: 1500,
         messages: [{ role: 'user', content: messageContent }]
       })
     });
@@ -4795,7 +4859,52 @@ function clUpdateOfflineBanner() {
     banner.style.display = 'none';
   }
 }
-window.addEventListener('online',  () => { clUpdateOfflineBanner(); });
+// ── Offline Save Queue ────────────────────────────────────────
+// When a save fails (no network), queue it and retry on reconnect
+const CL_SAVE_QUEUE_KEY = 'piglog_cl_save_queue';
+
+function _clQueueSave(payload) {
+  try {
+    const q = JSON.parse(localStorage.getItem(CL_SAVE_QUEUE_KEY) || '[]');
+    q.push({ payload, queuedAt: new Date().toISOString() });
+    localStorage.setItem(CL_SAVE_QUEUE_KEY, JSON.stringify(q));
+    showToast('📴 Offline — save queued. Will upload when reconnected.', false);
+  } catch(e) {}
+}
+
+async function _clFlushSaveQueue() {
+  try {
+    const q = JSON.parse(localStorage.getItem(CL_SAVE_QUEUE_KEY) || '[]');
+    if (!q.length) return;
+    showToast('🔄 Back online — uploading ' + q.length + ' queued save(s)…');
+    const remaining = [];
+    for (const item of q) {
+      try {
+        const result = await apiPost(item.payload);
+        if (result?.success) {
+          if (item.payload.cl_id || item.payload.id) clEditId = item.payload.id || item.payload.cl_id;
+          allChecklists = []; // refresh cache after successful upload
+        } else {
+          remaining.push(item);
+        }
+      } catch(e) {
+        remaining.push(item);
+      }
+    }
+    if (remaining.length === 0) {
+      localStorage.removeItem(CL_SAVE_QUEUE_KEY);
+      showToast('✅ All queued saves uploaded successfully!');
+    } else {
+      localStorage.setItem(CL_SAVE_QUEUE_KEY, JSON.stringify(remaining));
+      showToast('⚠ ' + remaining.length + ' save(s) still pending — still offline?', true);
+    }
+  } catch(e) {}
+}
+
+window.addEventListener('online', () => {
+  clUpdateOfflineBanner();
+  _clFlushSaveQueue();
+});
 window.addEventListener('offline', () => { clUpdateOfflineBanner(); });
 
 async function clHistoryPhotoSelected(input, clId, sec) {
@@ -4936,13 +5045,12 @@ function _clCheckSectionComplete() {
 
     if (allAnswered) {
       // Only stamp the time the FIRST time this section becomes complete.
-      // If a timestamp already exists (section was completed earlier), keep it.
       if (!clSecTimes[sec.key]) {
         clSecTimes[sec.key] = _clNowTime();
       }
-    } else {
-      // Section is no longer fully answered — clear the timestamp so it
-      // re-stamps correctly if the user completes it again.
+    } else if (!clSecSaved[sec.num]) {
+      // Only clear timestamp if section not yet saved to server
+      // Once saved, the timestamp is permanent
       clSecTimes[sec.key] = '';
     }
 

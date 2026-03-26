@@ -422,8 +422,8 @@ function clGetAll() {
         }
       });
       // Truncate large fields
-      if (rec.AIAnalysis && String(rec.AIAnalysis).length > 500) {
-        rec.AIAnalysis = String(rec.AIAnalysis).substring(0, 500) + '…';
+      if (rec.AIAnalysis && String(rec.AIAnalysis).length > 3000) {
+        rec.AIAnalysis = String(rec.AIAnalysis).substring(0, 3000) + '…';
       }
       // Fill missing headers with empty string
       CL_HEADERS.forEach(h => { if (!(h in rec)) rec[h] = ''; });
@@ -539,8 +539,8 @@ function clGetRecent(days) {
           rec[h] = (v !== undefined && v !== null) ? v : '';
         }
       });
-      if (rec.AIAnalysis && String(rec.AIAnalysis).length > 500) {
-        rec.AIAnalysis = String(rec.AIAnalysis).substring(0, 500) + '…';
+      if (rec.AIAnalysis && String(rec.AIAnalysis).length > 3000) {
+        rec.AIAnalysis = String(rec.AIAnalysis).substring(0, 3000) + '…';
       }
       CL_HEADERS.forEach(h => { if (!(h in rec)) rec[h] = ''; });
       return rec;
@@ -1686,18 +1686,22 @@ function runNightlyCloseout(targetDate) {
   const marked = _markIncompleteRecords(processDate, sheet, hdrMap, data);
   Logger.log('Marked ' + marked + ' records as Incomplete for ' + processDate);
 
-  // Step 2: Run AI analysis if API key is set
-  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  // Step 2: Run AI analysis only if explicitly enabled via Script Properties
+  const apiKey   = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  const aiEnabled = PropertiesService.getScriptProperties().getProperty('AI_ANALYSIS_ENABLED');
   let aiResult = { processed: 0, skipped: 0, errors: 0 };
-  if (apiKey) {
+  if (apiKey && aiEnabled === 'true') {
+    Logger.log('AI analysis enabled — running for ' + processDate);
     aiResult = _runAIForDate(processDate, sheet, hdrMap, data, apiKey);
+  } else if (!apiKey) {
+    Logger.log('AI skipped — no ANTHROPIC_API_KEY set');
   } else {
-    Logger.log('No ANTHROPIC_API_KEY set — skipping AI analysis');
+    Logger.log('AI skipped — AI_ANALYSIS_ENABLED is not set to true');
   }
 
   const msg = 'Closeout complete for ' + processDate
     + ': ' + marked + ' marked Incomplete'
-    + (apiKey ? ', ' + aiResult.processed + ' AI analysed' : ', AI skipped (no key)');
+    + (aiEnabled === 'true' && apiKey ? ', ' + aiResult.processed + ' AI analysed' : ', AI disabled');
   Logger.log(msg);
   return { success: true, message: msg, marked, ...aiResult, date: processDate };
 }
@@ -1810,26 +1814,39 @@ function analyseChecklistRecord(rec, apiKey) {
   const nursing   = String(rec['cl_nursing'] || '');
   const weaklings = String(rec['cl_weaklings'] || '');
 
-  const contextText = `You are a pig farm health advisor. Analyse this daily health check for PEN ${pen} on ${date}.
+  const contextText = `You are an experienced pig farm veterinary advisor reviewing end-of-day health records. You have been provided with ${['PhotoUrl1','PhotoUrl2','PhotoUrl3'].filter(k => rec[k]).length} farm photos (Morning, Feeding, and/or Afternoon checks) plus the health checklist data below. Study each photo carefully.
 
-PIGS IN PEN: ${pigCount}
+FARM RECORD: PEN ${pen} — DATE: ${date} — PIGS IN PEN: ${pigCount}
 RECORD STATUS: ${status}
-${nursing ? 'NURSING: ' + nursing + ' piglets' + (weaklings ? ', ' + weaklings + ' weaklings' : '') : ''}
+${nursing ? 'NURSING SOW: ' + nursing + ' piglets nursing' + (weaklings ? ', ' + weaklings + ' weaklings noted' : '') : ''}
 
-CHECK RESULTS:
-- ✅ OK (${ok.length}): ${ok.join(', ') || 'none'}
-- ⚠️ Concerns (${bad.length}): ${bad.join(', ') || 'none'}
-- — Not recorded (${missing.length}): ${missing.join(', ') || 'all recorded'}
-${notes ? '\nFARM NOTES: ' + notes : ''}
+HEALTH CHECKLIST RESULTS:
+✅ All Clear (${ok.length} items): ${ok.join(', ') || 'none'}
+⚠️ Concerns Flagged (${bad.length} items): ${bad.join(', ') || 'none'}
+— Not Recorded (${missing.length} items): ${missing.join(', ') || 'all recorded'}
+${notes ? '\nFARM WORKER NOTES: ' + notes : ''}
 
-${['PhotoUrl1','PhotoUrl2','PhotoUrl3'].filter(k => rec[k]).length} section photo(s) available (analysed below).
+Please provide a thorough end-of-day health report with the following sections:
 
-Write a concise end-of-day health summary with:
-1. Overall status (1 sentence)
-2. Key observations from photos and checks
-3. Any concerns or action items
-4. Nursing/piglet welfare if applicable
-Keep it under 200 words, practical language for a farm worker.`;
+1. OVERALL STATUS — One clear verdict: Healthy / Monitor Closely / Action Required
+
+2. PHOTO ANALYSIS — For each photo provided, describe in detail:
+   • Pen cleanliness and bedding condition
+   • Pig body condition (weight, coat, skin appearance)
+   • Posture and movement behaviour (are pigs lying normally, huddled, lethargic?)
+   • Feeding and water trough condition if visible
+   • Any visible injuries, swelling, discharge, or abnormalities
+   • Environmental conditions (temperature indicators, ventilation, crowding)
+
+3. HEALTH CHECK SUMMARY — Interpret the checklist results in context of what you see in the photos. Do the photos confirm or contradict any flagged concerns?
+
+4. CONCERNS & RISKS — List any specific health risks identified from photos or checks, with severity (Low / Medium / High)
+
+5. RECOMMENDED ACTIONS — Specific practical steps for the next 24 hours, ordered by priority
+
+6. NURSING & PIGLET WELFARE — If applicable, comment on sow condition and piglet welfare from the photos
+
+Write clearly for a farm worker. Be specific about what you actually see in the photos — do not be vague.`;
 
   // Build message content — photos first, then text
   const messageContent = [];
@@ -1883,7 +1900,7 @@ Keep it under 200 words, practical language for a farm worker.`;
   // Call Anthropic API via UrlFetchApp
   const payload = JSON.stringify({
     model:      'claude-sonnet-4-5',
-    max_tokens: 600,
+    max_tokens: 1500,
     messages:   [{ role: 'user', content: messageContent }]
   });
 
