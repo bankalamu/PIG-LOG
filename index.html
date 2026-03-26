@@ -684,7 +684,14 @@
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:10px">⚙️ Admin — Data Tools</div>
 
       <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f0d080">
-        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🔌 Test Server Connection</div>
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🔗 Change Script URL</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">Update the Apps Script Web App URL — use this when you create a new deployment.</div>
+        <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:6px;word-break:break-all" id="currentScriptUrlDisplay"></div>
+        <div style="display:flex;gap:8px">
+          <input type="url" id="adminScriptUrlInput" class="form-input" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;font-size:11px">
+          <button onclick="adminSaveScriptUrl()" style="background:#2d6a2d;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;color:#fff;white-space:nowrap">Save URL</button>
+        </div>
+      </div>
         <div style="font-size:11px;color:#666;margin-bottom:8px">Verifies the Apps Script URL is working and responding. If this fails, all data loading will fail too.</div>
         <button onclick="testConnection()"
           style="background:#1a3a8a;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;color:#fff">
@@ -2324,7 +2331,14 @@ function updateAdminBadge() {
   const homeAdmin = document.getElementById('homeAdminPanel');
   if (homeAdmin) {
     homeAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
-    if (isAdminEnabled()) loadAIAutoRunSetting(); // load current toggle state
+    if (isAdminEnabled()) {
+    // Show current script URL in admin panel
+    const disp = document.getElementById('currentScriptUrlDisplay');
+    if (disp) disp.textContent = SCRIPT_URL ? '📌 Current: ' + SCRIPT_URL : '⚠ No URL set';
+    const inp = document.getElementById('adminScriptUrlInput');
+    if (inp) inp.value = SCRIPT_URL || '';
+    loadAIAutoRunSetting();
+  } // load current toggle state
   }
   const waAdmin = document.getElementById('waAdminBtn');
   if (waAdmin) waAdmin.style.display = isAdminEnabled() ? 'block' : 'none';
@@ -2530,6 +2544,18 @@ window.addEventListener("DOMContentLoaded", () => {
   initWeekly();
   initMonthly();
 });
+
+function adminSaveScriptUrl() {
+  const v = (document.getElementById('adminScriptUrlInput')?.value || '').trim();
+  if (!v.startsWith('https://')) { showToast('Enter a valid URL starting with https://', true); return; }
+  SCRIPT_URL = v;
+  localStorage.setItem(SCRIPT_URL_KEY, v);
+  const disp = document.getElementById('currentScriptUrlDisplay');
+  if (disp) disp.textContent = '📌 Current: ' + v;
+  document.getElementById('configBanner').style.display = 'none';
+  showToast('✅ Script URL updated — reloading…');
+  setTimeout(() => location.reload(), 1000);
+}
 
 async function saveScriptUrl() {
   const v = document.getElementById("scriptUrlInput").value.trim();
