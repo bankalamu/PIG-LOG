@@ -7752,8 +7752,12 @@ async function waSaveTask() {
     waCancelForm();
     allWaRecords = [];
     await loadWorkerActions();
+  } else if (result === null) {
+    showToast('⚠ No response from server — check Code.gs is deployed', true);
+    btn.disabled = false; btn.textContent = waEditId ? '💾 Update Task' : '💾 Save Task';
   } else {
-    showToast(result?.error || 'Save failed', true);
+    showToast('❌ ' + (result?.error || 'Save failed: ' + JSON.stringify(result)), true);
+    btn.disabled = false; btn.textContent = waEditId ? '💾 Update Task' : '💾 Save Task';
   }
 }
 
