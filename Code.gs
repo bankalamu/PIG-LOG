@@ -701,10 +701,22 @@ function testDriveAccess() {
 function getPhotoAsBase64(fileId) {
   try {
     if (!fileId) return { success: false, error: 'No fileId provided' };
-    const file  = DriveApp.getFileById(fileId);
-    const blob  = file.getBlob();
-    const mime  = blob.getContentType() || 'image/jpeg';
-    const b64   = Utilities.base64Encode(blob.getBytes());
+    const file = DriveApp.getFileById(fileId);
+    let   blob = file.getBlob();
+
+    // If file > 4MB fetch a compressed thumbnail instead
+    if (blob.getBytes().length > 4 * 1024 * 1024) {
+      const thumbUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1024';
+      const token    = ScriptApp.getOAuthToken();
+      const res      = UrlFetchApp.fetch(thumbUrl, {
+        headers: { Authorization: 'Bearer ' + token },
+        muteHttpExceptions: true
+      });
+      if (res.getResponseCode() === 200) blob = res.getBlob();
+    }
+
+    const mime = blob.getContentType() || 'image/jpeg';
+    const b64  = Utilities.base64Encode(blob.getBytes());
     return { success: true, dataUrl: 'data:' + mime + ';base64,' + b64 };
   } catch(e) {
     return { success: false, error: e.message };
@@ -1826,16 +1838,37 @@ Keep it under 200 words, practical language for a farm worker.`;
     const url = String(rec[urlKey] || '').trim();
     if (!url) return;
     try {
-      const b64Result = getPhotoAsBase64(_extractFileId(url));
-      if (b64Result.success && b64Result.dataUrl) {
-        const parts = b64Result.dataUrl.split(',');
-        const mime  = parts[0].replace('data:','').replace(';base64','');
-        messageContent.push({
-          type: 'image',
-          source: { type: 'base64', media_type: mime, data: parts[1] }
+      const fileId = _extractFileId(url);
+      if (!fileId) return;
+      const file  = DriveApp.getFileById(fileId);
+      let   blob  = file.getBlob();
+      const bytes = blob.getBytes();
+
+      // If image > 4MB, fetch a smaller thumbnail from Drive instead
+      if (bytes.length > 4 * 1024 * 1024) {
+        Logger.log('Photo ' + urlKey + ' is ' + bytes.length + ' bytes — fetching thumbnail');
+        const thumbUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1024';
+        const token    = ScriptApp.getOAuthToken();
+        const response = UrlFetchApp.fetch(thumbUrl, {
+          headers: { Authorization: 'Bearer ' + token },
+          muteHttpExceptions: true
         });
-        messageContent.push({ type: 'text', text: ['[Morning photo]','[Feeding photo]','[Afternoon photo]'][i] });
+        if (response.getResponseCode() === 200) {
+          blob = response.getBlob();
+        } else {
+          Logger.log('Thumbnail fetch failed for ' + urlKey + ', skipping');
+          messageContent.push({ type: 'text', text: ['[Morning photo — could not compress]','[Feeding photo — could not compress]','[Afternoon photo — could not compress]'][i] });
+          return;
+        }
       }
+
+      const mime = blob.getContentType() || 'image/jpeg';
+      const b64  = Utilities.base64Encode(blob.getBytes());
+      messageContent.push({
+        type: 'image',
+        source: { type: 'base64', media_type: mime, data: b64 }
+      });
+      messageContent.push({ type: 'text', text: ['[Morning photo]','[Feeding photo]','[Afternoon photo]'][i] });
     } catch(e) {
       Logger.log('Photo fetch error for ' + urlKey + ': ' + e.message);
     }
