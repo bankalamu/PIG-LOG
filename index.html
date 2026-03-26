@@ -2142,7 +2142,7 @@
 // ══════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════
-const APP_VERSION    = "4.0";
+const APP_VERSION    = "3.0";
 const SCRIPT_URL_KEY = "piglog_script_url";
 const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
 
@@ -2475,8 +2475,14 @@ async function testConnection() {
 // ── Navigation ────────────────────────────────────
 
 function showPage(id) {
-  document.querySelectorAll("#app > div").forEach(d => d.style.display = "none");
-  document.getElementById(id).style.display = "block";
+  // Hide ALL direct child pages robustly
+  document.querySelectorAll("#app > div").forEach(d => {
+    d.style.display = "none";
+    d.style.visibility = "";
+  });
+  const target = document.getElementById(id);
+  if (!target) return;
+  target.style.display = "block";
   currentPage = id;
   document.getElementById("backBtn").style.display = id === "pageHome" ? "none" : "block";
   document.getElementById("searchError").style.display = "none";
@@ -3076,6 +3082,7 @@ async function doSearch() {
   document.getElementById("editDbId").textContent = rec.DB_ID;
   document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
+  clearForm("edit");
   populatePigDropdowns();
   setFormValues("edit", rec);
   _updateStatusOpts("edit");
@@ -3338,6 +3345,7 @@ function editFromList(dbId) {
   document.getElementById("editDbId").textContent = rec.DB_ID;
   document.getElementById("editTitle").textContent = `Editing: ${rec["PIG ID"] || "Record"}`;
   document.getElementById("editSub").textContent = `DB_ID: ${rec.DB_ID} · read-only`;
+  clearForm("edit");
   populatePigDropdowns();
   setFormValues("edit", rec);
   _updateStatusOpts("edit");
@@ -3919,8 +3927,8 @@ async function saveChecklist() {
     );
     if (dup) {
       showToast(`Pen ${pen} already has a record for ${date}. Use Edit to update it.`, true);
-      // Auto-load it for editing
       clEditId = dup.CL_ID;
+      _clClearAllFields();
       _populateClForm(dup);
       const b = document.getElementById('clExistingBanner');
       if (b) { b.textContent = `✏️ Pen ${pen} already has a record for ${date} — switched to edit mode.`; b.style.display = 'block'; }
@@ -4971,6 +4979,7 @@ function clEditRecord(clId) {
   document.getElementById('clExistingBanner').style.display = 'block';
   document.getElementById('clLockedBanner').style.display   = locked ? 'block' : 'none';
   document.getElementById('btnSaveChecklist').textContent   = 'UPDATE CHECKLIST';
+  _clClearAllFields();
   _populateClForm(rec);
   clLockForm(locked);
   window.scrollTo(0, 0);
@@ -5345,6 +5354,7 @@ async function wkDateChanged() {
 
   if (existing) {
     wkEditId = existing.WK_ID;
+    _wkClearForm();
     _populateWkForm(existing);
     if (existBanner)  existBanner.textContent   = `✏️ Pen ${pen||'All'} already has a record for Week ${selWeek} — editing existing record.`;
     if (existBanner)  existBanner.style.display  = locked ? 'none' : 'block';
@@ -5676,6 +5686,7 @@ function wkEditRecord(wkId) {
   if (document.getElementById('wkDate')) document.getElementById('wkDate').value = rec.Date || '';
   if (document.getElementById('wkPen'))  document.getElementById('wkPen').value  = rec.Pen  || '';
   _wkUpdateBadge(rec.Date || '');
+  _wkClearForm();
   _populateWkForm(rec);
   wkLockForm(false);
   const existBanner  = document.getElementById('wkExistingBanner');
@@ -5815,6 +5826,7 @@ async function moMonthChanged() {
 
   if (existing) {
     moEditId = existing.MO_ID;
+    _moClearForm();
     _populateMoForm(existing);
     if (createdEl) createdEl.value = existing.CreatedDate || '';
     const mn = MO_NAMES[parseInt(monthKey.split('-')[1])-1] + ' ' + monthKey.split('-')[0];
@@ -6106,6 +6118,7 @@ function moEditRecord(moId) {
   const mk  = String(rec.Month||'').substring(0,7);
   const sel = document.getElementById('moMonth');
   if (sel) sel.value = mk;
+  _moClearForm();
   _populateMoForm(rec);
   const cd = document.getElementById('moCreatedDate');
   if (cd) cd.value = rec.CreatedDate || '';
@@ -7041,8 +7054,8 @@ async function slOpenRecord(slId) {
   if (!rec) return;
   slEditId = rec.SL_ID;
 
-  // Show form FIRST so elements are visible before populating
-  setSlView('form');
+  // Reset form first, then show it
+  setSlView('form', true); // true = resetForm
 
   // Refresh both dropdowns then set values by DB_ID
   await populateSlSowDropdown();
