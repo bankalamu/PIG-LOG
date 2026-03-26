@@ -703,6 +703,16 @@
         <span id="sowIdMigrationStatus" style="margin-left:10px;font-size:11px;color:#555"></span>
       </div>
 
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f0d080">
+        <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🔒 Close Stale Records</div>
+        <div style="font-size:11px;color:#666;margin-bottom:8px">Marks all "In Progress" records older than today as "Incomplete". Runs automatically at midnight — use this to trigger manually.</div>
+        <button onclick="runAdminCloseout()"
+          style="background:#e65100;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer;color:#fff">
+          🔒 Run Closeout Now
+        </button>
+        <span id="closeoutStatus" style="display:block;margin-top:6px;font-size:11px;color:#555"></span>
+      </div>
+
       <div style="margin-bottom:4px">
         <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:4px">🤖 Run AI Health Analysis</div>
         <div style="font-size:11px;color:#666;margin-bottom:8px">Analyses all checklist photos from yesterday (or a specific date) using Claude and appends a summary to each record. Also marks any unfinished records as Incomplete. Runs automatically at midnight — use this to trigger manually.</div>
@@ -2203,6 +2213,26 @@ function updateAdminBadge() {
   [1,2,3].forEach(s => {
     if (clSecSaved[s]) clLockSection(s, !isAdminEnabled());
   });
+}
+
+async function runAdminCloseout() {
+  if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+  const statusEl = document.getElementById('closeoutStatus');
+  if (statusEl) statusEl.textContent = '⏳ Running closeout…';
+  try {
+    const result = await apiPost({ action: 'runCloseout' });
+    if (result?.success) {
+      if (statusEl) statusEl.textContent = '✅ ' + result.message;
+      showToast('✅ ' + result.message);
+      allChecklists = []; // refresh cache
+    } else {
+      if (statusEl) statusEl.textContent = '❌ ' + (result?.error || 'Failed');
+      showToast(result?.error || 'Closeout failed', true);
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Error: ' + e.message;
+    showToast('Closeout error: ' + e.message, true);
+  }
 }
 
 async function runAdminAIAnalysis() {

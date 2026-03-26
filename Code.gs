@@ -115,6 +115,7 @@ function doPost(e) {
     if (action === "migrateBoarSow")   return corsRespond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return corsRespond(migrateSowLitterSowId());
     if (action === "runAIAnalysis")    return corsRespond(runNightlyAIAnalysis(payload.targetDate || null));
+    if (action === "runCloseout")      return corsRespond(runCloseoutOnly());
     return corsRespond({ error: "Unknown action" });
   } catch (err) {
     return corsRespond({ error: err.message });
@@ -1627,130 +1628,150 @@ function migrateSowLitterSowId() {
 function createMidnightTrigger() {
   // Delete any existing nightly triggers to avoid duplicates
   ScriptApp.getProjectTriggers().forEach(t => {
-    if (t.getHandlerFunction() === 'runNightlyAIAnalysis') {
+    if (t.getHandlerFunction() === 'runNightlyAIAnalysis' ||
+        t.getHandlerFunction() === 'runNightlyCloseout') {
       ScriptApp.deleteTrigger(t);
     }
   });
-  // Create new trigger: runs daily between midnight and 1am Lusaka time
-  ScriptApp.newTrigger('runNightlyAIAnalysis')
+  // Create trigger: runs daily between midnight and 1am Lusaka time
+  ScriptApp.newTrigger('runNightlyCloseout')
     .timeBased()
     .atHour(0)
     .everyDays(1)
     .inTimezone('Africa/Lusaka')
     .create();
-  Logger.log('Midnight trigger created for runNightlyAIAnalysis');
+  Logger.log('Midnight trigger created for runNightlyCloseout');
 }
 
-// ── Main Batch Function ─────────────────────────────────────
+// ── Nightly Closeout — always runs regardless of API key ────
+// Marks In Progress records from yesterday as Incomplete
+// Then runs AI analysis if API key is configured
 
-function runNightlyAIAnalysis(targetDate) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
-  if (!apiKey) {
-    const msg = 'ANTHROPIC_API_KEY not set in Script Properties. Go to Project Settings → Script Properties and add it.';
-    Logger.log(msg);
-    return { success: false, error: msg };
-  }
-
-  // Default: process yesterday's records (today's are still in progress)
+function runNightlyCloseout(targetDate) {
   const tz = Session.getScriptTimeZone();
   let processDate;
   if (targetDate) {
-    processDate = targetDate; // admin override: 'YYYY-MM-DD'
+    processDate = targetDate;
   } else {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     processDate = Utilities.formatDate(yesterday, tz, 'yyyy-MM-dd');
   }
 
-  Logger.log('AI Analysis: processing date ' + processDate);
+  Logger.log('Nightly closeout: processing date ' + processDate);
 
-  const sheet   = getClSheet();
-  const colMap  = _clSheetColMap(sheet);
+  const sheet  = getClSheet();
   const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) return { success: true, processed: 0, message: 'No records.' };
+  if (lastRow <= 1) return { success: true, message: 'No records.' };
 
   const lastCol = sheet.getLastColumn();
   const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const hdrMap  = {};
   hdrRow.forEach((h, i) => { if (h) hdrMap[String(h).trim()] = i; });
+  const data    = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 
-  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  // Step 1: Mark incomplete records
+  const marked = _markIncompleteRecords(processDate, sheet, hdrMap, data);
+  Logger.log('Marked ' + marked + ' records as Incomplete for ' + processDate);
 
-  let processed = 0;
-  let skipped   = 0;
-  const errors  = [];
+  // Step 2: Run AI analysis if API key is set
+  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  let aiResult = { processed: 0, skipped: 0, errors: 0 };
+  if (apiKey) {
+    aiResult = _runAIForDate(processDate, sheet, hdrMap, data, apiKey);
+  } else {
+    Logger.log('No ANTHROPIC_API_KEY set — skipping AI analysis');
+  }
 
-  data.forEach((row, i) => {
-    const sheetRow  = i + 2;
-    const clId      = row[hdrMap['CL_ID']];
-    const rowDate   = row[hdrMap['Date']];
-    const rowDateStr = rowDate instanceof Date
-      ? Utilities.formatDate(rowDate, tz, 'yyyy-MM-dd')
-      : String(rowDate || '').trim();
-
-    if (rowDateStr !== processDate) return;
-    if (!clId) return;
-
-    // Skip if already analysed (AIAnalysis column has content)
-    const aiCol = hdrMap['AIAnalysis'];
-    if (aiCol !== undefined && String(row[aiCol] || '').trim()) {
-      skipped++;
-      return;
-    }
-
-    // Build record object for this row
-    const rec = {};
-    hdrRow.forEach((h, j) => { rec[h] = row[j]; });
-
-    // Run analysis
-    try {
-      const summary = analyseChecklistRecord(rec, apiKey);
-      if (summary) {
-        // Write to AIAnalysis column
-        if (aiCol !== undefined) {
-          sheet.getRange(sheetRow, aiCol + 1).setValue(summary);
-        } else {
-          // Column doesn't exist yet — run migrateAllSheetHeaders first
-          Logger.log('AIAnalysis column missing in sheet. Run migrateAllSheetHeaders().');
-        }
-        processed++;
-        Utilities.sleep(2000); // rate limit: 0.5 req/s
-      }
-    } catch(e) {
-      errors.push('CL_ID ' + clId + ': ' + e.message);
-      Logger.log('Analysis error for CL_ID ' + clId + ': ' + e.message);
-    }
-  });
-
-  // Also mark any remaining In Progress records from processDate as Incomplete
-  _markIncompleteRecords(processDate, sheet, hdrMap, data);
-
-  const msg = 'AI Analysis complete for ' + processDate
-    + ': ' + processed + ' analysed, ' + skipped + ' already done'
-    + (errors.length ? ', ' + errors.length + ' error(s): ' + errors.join('; ') : '');
+  const msg = 'Closeout complete for ' + processDate
+    + ': ' + marked + ' marked Incomplete'
+    + (apiKey ? ', ' + aiResult.processed + ' AI analysed' : ', AI skipped (no key)');
   Logger.log(msg);
-  return { success: true, processed, skipped, errors: errors.length, message: msg, date: processDate };
+  return { success: true, message: msg, marked, ...aiResult, date: processDate };
 }
 
-// ── Mark Incomplete ─────────────────────────────────────────
+// ── Main Batch Function (kept for backward compatibility) ───
+function runNightlyAIAnalysis(targetDate) {
+  return runNightlyCloseout(targetDate);
+}
 
-function _markIncompleteRecords(processDate, sheet, hdrMap, data) {
-  const tz       = Session.getScriptTimeZone();
-  const statusCol = hdrMap['Status'];
-  if (statusCol === undefined) return;
+  // Default: process yesterday's records (today's are still in progress)
+// ── AI Analysis for a specific date ─────────────────────────
+function _runAIForDate(processDate, sheet, hdrMap, data, apiKey) {
+  const tz = Session.getScriptTimeZone();
+  const hdrRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  let processed = 0, skipped = 0;
+  const errors = [];
 
   data.forEach((row, i) => {
     const sheetRow   = i + 2;
+    const clId       = row[hdrMap['CL_ID']];
     const rowDate    = row[hdrMap['Date']];
     const rowDateStr = rowDate instanceof Date
       ? Utilities.formatDate(rowDate, tz, 'yyyy-MM-dd')
       : String(rowDate || '').trim();
-    if (rowDateStr !== processDate) return;
-    const status = String(row[statusCol] || '').trim();
-    if (status === 'In Progress' || status === 'PARTIAL') {
-      sheet.getRange(sheetRow, statusCol + 1).setValue('Incomplete');
+    if (rowDateStr !== processDate || !clId) return;
+
+    const aiCol = hdrMap['AIAnalysis'];
+    if (aiCol !== undefined && String(row[aiCol] || '').trim()) { skipped++; return; }
+
+    const rec = {};
+    hdrRow.forEach((h, j) => { rec[h] = row[j]; });
+    try {
+      const summary = analyseChecklistRecord(rec, apiKey);
+      if (summary && aiCol !== undefined) {
+        sheet.getRange(sheetRow, aiCol + 1).setValue(summary);
+        processed++;
+        Utilities.sleep(2000);
+      }
+    } catch(e) {
+      errors.push('CL_ID ' + clId + ': ' + e.message);
+      Logger.log('AI error CL_ID ' + clId + ': ' + e.message);
     }
   });
+  return { processed, skipped, errors: errors.length };
+}
+
+// ── Closeout only — mark all stale In Progress records as Incomplete ──
+function runCloseoutOnly() {
+  const sheet = getClSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, message: 'No records.', marked: 0 };
+  const lastCol = sheet.getLastColumn();
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const hdrMap  = {};
+  hdrRow.forEach((h, i) => { if (h) hdrMap[String(h).trim()] = i; });
+  const data    = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const marked  = _markIncompleteRecords(null, sheet, hdrMap, data);
+  const msg     = 'Closeout complete: ' + marked + ' record(s) marked Incomplete';
+  Logger.log(msg);
+  return { success: true, message: msg, marked };
+}
+
+// ── Mark Incomplete — closes all In Progress records older than today ───
+function _markIncompleteRecords(processDate, sheet, hdrMap, data) {
+  const tz        = Session.getScriptTimeZone();
+  const today     = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const statusCol = hdrMap['Status'];
+  const dateCol   = hdrMap['Date'];
+  if (statusCol === undefined || dateCol === undefined) return 0;
+  let count = 0;
+  data.forEach((row, i) => {
+    const sheetRow   = i + 2;
+    const rowDate    = row[dateCol];
+    const rowDateStr = rowDate instanceof Date
+      ? Utilities.formatDate(rowDate, tz, 'yyyy-MM-dd')
+      : String(rowDate || '').trim();
+    // Mark any record from BEFORE today that is still open
+    if (!rowDateStr || rowDateStr >= today) return;
+    const status = String(row[statusCol] || '').trim();
+    if (status === 'In Progress' || status === 'PARTIAL' || status === '') {
+      sheet.getRange(sheetRow, statusCol + 1).setValue('Incomplete');
+      count++;
+      Logger.log('Marked Incomplete: row ' + sheetRow + ' date ' + rowDateStr);
+    }
+  });
+  return count;
 }
 
 // ── Per-Record Analysis ─────────────────────────────────────
