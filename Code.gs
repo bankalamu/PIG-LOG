@@ -1849,7 +1849,7 @@ Keep it under 200 words, practical language for a farm worker.`;
 
   // Call Anthropic API via UrlFetchApp
   const payload = JSON.stringify({
-    model:      'claude-sonnet-4-20250514',
+    model:      'claude-sonnet-4-5',
     max_tokens: 600,
     messages:   [{ role: 'user', content: messageContent }]
   });
@@ -1866,12 +1866,15 @@ Keep it under 200 words, practical language for a farm worker.`;
   });
 
   const code   = response.getResponseCode();
-  const result = JSON.parse(response.getContentText());
+  const body   = response.getContentText();
+  Logger.log('Anthropic API response code: ' + code);
+  Logger.log('Anthropic API response body: ' + body.substring(0, 500));
 
   if (code !== 200) {
-    throw new Error('API error ' + code + ': ' + JSON.stringify(result));
+    throw new Error('API error ' + code + ': ' + body.substring(0, 200));
   }
 
+  const result = JSON.parse(body);
   const text = (result.content || []).map(c => c.text || '').filter(Boolean).join('\n');
   return '[AI Analysis — ' + new Date().toLocaleDateString() + ']\n' + text;
 }
