@@ -2220,11 +2220,15 @@ async function runAdminCloseout() {
   const statusEl = document.getElementById('closeoutStatus');
   if (statusEl) statusEl.textContent = '⏳ Running closeout…';
   try {
-    const result = await apiPost({ action: 'runCloseout' });
+    // runAIAnalysis with no targetDate calls runNightlyCloseout(null) = processes yesterday
+    const result = await apiPost({ action: 'runAIAnalysis' });
     if (result?.success) {
-      if (statusEl) statusEl.textContent = '✅ ' + result.message;
-      showToast('✅ ' + result.message);
-      allChecklists = []; // refresh cache
+      const msg = result.marked !== undefined
+        ? `✅ ${result.marked} record(s) marked Incomplete`
+        : '✅ ' + (result.message || 'Closeout complete');
+      if (statusEl) statusEl.textContent = msg;
+      showToast(msg);
+      allChecklists = [];
     } else {
       if (statusEl) statusEl.textContent = '❌ ' + (result?.error || 'Failed');
       showToast(result?.error || 'Closeout failed', true);
