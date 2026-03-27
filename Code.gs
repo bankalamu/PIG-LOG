@@ -65,8 +65,20 @@ function corsRespond(data) {
 
 // ── Router ───────────────────────────────────────────────────
 
+// ── Request token validation ─────────────────────
+// Set APP_TOKEN in Script Properties to enable validation.
+// Leave unset to allow all requests (backward compatible).
+function _validateToken(token) {
+  const expected = PropertiesService.getScriptProperties().getProperty('APP_TOKEN');
+  if (!expected) return true; // no token set — allow all (backward compatible)
+  return String(token || '') === String(expected);
+}
+
 function doGet(e) {
   const action = e.parameter.action;
+  if (action !== 'ping' && !_validateToken(e.parameter.token)) {
+    return respond({ error: 'Unauthorized' });
+  }
   try {
     if (action === "getAll")       return respond(getAllRecords());
     if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString() });
@@ -93,6 +105,9 @@ function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
     const action = payload.action;
+    if (!_validateToken(payload.token)) {
+      return corsRespond({ error: 'Unauthorized' });
+    }
     if (action === "add")      return corsRespond(addRecord(payload.data));
     if (action === "update")   return corsRespond(updateRecord(payload.id, payload.data));
     if (action === "delete")   return corsRespond(deleteRecord(payload.id));

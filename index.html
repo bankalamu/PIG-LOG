@@ -2268,7 +2268,18 @@ const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
 // Current password: kitwe123
 const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443bc3e5ad5d";
 
-let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || "";
+// ── DEFAULT SCRIPT URL ────────────────────────────
+// Update this line when you create a new Apps Script deployment.
+// This is the fallback used when no URL is saved in the browser.
+const DEFAULT_SCRIPT_URL = ""; // ← paste your Apps Script URL here
+// App token — must match APP_TOKEN in Script Properties (leave blank to disable)
+const APP_TOKEN = "piglog_kitwe_2026";
+
+let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || DEFAULT_SCRIPT_URL;
+// If DEFAULT_SCRIPT_URL is set and nothing was saved yet, save it now
+if (DEFAULT_SCRIPT_URL && !localStorage.getItem(SCRIPT_URL_KEY)) {
+  localStorage.setItem(SCRIPT_URL_KEY, DEFAULT_SCRIPT_URL);
+}
 
 // ── Force hard reload if browser served a stale cached page ──
 (function() {
@@ -2674,6 +2685,7 @@ function showPageList() {
 
 async function apiGet(params) {
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
+  if (APP_TOKEN) params = { ...params, token: APP_TOKEN };
   const url = SCRIPT_URL + "?" + new URLSearchParams(params);
   try {
     const ctrl = new AbortController();
@@ -2690,6 +2702,7 @@ async function apiGet(params) {
 
 async function apiPost(body) {
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
+  if (APP_TOKEN) body = { ...body, token: APP_TOKEN };
   try {
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 30000);
