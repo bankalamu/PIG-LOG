@@ -2698,47 +2698,41 @@ function showPageList() {
 
 // ── API ───────────────────────────────────────────
 
-async function apiGet(params) {
+async function apiGet(params, timeoutMs = 30000) {
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
-  if (APP_TOKEN) params = { ...params, token: APP_TOKEN };
-  const url = SCRIPT_URL + "?" + new URLSearchParams(params);
+  if (APP_TOKEN && !params.payload) params = { ...params, token: APP_TOKEN };
+  // Build URL — if payload is present it's already encoded, handle separately
+  let url;
+  if (params.payload) {
+    const { payload, ...rest } = params;
+    const base = Object.keys(rest).length
+      ? SCRIPT_URL + '?' + new URLSearchParams(rest) + '&payload=' + payload
+      : SCRIPT_URL + '?payload=' + payload;
+    url = base;
+  } else {
+    url = SCRIPT_URL + '?' + new URLSearchParams(params);
+  }
   try {
     const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 30000);
+    const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
     const res  = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
     return res.json();
   } catch(e) {
-    if (e.name === 'AbortError') showToast("Request timed out (30s) — server may need redeploy", true);
+    if (e.name === 'AbortError') showToast("Request timed out — server may be busy", true);
     else showToast("Network error: " + e.message, true);
     return null;
   }
 }
 
 async function apiPost(body) {
-  // GitHub Pages CSP blocks POST — use GET with base64 payload instead
-  if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
+  // All writes use GET+payload to avoid GitHub Pages CSP blocking POST requests
   if (APP_TOKEN) body = { ...body, token: APP_TOKEN };
-  try {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 60000);
-    // Robust base64 encode — handles unicode and large payloads
-    const json = JSON.stringify(body);
-    const b64  = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
-      (_, p1) => String.fromCharCode('0x' + p1)));
-    const url  = SCRIPT_URL + '?payload=' + encodeURIComponent(b64);
-    console.log('apiPost action:', body.action, 'url length:', url.length);
-    const res  = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(tid);
-    const data = await res.json();
-    console.log('apiPost response:', JSON.stringify(data).substring(0, 200));
-    return data;
-  } catch(e) {
-    if (e.name === 'AbortError') showToast("Request timed out (60s)", true);
-    else showToast("Network error: " + e.message, true);
-    console.error('apiPost error:', e);
-    return null;
-  }
+  const json = JSON.stringify(body);
+  const b64  = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
+    (_, p1) => String.fromCharCode('0x' + p1)));
+  console.log('apiPost action:', body.action);
+  return apiGet({ payload: encodeURIComponent(b64) }, 60000);
 }
 
 async function loadRecords() {
