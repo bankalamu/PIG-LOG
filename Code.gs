@@ -648,6 +648,12 @@ function clAdd(data) {
   });
   if (colMap["CL_ID"]) row[colMap["CL_ID"]-1] = newId;
   sheet.appendRow(row);
+  // Force text format on all time columns to prevent Sheets auto-converting HH:mm
+  const allTimeCols = [...CL_TIME_COLS, 'PhotoTime1','PhotoTime2','PhotoTime3'];
+  allTimeCols.forEach(h => {
+    const col = colMap[h];
+    if (col) sheet.getRange(sheet.getLastRow(), col).setNumberFormat('@');
+  });
   return { success: true, cl_id: newId };
 }
 
@@ -676,7 +682,7 @@ function clUpdate(clId, data) {
       const existingVal = String(existingRow[col - 1] || '').trim();
       if (!newVal && existingVal) return; // keep existing timestamp
       const cell = sheet.getRange(sheetRow, col);
-      if (isPhotoTime) cell.setNumberFormat('@'); // force plain text
+      cell.setNumberFormat('@'); // force plain text for ALL time cols
       cell.setValue(newVal);
     } else {
       sheet.getRange(sheetRow, col).setValue(data[h]);
@@ -1899,30 +1905,43 @@ Write clearly for a farm worker. Be specific about what you actually see in the 
     try {
       const fileId = _extractFileId(url);
       if (!fileId) return;
-      const file  = DriveApp.getFileById(fileId);
-      let   blob  = file.getBlob();
-      const bytes = blob.getBytes();
 
-      // If image > 4MB, fetch a smaller thumbnail from Drive instead
-      if (bytes.length > 4 * 1024 * 1024) {
-        Logger.log('Photo ' + urlKey + ' is ' + bytes.length + ' bytes — fetching thumbnail');
-        const thumbUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1024';
-        const token    = ScriptApp.getOAuthToken();
-        const response = UrlFetchApp.fetch(thumbUrl, {
-          headers: { Authorization: 'Bearer ' + token },
-          muteHttpExceptions: true
-        });
-        if (response.getResponseCode() === 200) {
-          blob = response.getBlob();
-        } else {
-          Logger.log('Thumbnail fetch failed for ' + urlKey + ', skipping');
-          messageContent.push({ type: 'text', text: ['[Morning photo — could not compress]','[Feeding photo — could not compress]','[Afternoon photo — could not compress]'][i] });
+      // Always fetch a compressed thumbnail for AI — never the full file
+      // sz=w800 gives ~200-400KB which is well under the 5MB API limit
+      const thumbUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
+      const token    = ScriptApp.getOAuthToken();
+      const response = UrlFetchApp.fetch(thumbUrl, {
+        headers: { Authorization: 'Bearer ' + token },
+        muteHttpExceptions: true
+      });
+
+      let blob;
+      if (response.getResponseCode() === 200) {
+        blob = response.getBlob();
+        Logger.log('Photo ' + urlKey + ': thumbnail fetched, size=' + blob.getBytes().length + ' bytes');
+      } else {
+        // Thumbnail failed — try the original but only if under 4MB
+        Logger.log('Thumbnail fetch failed (' + response.getResponseCode() + ') for ' + urlKey + ' — trying original');
+        const file = DriveApp.getFileById(fileId);
+        blob = file.getBlob();
+        const size = blob.getBytes().length;
+        if (size > 4 * 1024 * 1024) {
+          Logger.log('Original too large (' + size + ' bytes) — skipping ' + urlKey);
+          messageContent.push({ type: 'text', text: ['[Morning photo — too large to send]','[Feeding photo — too large to send]','[Afternoon photo — too large to send]'][i] });
           return;
         }
       }
 
+      // Final size check before sending
+      const finalBytes = blob.getBytes();
+      if (finalBytes.length > 4.5 * 1024 * 1024) {
+        Logger.log('Photo still too large after thumbnail (' + finalBytes.length + ') — skipping');
+        messageContent.push({ type: 'text', text: ['[Morning photo — could not compress]','[Feeding photo — could not compress]','[Afternoon photo — could not compress]'][i] });
+        return;
+      }
+
       const mime = blob.getContentType() || 'image/jpeg';
-      const b64  = Utilities.base64Encode(blob.getBytes());
+      const b64  = Utilities.base64Encode(finalBytes);
       messageContent.push({
         type: 'image',
         source: { type: 'base64', media_type: mime, data: b64 }
@@ -2113,4 +2132,74 @@ function fixPhotoTimestamps() {
     fixed += fixed_vals.filter(([v]) => v).length;
   });
   Logger.log('Fixed ' + fixed + ' PhotoTime values in timezone: ' + tz);
+}
+
+// ── Fix ALL timestamps — run once in editor to correct existing records ──
+// Fixes both PhotoTime (full datetime) and Sec1/2/3Time (HH:mm)
+// by forcing plain text format so Google Sheets stops auto-converting them
+function fixAllTimestamps() {
+  const sheet   = getClSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) { Logger.log('No records to fix'); return; }
+  const tz      = Session.getScriptTimeZone();
+  const lastCol = sheet.getLastColumn();
+  const hdrs    = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const colMap  = {};
+  hdrs.forEach((h, i) => { if (h) colMap[String(h).trim()] = i + 1; });
+
+  // Fix Sec1/2/3Time — stored as HH:mm plain text
+  ['Sec1Time','Sec2Time','Sec3Time'].forEach(colName => {
+    const col = colMap[colName];
+    if (!col) return;
+    const range = sheet.getRange(2, col, lastRow - 1, 1);
+    range.setNumberFormat('@');
+    const vals  = range.getValues();
+    const fixed = vals.map(([v]) => {
+      if (!v) return [''];
+      if (v instanceof Date) return [Utilities.formatDate(v, tz, 'HH:mm')];
+      // Strip any AM/PM if present
+      const s = String(v).trim();
+      const ampm = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (ampm) {
+        let h = parseInt(ampm[1]);
+        const m = ampm[2];
+        const period = (ampm[3] || '').toUpperCase();
+        if (period === 'PM' && h < 12) h += 12;
+        if (period === 'AM' && h === 12) h = 0;
+        return [String(h).padStart(2,'0') + ':' + m];
+      }
+      return [s];
+    });
+    range.setValues(fixed);
+    Logger.log('Fixed ' + colName);
+  });
+
+  // Fix PhotoTime1/2/3 — stored as full datetime plain text
+  ['PhotoTime1','PhotoTime2','PhotoTime3'].forEach(colName => {
+    const col = colMap[colName];
+    if (!col) return;
+    const range = sheet.getRange(2, col, lastRow - 1, 1);
+    range.setNumberFormat('@');
+    const vals  = range.getValues();
+    const fixed = vals.map(([v]) => {
+      if (!v) return [''];
+      if (v instanceof Date) return [Utilities.formatDate(v, tz, 'yyyy-MM-dd HH:mm')];
+      // Strip AM/PM from datetime strings like "2026-03-25 09:00 AM"
+      const s = String(v).trim();
+      const dtMatch = s.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (dtMatch) {
+        let h = parseInt(dtMatch[2]);
+        const m = dtMatch[3];
+        const period = (dtMatch[4] || '').toUpperCase();
+        if (period === 'PM' && h < 12) h += 12;
+        if (period === 'AM' && h === 12) h = 0;
+        return [dtMatch[1] + ' ' + String(h).padStart(2,'0') + ':' + m];
+      }
+      return [s];
+    });
+    range.setValues(fixed);
+    Logger.log('Fixed ' + colName);
+  });
+
+  Logger.log('fixAllTimestamps complete — all time columns now stored as plain text in 24hr format');
 }
