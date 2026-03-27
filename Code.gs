@@ -77,6 +77,7 @@ function doGet(e) {
   try {
     if (action === "getAll")       return respond(getAllRecords());
     if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString(), codeVersion: "3.1" });
+    if (action === "debug")        return respond({ token: PropertiesService.getScriptProperties().getProperty('APP_TOKEN'), aiKey: !!PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY'), codeVersion: "3.1" });
     if (action === "clCount")      return respond(clCount());
     if (action === "clGetRecent")  return respond(clGetRecent(parseInt(e.parameter.days||'30')));
     if (action === "clDebug")      return respond(clDebug());
