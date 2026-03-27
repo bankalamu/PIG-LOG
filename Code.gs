@@ -135,7 +135,7 @@ function doPost(e) {
     if (action === "migrateBoarSow")   return corsRespond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return corsRespond(migrateSowLitterSowId());
     if (action === "runAIAnalysis")    return corsRespond(runNightlyAIAnalysis(payload.targetDate || null, true));
-    if (action === "runAISingle")      return corsRespond(runAISingleRecord(payload.clId));
+    if (action === "runAISingle")      return corsRespond(runAISingleRecord(payload.clId, payload.force));
     if (action === "runCloseout")      return corsRespond(runCloseoutOnly());
     return corsRespond({ error: "Unknown action" });
   } catch (err) {
@@ -1763,7 +1763,7 @@ function runNightlyAIAnalysis(targetDate, forceAI) {
 
   // Default: process yesterday's records (today's are still in progress)
 // ── Analyse a single record by CL_ID ─────────────────────────
-function runAISingleRecord(clId) {
+function runAISingleRecord(clId, force) {
   if (!clId) return { success: false, error: 'No CL_ID provided' };
   const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
   if (!apiKey) return { success: false, error: 'ANTHROPIC_API_KEY not set in Script Properties' };
@@ -1779,9 +1779,9 @@ function runAISingleRecord(clId) {
   if (rowIndex === -1) return { success: false, error: 'Record not found: ' + clId };
   const sheetRow = rowIndex + 2;
   const row = sheet.getRange(sheetRow, 1, 1, lastCol).getValues()[0];
-  // Skip if already analysed
+  // Skip if already analysed (unless force=true)
   const aiCol = hdrMap['AIAnalysis'];
-  if (aiCol !== undefined && String(row[aiCol] || '').trim()) {
+  if (!force && aiCol !== undefined && String(row[aiCol] || '').trim()) {
     return { success: true, skipped: true, message: 'Already analysed' };
   }
   const rec = {};
