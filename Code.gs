@@ -78,7 +78,8 @@ function doGet(e) {
   // Handle payload= parameter (POST-like data sent via GET to avoid CSP issues)
   if (e.parameter.payload) {
     try {
-      const decoded = decodeURIComponent(escape(atob(e.parameter.payload)));
+      const bytes   = Utilities.base64Decode(e.parameter.payload);
+      const decoded = Utilities.newBlob(bytes).getDataAsString();
       const payload = JSON.parse(decoded);
       return handlePostPayload(payload);
     } catch(err) {
