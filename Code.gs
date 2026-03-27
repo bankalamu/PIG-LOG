@@ -93,6 +93,7 @@ function doGet(e) {
     if (action === "moGetAll")   return respond(moGetAll());
     if (action === "moDedup")    return respond(moDeduplicateAll());
     if (action === "getSetting") return respond(getSetting(e.parameter.key));
+    if (action === "getAIPending") return respond(getAIPendingRecords(e.parameter.date));
     if (action === "getPhoto")   return respond(getPhotoAsBase64(e.parameter.fileId));
     if (action === "waGetAll")   return respond(waGetAll());
     return respond({ error: "Unknown action" });
@@ -134,6 +135,7 @@ function doPost(e) {
     if (action === "migrateBoarSow")   return corsRespond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return corsRespond(migrateSowLitterSowId());
     if (action === "runAIAnalysis")    return corsRespond(runNightlyAIAnalysis(payload.targetDate || null, true));
+    if (action === "runAISingle")      return corsRespond(runAISingleRecord(payload.clId));
     if (action === "runCloseout")      return corsRespond(runCloseoutOnly());
     return corsRespond({ error: "Unknown action" });
   } catch (err) {
@@ -1760,6 +1762,68 @@ function runNightlyAIAnalysis(targetDate, forceAI) {
 }
 
   // Default: process yesterday's records (today's are still in progress)
+// ── Analyse a single record by CL_ID ─────────────────────────
+function runAISingleRecord(clId) {
+  if (!clId) return { success: false, error: 'No CL_ID provided' };
+  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  if (!apiKey) return { success: false, error: 'ANTHROPIC_API_KEY not set in Script Properties' };
+  const sheet   = getClSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: false, error: 'No records' };
+  const lastCol = sheet.getLastColumn();
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const hdrMap  = {};
+  hdrRow.forEach((h, i) => { if (h) hdrMap[String(h).trim()] = i; });
+  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues().flat();
+  const rowIndex = ids.findIndex(id => Number(id) === Number(clId));
+  if (rowIndex === -1) return { success: false, error: 'Record not found: ' + clId };
+  const sheetRow = rowIndex + 2;
+  const row = sheet.getRange(sheetRow, 1, 1, lastCol).getValues()[0];
+  // Skip if already analysed
+  const aiCol = hdrMap['AIAnalysis'];
+  if (aiCol !== undefined && String(row[aiCol] || '').trim()) {
+    return { success: true, skipped: true, message: 'Already analysed' };
+  }
+  const rec = {};
+  hdrRow.forEach((h, j) => { rec[h] = row[j]; });
+  try {
+    const summary = analyseChecklistRecord(rec, apiKey);
+    if (summary && aiCol !== undefined) {
+      sheet.getRange(sheetRow, aiCol + 1).setValue(summary);
+    }
+    return { success: true, processed: true, clId };
+  } catch(e) {
+    return { success: false, error: e.message, clId };
+  }
+}
+
+// ── Get list of records needing AI analysis for a date ────────
+function getAIPendingRecords(targetDate) {
+  const sheet   = getClSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return { success: true, pending: [] };
+  const tz      = Session.getScriptTimeZone();
+  const lastCol = sheet.getLastColumn();
+  const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const hdrMap  = {};
+  hdrRow.forEach((h, i) => { if (h) hdrMap[String(h).trim()] = i; });
+  const data    = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const aiCol   = hdrMap['AIAnalysis'];
+  const pending = [];
+  data.forEach(row => {
+    const clId    = row[hdrMap['CL_ID']];
+    if (!clId) return;
+    const rowDate = row[hdrMap['Date']];
+    const rowDateStr = rowDate instanceof Date
+      ? Utilities.formatDate(rowDate, tz, 'yyyy-MM-dd')
+      : String(rowDate || '').trim();
+    if (rowDateStr !== targetDate) return;
+    const hasAnalysis = aiCol !== undefined && String(row[aiCol] || '').trim();
+    if (!hasAnalysis) pending.push(Number(clId));
+  });
+  return { success: true, pending };
+}
+
 // ── AI Analysis for a specific date ─────────────────────────
 function _runAIForDate(processDate, sheet, hdrMap, data, apiKey) {
   const tz = Session.getScriptTimeZone();
@@ -2202,4 +2266,52 @@ function fixAllTimestamps() {
   });
 
   Logger.log('fixAllTimestamps complete — all time columns now stored as plain text in 24hr format');
+}
+
+// ── Run AI for today — safe, time-limited, resumable ─────────
+// Run this directly in the Apps Script editor.
+// It processes records one at a time and stops before hitting the 6-min limit.
+// Run it again to continue where it left off (already-analysed records are skipped).
+function runAIForToday() {
+  const tz      = Session.getScriptTimeZone();
+  const today   = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  _runAISafe(today);
+}
+
+function runAIForDate_() {
+  // Change the date below and run this function
+  const targetDate = '2026-03-26'; // ← change this date
+  _runAISafe(targetDate);
+}
+
+function _runAISafe(targetDate) {
+  const startTime = new Date().getTime();
+  const MAX_MS    = 4.5 * 60 * 1000; // stop after 4.5 minutes (safe margin)
+  const apiKey    = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  if (!apiKey) { Logger.log('ERROR: ANTHROPIC_API_KEY not set'); return; }
+
+  const pending = getAIPendingRecords(targetDate);
+  Logger.log('Pending records for ' + targetDate + ': ' + JSON.stringify(pending.pending));
+  if (!pending.pending.length) { Logger.log('No records to analyse'); return; }
+
+  let processed = 0, skipped = 0, errors = 0;
+  for (const clId of pending.pending) {
+    // Check time remaining
+    if (new Date().getTime() - startTime > MAX_MS) {
+      Logger.log('⚠ Approaching time limit — stopping. Run again to continue.');
+      Logger.log('Progress: ' + processed + ' done, ' + errors + ' errors, ' + pending.pending.length + ' total');
+      return;
+    }
+    Logger.log('Analysing CL_ID: ' + clId);
+    const result = runAISingleRecord(clId);
+    if (result.success) {
+      if (result.skipped) { skipped++; Logger.log('  → already analysed, skipped'); }
+      else { processed++; Logger.log('  → ✓ done'); }
+    } else {
+      errors++;
+      Logger.log('  → ✗ error: ' + result.error);
+    }
+    Utilities.sleep(1500); // pause between records
+  }
+  Logger.log('✅ Complete — ' + processed + ' analysed, ' + skipped + ' skipped, ' + errors + ' errors');
 }

@@ -2271,8 +2271,7 @@ const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443b
 // ── DEFAULT SCRIPT URL ────────────────────────────
 // Update this line when you create a new Apps Script deployment.
 // This is the fallback used when no URL is saved in the browser.
-//const DEFAULT_SCRIPT_URL = ""; // ← paste your Apps Script URL here
-const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybwTOXBrK2bwtCLzJnk_fJPNUhGlY0MkAaAwLXyYXO25iXpxR4YGkLhGwcSPvrebFq/exec";
+const DEFAULT_SCRIPT_URL = ""; // ← paste your Apps Script URL here
 // App token — must match APP_TOKEN in Script Properties (leave blank to disable)
 const APP_TOKEN = "piglog_kitwe_2026";
 
@@ -2430,28 +2429,40 @@ async function runAdminAIAnalysis() {
   if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
   const statusEl  = document.getElementById('aiAnalysisStatus');
   const dateInput = document.getElementById('aiAnalysisDate');
-  const targetDate = dateInput?.value || '';
-  if (!targetDate) {
-    // Default to today
-    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+  if (!dateInput?.value) dateInput.value = new Date().toISOString().split('T')[0];
+  const useDate = dateInput.value;
+  if (!confirm(`Run AI Health Analysis for ${useDate}?\n\nEach record is processed individually to avoid timeouts. May take a few minutes.`)) return;
+
+  if (statusEl) statusEl.textContent = '⏳ Finding records to analyse…';
+
+  // Step 1 — get list of pending CL_IDs for this date
+  const pending = await apiGet({ action: 'getAIPending', date: useDate });
+  if (!pending?.success) {
+    if (statusEl) statusEl.textContent = '❌ ' + (pending?.error || 'Could not fetch records');
+    return;
   }
-  const useDate = dateInput?.value || '';
-  if (!confirm('Run AI Health Analysis for ' + (useDate || 'yesterday') + '?\n\nThis will call the Anthropic API for each checklist record on that date. It may take a minute.')) return;
-  if (statusEl) statusEl.textContent = '⏳ Running AI analysis…';
-  try {
-    const result = await apiPost({ action: 'runAIAnalysis', targetDate: useDate });
-    if (result && result.success) {
-      const msg = '✅ ' + result.message;
-      if (statusEl) statusEl.textContent = msg;
-      showToast('✅ AI Analysis complete — ' + result.processed + ' record(s) analysed');
-    } else {
-      if (statusEl) statusEl.textContent = '❌ ' + (result?.error || 'Failed');
-      showToast(result?.error || 'AI Analysis failed', true);
-    }
-  } catch(e) {
-    if (statusEl) statusEl.textContent = '❌ Network error';
-    showToast('AI Analysis error: ' + e.message, true);
+  const ids = pending.pending || [];
+  if (ids.length === 0) {
+    if (statusEl) statusEl.textContent = '✅ No records pending analysis for ' + useDate;
+    showToast('No pending records for ' + useDate);
+    return;
   }
+
+  // Step 2 — process one record at a time
+  let processed = 0, failed = 0;
+  for (let i = 0; i < ids.length; i++) {
+    const clId = ids[i];
+    if (statusEl) statusEl.textContent = `⏳ Analysing ${i + 1} of ${ids.length} (CL_ID: ${clId})…`;
+    const result = await apiPost({ action: 'runAISingle', clId });
+    if (result?.success && !result.skipped) processed++;
+    else if (!result?.success) failed++;
+    await new Promise(r => setTimeout(r, 1500)); // pause between records
+  }
+
+  const msg = `✅ Done — ${processed} analysed${failed ? ', ' + failed + ' failed' : ''}`;
+  if (statusEl) statusEl.textContent = msg;
+  showToast(msg);
+  allChecklists = [];
 }
 
 async function runSowIdMigration() {
