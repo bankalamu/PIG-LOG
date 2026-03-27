@@ -76,7 +76,7 @@ function doGet(e) {
   const action = e.parameter.action;
   try {
     if (action === "getAll")       return respond(getAllRecords());
-    if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString() });
+    if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString(), codeVersion: "3.1" });
     if (action === "clCount")      return respond(clCount());
     if (action === "clGetRecent")  return respond(clGetRecent(parseInt(e.parameter.days||'30')));
     if (action === "clDebug")      return respond(clDebug());
