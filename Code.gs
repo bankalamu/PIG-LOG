@@ -1987,8 +1987,7 @@ Write clearly for a farm worker. Be specific about what you actually see in the 
       const fileId = _extractFileId(url);
       if (!fileId) return;
 
-      // Always fetch a compressed thumbnail for AI — never the full file
-      // sz=w800 gives ~200-400KB which is well under the 5MB API limit
+      // Always fetch compressed thumbnail — sz=w800 gives ~200-400KB
       const thumbUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
       const token    = ScriptApp.getOAuthToken();
       const response = UrlFetchApp.fetch(thumbUrl, {
@@ -1997,32 +1996,48 @@ Write clearly for a farm worker. Be specific about what you actually see in the 
       });
 
       let blob;
-      if (response.getResponseCode() === 200) {
+      const code = response.getResponseCode();
+      if (code === 200) {
         blob = response.getBlob();
-        Logger.log('Photo ' + urlKey + ': thumbnail fetched, size=' + blob.getBytes().length + ' bytes');
-      } else {
-        // Thumbnail failed — try the original but only if under 4MB
-        Logger.log('Thumbnail fetch failed (' + response.getResponseCode() + ') for ' + urlKey + ' — trying original');
+        const ct = blob.getContentType() || '';
+        Logger.log('Photo ' + urlKey + ': thumbnail fetched, size=' + blob.getBytes().length + ' ct=' + ct);
+        // Validate it's actually an image not an HTML error page
+        if (!ct.startsWith('image/')) {
+          Logger.log('Thumbnail returned non-image content type: ' + ct + ' — trying original');
+          blob = null;
+        }
+      }
+
+      if (!blob) {
+        // Fallback to original file
+        Logger.log('Fetching original for ' + urlKey);
         const file = DriveApp.getFileById(fileId);
         blob = file.getBlob();
         const size = blob.getBytes().length;
         if (size > 4 * 1024 * 1024) {
           Logger.log('Original too large (' + size + ' bytes) — skipping ' + urlKey);
-          messageContent.push({ type: 'text', text: ['[Morning photo — too large to send]','[Feeding photo — too large to send]','[Afternoon photo — too large to send]'][i] });
+          messageContent.push({ type: 'text', text: ['[Morning photo — too large]','[Feeding photo — too large]','[Afternoon photo — too large]'][i] });
           return;
         }
       }
 
-      // Final size check before sending
+      // Final size check
       const finalBytes = blob.getBytes();
       if (finalBytes.length > 4.5 * 1024 * 1024) {
-        Logger.log('Photo still too large after thumbnail (' + finalBytes.length + ') — skipping');
-        messageContent.push({ type: 'text', text: ['[Morning photo — could not compress]','[Feeding photo — could not compress]','[Afternoon photo — could not compress]'][i] });
+        Logger.log('Photo still too large (' + finalBytes.length + ') — skipping');
+        messageContent.push({ type: 'text', text: ['[Morning photo — too large]','[Feeding photo — too large]','[Afternoon photo — too large]'][i] });
         return;
       }
 
-      const mime = blob.getContentType() || 'image/jpeg';
-      const b64  = Utilities.base64Encode(finalBytes);
+      // Force image/jpeg — Anthropic supports jpeg, png, gif, webp
+      // If content type is unknown or not supported, default to jpeg
+      let mime = (blob.getContentType() || 'image/jpeg').toLowerCase();
+      if (!['image/jpeg','image/png','image/gif','image/webp'].includes(mime)) {
+        mime = 'image/jpeg';
+      }
+
+      const b64 = Utilities.base64Encode(finalBytes);
+      Logger.log('Sending ' + urlKey + ' as ' + mime + ', b64 length=' + b64.length);
       messageContent.push({
         type: 'image',
         source: { type: 'base64', media_type: mime, data: b64 }
