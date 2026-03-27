@@ -133,7 +133,7 @@ function doPost(e) {
     if (action === "waDelete")    return corsRespond(waDelete(payload.id));
     if (action === "migrateBoarSow")   return corsRespond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return corsRespond(migrateSowLitterSowId());
-    if (action === "runAIAnalysis")    return corsRespond(runNightlyAIAnalysis(payload.targetDate || null));
+    if (action === "runAIAnalysis")    return corsRespond(runNightlyAIAnalysis(payload.targetDate || null, true));
     if (action === "runCloseout")      return corsRespond(runCloseoutOnly());
     return corsRespond({ error: "Unknown action" });
   } catch (err) {
@@ -1700,7 +1700,7 @@ function createMidnightTrigger() {
 // Marks In Progress records from yesterday as Incomplete
 // Then runs AI analysis if API key is configured
 
-function runNightlyCloseout(targetDate) {
+function runNightlyCloseout(targetDate, forceAI) {
   const tz = Session.getScriptTimeZone();
   let processDate;
   if (targetDate) {
@@ -1727,29 +1727,30 @@ function runNightlyCloseout(targetDate) {
   const marked = _markIncompleteRecords(processDate, sheet, hdrMap, data);
   Logger.log('Marked ' + marked + ' records as Incomplete for ' + processDate);
 
-  // Step 2: Run AI analysis only if explicitly enabled via Script Properties
-  const apiKey   = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
-  const aiEnabled = PropertiesService.getScriptProperties().getProperty('AI_ANALYSIS_ENABLED');
+  // Step 2: Run AI analysis — always if forceAI, otherwise check setting
+  const apiKey    = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  const aiSetting = getSetting('AI_ANALYSIS_ENABLED');
+  const aiEnabled = forceAI || aiSetting.value === 'true';
   let aiResult = { processed: 0, skipped: 0, errors: 0 };
-  if (apiKey && aiEnabled === 'true') {
+  if (apiKey && aiEnabled) {
     Logger.log('AI analysis enabled — running for ' + processDate);
     aiResult = _runAIForDate(processDate, sheet, hdrMap, data, apiKey);
   } else if (!apiKey) {
-    Logger.log('AI skipped — no ANTHROPIC_API_KEY set');
+    Logger.log('AI skipped — no ANTHROPIC_API_KEY set in Script Properties');
   } else {
-    Logger.log('AI skipped — AI_ANALYSIS_ENABLED is not set to true');
+    Logger.log('AI skipped — AI_ANALYSIS_ENABLED is off in Settings');
   }
 
   const msg = 'Closeout complete for ' + processDate
     + ': ' + marked + ' marked Incomplete'
-    + (aiEnabled === 'true' && apiKey ? ', ' + aiResult.processed + ' AI analysed' : ', AI disabled');
+    + (aiEnabled && apiKey ? ', ' + aiResult.processed + ' AI analysed, ' + aiResult.skipped + ' skipped' : ', AI disabled');
   Logger.log(msg);
   return { success: true, message: msg, marked, ...aiResult, date: processDate };
 }
 
 // ── Main Batch Function (kept for backward compatibility) ───
-function runNightlyAIAnalysis(targetDate) {
-  return runNightlyCloseout(targetDate);
+function runNightlyAIAnalysis(targetDate, forceAI) {
+  return runNightlyCloseout(targetDate, forceAI);
 }
 
   // Default: process yesterday's records (today's are still in progress)

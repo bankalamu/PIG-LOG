@@ -2271,8 +2271,7 @@ const ADMIN_PW_HASH  = "baae653f452d16075e91da17db1e2894cb4931e8ce7a53a5189a443b
 // ── DEFAULT SCRIPT URL ────────────────────────────
 // Update this line when you create a new Apps Script deployment.
 // This is the fallback used when no URL is saved in the browser.
-//const DEFAULT_SCRIPT_URL = ""; // ← paste your Apps Script URL here
-const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybwTOXBrK2bwtCLzJnk_fJPNUhGlY0MkAaAwLXyYXO25iXpxR4YGkLhGwcSPvrebFq/exec";
+const DEFAULT_SCRIPT_URL = ""; // ← paste your Apps Script URL here
 // App token — must match APP_TOKEN in Script Properties (leave blank to disable)
 const APP_TOKEN = "piglog_kitwe_2026";
 
@@ -2432,10 +2431,8 @@ async function runAdminAIAnalysis() {
   const dateInput = document.getElementById('aiAnalysisDate');
   const targetDate = dateInput?.value || '';
   if (!targetDate) {
-    // Default to yesterday
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (dateInput) dateInput.value = yesterday.toISOString().split('T')[0];
+    // Default to today
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
   }
   const useDate = dateInput?.value || '';
   if (!confirm('Run AI Health Analysis for ' + (useDate || 'yesterday') + '?\n\nThis will call the Anthropic API for each checklist record on that date. It may take a minute.')) return;
