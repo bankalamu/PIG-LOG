@@ -2431,7 +2431,6 @@ async function runAdminAIAnalysis() {
   const dateInput = document.getElementById('aiAnalysisDate');
   if (!dateInput?.value) dateInput.value = new Date().toISOString().split('T')[0];
   const useDate = dateInput.value;
-  if (!confirm(`Run AI Health Analysis for ${useDate}?\n\nEach record is processed individually to avoid timeouts. May take a few minutes.`)) return;
 
   if (statusEl) statusEl.textContent = '⏳ Finding records to analyse…';
 
@@ -2448,20 +2447,26 @@ async function runAdminAIAnalysis() {
     return;
   }
 
-  // Step 2 — process one record at a time
-  let processed = 0, failed = 0;
-  for (let i = 0; i < ids.length; i++) {
-    const clId = ids[i];
-    if (statusEl) statusEl.textContent = `⏳ Analysing ${i + 1} of ${ids.length} (CL_ID: ${clId})…`;
+  const BATCH = 5; // process 5 at a time to avoid browser timeout
+  if (!confirm(`Found ${ids.length} record(s) to analyse for ${useDate}.\n\nWill process ${Math.min(BATCH, ids.length)} now. Run again to continue remaining records.\n\nProceed?`)) return;
+
+  // Step 2 — process up to BATCH records
+  const batch = ids.slice(0, BATCH);
+  let processed = 0, failed = 0, skipped = 0;
+  for (let i = 0; i < batch.length; i++) {
+    const clId = batch[i];
+    if (statusEl) statusEl.textContent = `⏳ Analysing ${i + 1} of ${batch.length} (CL_ID: ${clId})… ${ids.length - i - 1} remaining after this`;
     const result = await apiPost({ action: 'runAISingle', clId });
     if (result?.success && !result.skipped) processed++;
-    else if (!result?.success) failed++;
-    await new Promise(r => setTimeout(r, 1500)); // pause between records
+    else if (result?.skipped) skipped++;
+    else { failed++; console.warn('AI failed for', clId, result?.error); }
+    await new Promise(r => setTimeout(r, 1500));
   }
 
-  const msg = `✅ Done — ${processed} analysed${failed ? ', ' + failed + ' failed' : ''}`;
+  const remaining = ids.length - batch.length;
+  const msg = `✅ Batch done — ${processed} analysed, ${skipped} skipped, ${failed} failed${remaining > 0 ? ` · ${remaining} still pending — tap Run Now again` : ' · All done!'}`;
   if (statusEl) statusEl.textContent = msg;
-  showToast(msg);
+  showToast(remaining > 0 ? `✅ ${processed} done · ${remaining} remaining — run again` : `✅ All ${processed} records analysed`);
   allChecklists = [];
 }
 
@@ -2711,16 +2716,20 @@ async function apiGet(params) {
 }
 
 async function apiPost(body) {
+  // GitHub Pages CSP blocks POST to external URLs — use GET with params instead
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
   if (APP_TOKEN) body = { ...body, token: APP_TOKEN };
   try {
     const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 30000);
-    const res  = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body), signal: ctrl.signal });
+    const tid  = setTimeout(() => ctrl.abort(), 60000);
+    // Encode body as base64 to safely pass complex JSON in a GET parameter
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(body))));
+    const url = SCRIPT_URL + '?payload=' + encodeURIComponent(encoded);
+    const res = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
     return res.json();
   } catch(e) {
-    if (e.name === 'AbortError') showToast("Request timed out (30s) — server may need redeploy", true);
+    if (e.name === 'AbortError') showToast("Request timed out (60s)", true);
     else showToast("Network error: " + e.message, true);
     return null;
   }

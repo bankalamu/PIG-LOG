@@ -74,6 +74,18 @@ function _validateToken(token) {
 
 function doGet(e) {
   const action = e.parameter.action;
+
+  // Handle payload= parameter (POST-like data sent via GET to avoid CSP issues)
+  if (e.parameter.payload) {
+    try {
+      const decoded = decodeURIComponent(escape(atob(e.parameter.payload)));
+      const payload = JSON.parse(decoded);
+      return handlePostPayload(payload);
+    } catch(err) {
+      return respond({ error: 'Invalid payload: ' + err.message });
+    }
+  }
+
   try {
     if (action === "getAll")       return respond(getAllRecords());
     if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString(), codeVersion: "3.1" });
@@ -101,38 +113,46 @@ function doGet(e) {
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
-    const action = payload.action;
-    if (action === "add")      return corsRespond(addRecord(payload.data));
-    if (action === "update")   return corsRespond(updateRecord(payload.id, payload.data));
-    if (action === "delete")   return corsRespond(deleteRecord(payload.id));
-    if (action === "clAdd")       return corsRespond(clAdd(payload.data));
-    if (action === "clUpsert")    return corsRespond(clUpsert(payload.data));
-    if (action === "clUpdate")    return corsRespond(clUpdate(payload.id, payload.data));
-    if (action === "clDelete")    return corsRespond(clDelete(payload.id));
-    if (action === "clSavePhoto") return corsRespond(clSavePhoto(payload.clId, payload.photoBase64, payload.mimeType, payload.photoTime, payload.section));
-    if (action === "slAdd")    return corsRespond(slAdd(payload.data));
-    if (action === "slUpsert") return corsRespond(slUpsert(payload.data));
-    if (action === "slUpdate") return corsRespond(slUpdate(payload.id, payload.data));
-    if (action === "slDelete") return corsRespond(slDelete(payload.id));
-    if (action === "wkAdd")    return corsRespond(wkAdd(payload.data));
-    if (action === "wkUpdate") return corsRespond(wkUpdate(payload.id, payload.data));
-    if (action === "wkDelete") return corsRespond(wkDelete(payload.id));
-    if (action === "moAdd")    return corsRespond(moAdd(payload.data));
-    if (action === "moUpsert") return corsRespond(moUpsert(payload.data));
-    if (action === "moUpdate") return corsRespond(moUpdate(payload.id, payload.data));
-    if (action === "moDelete") return corsRespond(moDelete(payload.id));
-    if (action === "saveSetting") return corsRespond(saveSetting(payload.key, payload.value));
-    if (action === "waAdd")       return corsRespond(waAdd(payload.data));
-    if (action === "waUpdate")    return corsRespond(waUpdate(payload.id, payload.data));
-    if (action === "waDelete")    return corsRespond(waDelete(payload.id));
-    if (action === "migrateBoarSow")   return corsRespond(migrateBoarSowToDbId());
-    if (action === "migrateSowIds")    return corsRespond(migrateSowLitterSowId());
-    if (action === "runAIAnalysis")    return corsRespond(runNightlyAIAnalysis(payload.targetDate || null, true));
-    if (action === "runAISingle")      return corsRespond(runAISingleRecord(payload.clId, payload.force));
-    if (action === "runCloseout")      return corsRespond(runCloseoutOnly());
-    return corsRespond({ error: "Unknown action" });
+    return handlePostPayload(payload);
   } catch (err) {
     return corsRespond({ error: err.message });
+  }
+}
+
+function handlePostPayload(payload) {
+  try {
+    const action = payload.action;
+    if (action === "add")      return respond(addRecord(payload.data));
+    if (action === "update")   return respond(updateRecord(payload.id, payload.data));
+    if (action === "delete")   return respond(deleteRecord(payload.id));
+    if (action === "clAdd")       return respond(clAdd(payload.data));
+    if (action === "clUpsert")    return respond(clUpsert(payload.data));
+    if (action === "clUpdate")    return respond(clUpdate(payload.id, payload.data));
+    if (action === "clDelete")    return respond(clDelete(payload.id));
+    if (action === "clSavePhoto") return respond(clSavePhoto(payload.clId, payload.photoBase64, payload.mimeType, payload.photoTime, payload.section));
+    if (action === "slAdd")    return respond(slAdd(payload.data));
+    if (action === "slUpsert") return respond(slUpsert(payload.data));
+    if (action === "slUpdate") return respond(slUpdate(payload.id, payload.data));
+    if (action === "slDelete") return respond(slDelete(payload.id));
+    if (action === "wkAdd")    return respond(wkAdd(payload.data));
+    if (action === "wkUpdate") return respond(wkUpdate(payload.id, payload.data));
+    if (action === "wkDelete") return respond(wkDelete(payload.id));
+    if (action === "moAdd")    return respond(moAdd(payload.data));
+    if (action === "moUpsert") return respond(moUpsert(payload.data));
+    if (action === "moUpdate") return respond(moUpdate(payload.id, payload.data));
+    if (action === "moDelete") return respond(moDelete(payload.id));
+    if (action === "saveSetting") return respond(saveSetting(payload.key, payload.value));
+    if (action === "waAdd")       return respond(waAdd(payload.data));
+    if (action === "waUpdate")    return respond(waUpdate(payload.id, payload.data));
+    if (action === "waDelete")    return respond(waDelete(payload.id));
+    if (action === "migrateBoarSow")   return respond(migrateBoarSowToDbId());
+    if (action === "migrateSowIds")    return respond(migrateSowLitterSowId());
+    if (action === "runAIAnalysis")    return respond(runNightlyAIAnalysis(payload.targetDate || null, true));
+    if (action === "runAISingle")      return respond(runAISingleRecord(payload.clId, payload.force));
+    if (action === "runCloseout")      return respond(runCloseoutOnly());
+    return respond({ error: "Unknown action: " + action });
+  } catch (err) {
+    return respond({ error: err.message });
   }
 }
 
