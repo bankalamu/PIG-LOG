@@ -2260,7 +2260,7 @@
 // ══════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════
-const APP_VERSION    = "3.5";
+const APP_VERSION    = "3.0";
 const SCRIPT_URL_KEY = "piglog_script_url";
 const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
 
@@ -2716,21 +2716,27 @@ async function apiGet(params) {
 }
 
 async function apiPost(body) {
-  // GitHub Pages CSP blocks POST to external URLs — use GET with params instead
+  // GitHub Pages CSP blocks POST — use GET with base64 payload instead
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
   if (APP_TOKEN) body = { ...body, token: APP_TOKEN };
   try {
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 60000);
-    // Encode body as base64 to safely pass complex JSON in a GET parameter
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(body))));
-    const url = SCRIPT_URL + '?payload=' + encodeURIComponent(encoded);
-    const res = await fetch(url, { signal: ctrl.signal });
+    // Robust base64 encode — handles unicode and large payloads
+    const json = JSON.stringify(body);
+    const b64  = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
+      (_, p1) => String.fromCharCode('0x' + p1)));
+    const url  = SCRIPT_URL + '?payload=' + encodeURIComponent(b64);
+    console.log('apiPost action:', body.action, 'url length:', url.length);
+    const res  = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
-    return res.json();
+    const data = await res.json();
+    console.log('apiPost response:', JSON.stringify(data).substring(0, 200));
+    return data;
   } catch(e) {
     if (e.name === 'AbortError') showToast("Request timed out (60s)", true);
     else showToast("Network error: " + e.message, true);
+    console.error('apiPost error:', e);
     return null;
   }
 }

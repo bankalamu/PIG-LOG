@@ -79,8 +79,11 @@ function doGet(e) {
   if (e.parameter.payload) {
     try {
       const bytes   = Utilities.base64Decode(e.parameter.payload);
-      const decoded = Utilities.newBlob(bytes).getDataAsString();
+      const str     = Utilities.newBlob(bytes).getDataAsString('UTF-8');
+      // Decode URI-encoded JSON
+      const decoded = decodeURIComponent(str);
       const payload = JSON.parse(decoded);
+      Logger.log('payload action: ' + payload.action);
       return handlePostPayload(payload);
     } catch(err) {
       return respond({ error: 'Invalid payload: ' + err.message });
