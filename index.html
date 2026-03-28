@@ -836,6 +836,7 @@
     </div>
     <input type="text" class="list-search" id="listSearch" placeholder="Search records…" oninput="renderList()" />
     <div id="preFarrowBanner" style="display:none;margin-bottom:10px;padding:10px 14px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;color:#7b0000"></div>
+    <div id="dewormExpiredBanner" style="display:none;margin-bottom:10px"></div>
     <div id="dupDiagBanner" style="display:none;margin-bottom:10px;padding:8px 12px;background:#fff3cd;border:1.5px solid #f59e0b;border-radius:8px;font-size:11px;font-family:monospace;color:#333;word-break:break-all"></div>
     <div id="listContainer"></div>
   </div>
@@ -3451,7 +3452,73 @@ function renderList() {
     diagBanner.innerHTML = info;
   }
 
-  // ── Render cards ──
+  // ── Deworming expiry detection ──
+  // Expired = dewormed date > 2 months ago OR unknown/missing
+  const dewormExpiredIds = new Set();
+  allRecords.forEach(r => {
+    const status = String(r.Status || '').toLowerCase();
+    if (status === 'sold' || status === 'deceased') return; // skip inactive
+    const dewormed = String(r['Dewormed'] || '').trim();
+    if (!dewormed) {
+      dewormExpiredIds.add(String(r.DB_ID)); // unknown = expired
+      return;
+    }
+    const d = new Date(dewormed); d.setHours(0,0,0,0);
+    if (isNaN(d)) { dewormExpiredIds.add(String(r.DB_ID)); return; }
+    const monthsDiff = (today - d) / (1000 * 60 * 60 * 24 * 30.44);
+    if (monthsDiff > 2) dewormExpiredIds.add(String(r.DB_ID));
+  });
+
+  // ── Deworming expiry banner ──
+  const dewormBanner = document.getElementById('dewormExpiredBanner');
+  if (dewormBanner) {
+    if (dewormExpiredIds.size > 0) {
+      const unknown = allRecords.filter(r => dewormExpiredIds.has(String(r.DB_ID)) && !String(r['Dewormed']||'').trim());
+      const overdue = allRecords.filter(r => dewormExpiredIds.has(String(r.DB_ID)) &&  String(r['Dewormed']||'').trim());
+
+      const makeRow = (r, isUnknown) => {
+        const dw = String(r['Dewormed'] || '').trim();
+        let ageLabel = '';
+        if (!isUnknown && dw) {
+          const d = new Date(dw); d.setHours(0,0,0,0);
+          if (!isNaN(d)) {
+            const months = ((today - d) / (1000 * 60 * 60 * 24 * 30.44)).toFixed(1);
+            ageLabel = `<strong style="color:#c0392b">${months} months ago</strong>`;
+          }
+        }
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f5c87a;flex-wrap:wrap;gap:4px">
+          <span>💉 <strong>${r["PIG ID"] || 'DB:'+r.DB_ID}</strong>
+          <span style="color:#888;font-size:10px">(${r.Type||'?'} · Pen ${r.Pen||'?'})</span>
+          ${isUnknown
+            ? '<span style="background:#fde8e8;color:#c0392b;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:4px">⚠ Never recorded</span>'
+            : `<span style="color:#555;font-size:10px;margin-left:4px">Last: ${dw}</span> ${ageLabel ? '— ' + ageLabel : ''}`
+          }</span>
+          <button onclick="editFromList(${r.DB_ID})" style="background:#e65100;color:#fff;border:none;border-radius:5px;padding:2px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0">Update</button>
+        </div>`;
+      };
+
+      let html = `<div style="background:#fff3e0;border:2px solid #e65100;border-radius:10px;padding:10px 14px">
+        <div style="font-size:13px;font-weight:800;color:#e65100;margin-bottom:8px">💉 Deworming Alert — ${dewormExpiredIds.size} pig${dewormExpiredIds.size > 1 ? 's' : ''} need attention</div>`;
+
+      if (unknown.length > 0) {
+        html += `<div style="font-size:11px;font-weight:800;color:#c0392b;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">⚠ No Deworming Date Recorded (${unknown.length})</div>
+          <div style="font-size:11px;color:#333;margin-bottom:10px;line-height:1.9">${unknown.map(r => makeRow(r, true)).join('')}</div>`;
+      }
+      if (overdue.length > 0) {
+        html += `<div style="font-size:11px;font-weight:800;color:#e65100;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">🕐 Overdue — Past 2 Months (${overdue.length})</div>
+          <div style="font-size:11px;color:#333;line-height:1.9">${overdue.map(r => makeRow(r, false)).join('')}</div>`;
+      }
+      html += `</div>`;
+
+      dewormBanner.style.display = 'block';
+      dewormBanner.innerHTML = html;
+    } else {
+      dewormBanner.style.display = 'none';
+      dewormBanner.innerHTML = '';
+    }
+  }
+
+
   const filtered = allRecords.filter(r =>
     Object.values(r).some(v => String(v).toLowerCase().includes(filter))
   );
@@ -3464,10 +3531,11 @@ function renderList() {
   container.innerHTML = filtered.map(rec => {
     const isDup          = dupIds.has(String(rec.DB_ID));
     const isPreFarrow    = preFarrowIds.has(String(rec.DB_ID));
+    const isDewormExpired = dewormExpiredIds.has(String(rec.DB_ID));
     const effectiveStatus = isPreFarrow && rec.Status !== 'Farrowing' && rec.Status !== 'Lactating' && rec.Status !== 'Weaning'
       ? 'Pre-Farrowing' : (rec.Status || '');
     const keyStyle   = isDup ? 'color:#c0392b;font-weight:900;' : '';
-    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : isPreFarrow ? 'border:2.5px solid #c0392b;' : '';
+    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : isPreFarrow ? 'border:2.5px solid #c0392b;' : isDewormExpired ? 'border:2px solid #e65100;' : '';
     const dupBanner  = isDup
       ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">⚠️ Duplicate — PIG ID, Boar &amp; SOW match another record</div>`
       : '';
@@ -3475,6 +3543,9 @@ function renderList() {
       ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">🚨 Pre-Farrowing — estimated farrow date within 7 days</div>`
       : '';
     const statusStyle = isPreFarrow ? 'background:#c0392b;color:#fff;' : '';
+    const dewormBadge = isDewormExpired
+      ? `<span style="font-size:10px;font-weight:800;color:#fff;background:#e65100;border:1.5px solid #e65100;border-radius:10px;padding:2px 8px;white-space:nowrap">💉 Deworm Due</span>`
+      : '';
 
     const pigIdHtml = rec["PIG ID"]
       ? `<span style="${keyStyle}">${rec["PIG ID"]}</span>`
@@ -3490,6 +3561,7 @@ function renderList() {
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${effectiveStatus ? `<span class="status-badge" style="${statusStyle}">${effectiveStatus}</span>` : ""}
+          ${dewormBadge}
           ${_availableBadge(rec.Available)}
         </div>
       </div>
