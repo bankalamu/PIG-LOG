@@ -1987,57 +1987,49 @@ Write clearly for a farm worker. Be specific about what you actually see in the 
       const fileId = _extractFileId(url);
       if (!fileId) return;
 
-      // Always fetch compressed thumbnail — sz=w800 gives ~200-400KB
-      const thumbUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w800';
-      const token    = ScriptApp.getOAuthToken();
-      const response = UrlFetchApp.fetch(thumbUrl, {
-        headers: { Authorization: 'Bearer ' + token },
-        muteHttpExceptions: true
-      });
+      // Fetch file directly via DriveApp — thumbnail URL returns 404 for private files
+      const file = DriveApp.getFileById(fileId);
+      let blob = file.getBlob();
+      let mime = (blob.getContentType() || 'image/jpeg').toLowerCase();
+      Logger.log('Photo ' + urlKey + ': original size=' + blob.getBytes().length + ' mime=' + mime);
 
-      let blob;
-      const code = response.getResponseCode();
-      if (code === 200) {
-        blob = response.getBlob();
-        const ct = blob.getContentType() || '';
-        Logger.log('Photo ' + urlKey + ': thumbnail fetched, size=' + blob.getBytes().length + ' ct=' + ct);
-        // Validate it's actually an image not an HTML error page
-        if (!ct.startsWith('image/')) {
-          Logger.log('Thumbnail returned non-image content type: ' + ct + ' — trying original');
-          blob = null;
+      // If over 4MB, resize by fetching lh3 thumbnail (Google's image proxy)
+      if (blob.getBytes().length > 4 * 1024 * 1024) {
+        try {
+          const lh3Url  = 'https://lh3.googleusercontent.com/d/' + fileId + '=w800';
+          const token   = ScriptApp.getOAuthToken();
+          const lh3Resp = UrlFetchApp.fetch(lh3Url, {
+            headers: { Authorization: 'Bearer ' + token },
+            muteHttpExceptions: true
+          });
+          if (lh3Resp.getResponseCode() === 200) {
+            const lh3Blob = lh3Resp.getBlob();
+            const lh3Mime = (lh3Blob.getContentType() || '').toLowerCase();
+            if (lh3Mime.startsWith('image/')) {
+              blob = lh3Blob;
+              mime = lh3Mime;
+              Logger.log('Photo ' + urlKey + ': resized via lh3, new size=' + blob.getBytes().length);
+            }
+          }
+        } catch(lh3e) {
+          Logger.log('lh3 resize failed: ' + lh3e.message);
         }
-      }
-
-      if (!blob) {
-        // Fallback to original file
-        Logger.log('Fetching original for ' + urlKey);
-        const file = DriveApp.getFileById(fileId);
-        blob = file.getBlob();
-        const size = blob.getBytes().length;
-        if (size > 4 * 1024 * 1024) {
-          Logger.log('Original too large (' + size + ' bytes) — skipping ' + urlKey);
+        // If still too large, skip
+        if (blob.getBytes().length > 4.5 * 1024 * 1024) {
+          Logger.log('Photo ' + urlKey + ' still too large — skipping');
           messageContent.push({ type: 'text', text: ['[Morning photo — too large]','[Feeding photo — too large]','[Afternoon photo — too large]'][i] });
           return;
         }
       }
 
-      // Final size check
-      const finalBytes = blob.getBytes();
-      if (finalBytes.length > 4.5 * 1024 * 1024) {
-        Logger.log('Photo still too large (' + finalBytes.length + ') — skipping');
-        messageContent.push({ type: 'text', text: ['[Morning photo — too large]','[Feeding photo — too large]','[Afternoon photo — too large]'][i] });
-        return;
-      }
-
-      // Force image/jpeg — Anthropic supports jpeg, png, gif, webp
-      // If content type is unknown or not supported, default to jpeg
-      let mime = (blob.getContentType() || 'image/jpeg').toLowerCase();
+      // Ensure supported mime type
       if (!['image/jpeg','image/png','image/gif','image/webp'].includes(mime)) {
         mime = 'image/jpeg';
       }
 
+      const finalBytes = blob.getBytes();
       const b64 = Utilities.base64Encode(finalBytes);
-      Logger.log('Sending ' + urlKey + ' as ' + mime + ', b64 length=' + b64.length);
+      Logger.log('Sending ' + urlKey + ': mime=' + mime + ' size=' + finalBytes.length + ' b64len=' + b64.length);
       messageContent.push({
         type: 'image',
         source: { type: 'base64', media_type: mime, data: b64 }

@@ -2700,64 +2700,42 @@ function showPageList() {
 
 // ── API ───────────────────────────────────────────
 
-async function apiGet(params, timeoutMs = 30000) {
+async function apiGet(params) {
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
-  if (APP_TOKEN && !params.payload) params = { ...params, token: APP_TOKEN };
-  // Build URL — if payload is present it's already encoded, handle separately
-  let url;
-  if (params.payload) {
-    const { payload, ...rest } = params;
-    const base = Object.keys(rest).length
-      ? SCRIPT_URL + '?' + new URLSearchParams(rest) + '&payload=' + payload
-      : SCRIPT_URL + '?payload=' + payload;
-    url = base;
-  } else {
-    url = SCRIPT_URL + '?' + new URLSearchParams(params);
-  }
+  const url = SCRIPT_URL + "?" + new URLSearchParams(params);
   try {
     const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
+    const tid  = setTimeout(() => ctrl.abort(), 30000);
     const res  = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
     return res.json();
   } catch(e) {
-    if (e.name === 'AbortError') showToast("Request timed out — server may be busy", true);
+    if (e.name === 'AbortError') showToast("Request timed out", true);
     else showToast("Network error: " + e.message, true);
     return null;
   }
 }
 
 async function apiPost(body) {
-  // All writes use GET+payload to avoid GitHub Pages CSP blocking POST requests
-  if (APP_TOKEN) body = { ...body, token: APP_TOKEN };
-  const json = JSON.stringify(body);
-  const b64  = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
-    (_, p1) => String.fromCharCode('0x' + p1)));
-  console.log('apiPost action:', body.action);
-  return apiGet({ payload: encodeURIComponent(b64) }, 60000);
-}
-
-async function apiPostDirect(body) {
-  // Use real POST for large payloads (photos) that exceed URL length limits
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
-  if (APP_TOKEN) body = { ...body, token: APP_TOKEN };
   try {
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 60000);
     const res  = await fetch(SCRIPT_URL, {
-      method:  'POST',
-      body:    JSON.stringify(body),
-      signal:  ctrl.signal,
-      headers: { 'Content-Type': 'application/json' }
+      method: 'POST',
+      body:   JSON.stringify(body),
+      signal: ctrl.signal
     });
     clearTimeout(tid);
     return res.json();
   } catch(e) {
-    if (e.name === 'AbortError') showToast("Upload timed out", true);
-    else showToast("Upload error: " + e.message, true);
+    if (e.name === 'AbortError') showToast("Request timed out", true);
+    else showToast("Network error: " + e.message, true);
     return null;
   }
 }
+
+const apiPostDirect = apiPost;
 
 async function loadRecords() {
   try {
@@ -4260,16 +4238,17 @@ async function saveSection(sec) {
     document.getElementById('clLockedSub').textContent = '(in progress)';
     clUpdateDayTotal();
     clSaveDraft();
-    // Upload this section's photo non-blocking
+    // Upload this section's photo non-blocking — compress first to fit GET URL
     const p = clPhotos[sec];
     if (p?.data && clEditId) {
       const stat = document.getElementById('clPhotoStatus' + sec);
-      if (stat) stat.textContent = '⬆️ Uploading photo…';
-      apiPostDirect({
-        action: 'clSavePhoto', clId: clEditId, section: sec,
-        photoBase64: p.data, mimeType: p.mime || 'image/jpeg', photoTime: p.time || ''
-      }).then(r => {
-        if (stat) stat.textContent = r?.success ? '✅ Photo uploaded' : '⚠ Upload failed — will retry';
+      if (stat) stat.textContent = '⬆️ Compressing & uploading…';
+      (async () => {
+        const r = await apiPost({
+          action: 'clSavePhoto', clId: clEditId, section: sec,
+          photoBase64: p.data, mimeType: p.mime || 'image/jpeg', photoTime: p.time || ''
+        });
+        if (stat) stat.textContent = r?.success ? '✅ Photo uploaded' : '⚠ Upload failed';
         if (r?.success) {
           const i = allChecklists.findIndex(r2 => String(r2.CL_ID) === String(clEditId));
           if (i !== -1) {
@@ -4277,7 +4256,7 @@ async function saveSection(sec) {
             allChecklists[i]['PhotoTime' + sec] = p.time;
           }
         }
-      });
+      })();
     }
     showToast('✅ ' + label + ' section saved!');
   } else {
@@ -4636,9 +4615,9 @@ async function clUploadPhotos(clId) {
     const p = clPhotos[sec];
     if (!p || !p.data) continue;
     const stat = document.getElementById('clPhotoStatus' + sec);
-    if (stat) stat.textContent = '⬆️ Uploading…';
+    if (stat) stat.textContent = '⬆️ Compressing & uploading…';
     try {
-      const result = await apiPostDirect({
+      const result = await apiPost({
         action: 'clSavePhoto',
         clId, section: sec,
         photoBase64: p.data,
@@ -5124,9 +5103,9 @@ async function clHistoryPhotoSelected(input, clId, sec) {
   const reader    = new FileReader();
   reader.onload = async e => {
     const base64 = e.target.result.split(',')[1];
-    showToast('⬆️ Uploading photo…');
+    showToast('⬆️ Compressing & uploading…');
     try {
-      const result = await apiPostDirect({ action: 'clSavePhoto', clId, section: sec || 1, photoBase64: base64, mimeType: mime, photoTime });
+      const result = await apiPost({ action: 'clSavePhoto', clId, section: sec || 1, photoBase64: base64, mimeType: mime, photoTime });
       if (result && result.success) {
         showToast('✅ Photo uploaded');
         const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
