@@ -3465,67 +3465,71 @@ function renderList() {
     }
   }
 
-  // ── Deworming expiry detection ──
-  // Expired = dewormed date > 2 months ago OR unknown/missing
-  const dewormExpiredIds = new Set();
+  // ── General Record Issues Banner ──
+  // Checks each active pig for: deworming, missing fields
+  const REQUIRED_FIELDS = [
+    { field: 'Pen',    label: 'Pen No.' },
+    { field: 'SEX',    label: 'Sex' },
+    { field: 'Type',   label: 'Type' },
+    { field: 'Status', label: 'Status' },
+    { field: 'Stage',  label: 'Stage' },
+  ];
+
+  const recordIssues = []; // { rec, issues: [] }
   allRecords.forEach(r => {
-    if (!String(r["PIG ID"]||'').trim()) return; // skip blank PIG ID
+    if (!String(r["PIG ID"]||'').trim()) return;
     const status = String(r.Status || '').toLowerCase();
-    if (status === 'sold' || status === 'deceased') return; // skip inactive
-    const dewormed = String(r['Dewormed'] || '').trim();
-    if (!dewormed) {
-      dewormExpiredIds.add(String(r.DB_ID)); // unknown = expired
-      return;
+    if (status === 'sold' || status === 'deceased') return;
+    const issues = [];
+
+    // Missing required fields
+    REQUIRED_FIELDS.forEach(({ field, label }) => {
+      if (!String(r[field]||'').trim()) issues.push({ type: 'missing', label });
+    });
+
+    // Deworming
+    const dw = String(r['Dewormed'] || '').trim();
+    if (!dw) {
+      issues.push({ type: 'deworm', label: 'Deworming — never recorded' });
+    } else {
+      const d = new Date(dw); d.setHours(0,0,0,0);
+      if (isNaN(d)) {
+        issues.push({ type: 'deworm', label: 'Deworming — invalid date' });
+      } else {
+        const months = (today - d) / (1000 * 60 * 60 * 24 * 30.44);
+        if (months > 2) issues.push({ type: 'deworm', label: `Deworming — ${months.toFixed(1)} months ago` });
+      }
     }
-    const d = new Date(dewormed); d.setHours(0,0,0,0);
-    if (isNaN(d)) { dewormExpiredIds.add(String(r.DB_ID)); return; }
-    const monthsDiff = (today - d) / (1000 * 60 * 60 * 24 * 30.44);
-    if (monthsDiff > 2) dewormExpiredIds.add(String(r.DB_ID));
+
+    if (issues.length > 0) recordIssues.push({ rec: r, issues });
   });
 
-  // ── Deworming expiry banner ──
   const dewormBanner = document.getElementById('dewormExpiredBanner');
   if (dewormBanner) {
-    if (dewormExpiredIds.size > 0) {
-      const unknown = allRecords.filter(r => dewormExpiredIds.has(String(r.DB_ID)) && !String(r['Dewormed']||'').trim());
-      const overdue = allRecords.filter(r => dewormExpiredIds.has(String(r.DB_ID)) &&  String(r['Dewormed']||'').trim());
-
-      const makeRow = (r, isUnknown) => {
-        const dw = String(r['Dewormed'] || '').trim();
-        let ageLabel = '';
-        if (!isUnknown && dw) {
-          const d = new Date(dw); d.setHours(0,0,0,0);
-          if (!isNaN(d)) {
-            const months = ((today - d) / (1000 * 60 * 60 * 24 * 30.44)).toFixed(1);
-            ageLabel = `<strong style="color:#c0392b">${months} months ago</strong>`;
-          }
-        }
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f5c87a;flex-wrap:wrap;gap:4px">
-          <span>💉 <strong>${r["PIG ID"] || 'DB:'+r.DB_ID}</strong>
-          <span style="color:#888;font-size:10px">(${r.Type||'?'} · Pen ${r.Pen||'?'})</span>
-          ${isUnknown
-            ? '<span style="background:#fde8e8;color:#c0392b;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:4px">⚠ Never recorded</span>'
-            : `<span style="color:#555;font-size:10px;margin-left:4px">Last: ${dw}</span> ${ageLabel ? '— ' + ageLabel : ''}`
-          }</span>
-          <button onclick="editFromList(${r.DB_ID})" style="background:#e65100;color:#fff;border:none;border-radius:5px;padding:2px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0">Update</button>
+    if (recordIssues.length > 0) {
+      const rows = recordIssues.map(({ rec, issues }) => {
+        const missingFields = issues.filter(i => i.type === 'missing').map(i => i.label);
+        const dewormIssue   = issues.find(i => i.type === 'deworm');
+        const tags = [
+          ...missingFields.map(f => `<span style="background:#fde8e8;color:#c0392b;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700">⚠ ${f}</span>`),
+          dewormIssue ? `<span style="background:#fff3e0;color:#e65100;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:700">💉 ${dewormIssue.label}</span>` : ''
+        ].filter(Boolean).join(' ');
+        return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f5c87a;flex-wrap:wrap;gap:4px">
+          <div>
+            <strong>${rec["PIG ID"] || 'DB:'+rec.DB_ID}</strong>
+            <span style="color:#888;font-size:10px"> · ${rec.Type||'?'} · Pen ${rec.Pen||'?'}</span>
+            <div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:3px">${tags}</div>
+          </div>
+          <button onclick="editFromList(${rec.DB_ID})" style="background:#e65100;color:#fff;border:none;border-radius:5px;padding:2px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0">Update</button>
         </div>`;
-      };
-
-      let html = `<div style="background:#fff3e0;border:2px solid #e65100;border-radius:10px;padding:10px 14px">
-        <div style="font-size:13px;font-weight:800;color:#e65100;margin-bottom:8px">💉 Deworming Alert — ${dewormExpiredIds.size} pig${dewormExpiredIds.size > 1 ? 's' : ''} need attention</div>`;
-
-      if (unknown.length > 0) {
-        html += `<div style="font-size:11px;font-weight:800;color:#c0392b;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">⚠ No Deworming Date Recorded (${unknown.length})</div>
-          <div style="font-size:11px;color:#333;margin-bottom:10px;line-height:1.9">${unknown.map(r => makeRow(r, true)).join('')}</div>`;
-      }
-      if (overdue.length > 0) {
-        html += `<div style="font-size:11px;font-weight:800;color:#e65100;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">🕐 Overdue — Past 2 Months (${overdue.length})</div>
-          <div style="font-size:11px;color:#333;line-height:1.9">${overdue.map(r => makeRow(r, false)).join('')}</div>`;
-      }
-      html += `</div>`;
+      }).join('');
 
       dewormBanner.style.display = 'block';
-      dewormBanner.innerHTML = html;
+      dewormBanner.innerHTML = `
+        <div style="background:#fff3e0;border:2px solid #e65100;border-radius:10px;padding:10px 14px">
+          <div style="font-size:13px;font-weight:800;color:#e65100;margin-bottom:8px">⚠️ Record Issues — ${recordIssues.length} pig${recordIssues.length > 1 ? 's' : ''} need attention</div>
+          <div style="font-size:11px;color:#333;line-height:2">${rows}</div>
+        </div>`;
     } else {
       dewormBanner.style.display = 'none';
       dewormBanner.innerHTML = '';
