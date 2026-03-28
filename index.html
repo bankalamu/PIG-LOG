@@ -1286,10 +1286,11 @@
       <button class="cl-tab"        id="slTabHistory" onclick="setSlView('history')"                     >📅 History</button>
     </div>
 
+    <!-- Expired / incomplete banner — always visible across all tabs -->
+    <div id="slExpiredBanner" style="display:none;margin-bottom:10px;margin-top:8px"></div>
+
     <!-- ── ACTIVE LIST VIEW ── -->
     <div id="slActiveView">
-      <!-- Expired pens banner -->
-      <div id="slExpiredBanner" style="display:none;margin-bottom:10px"></div>
       <input type="text" class="list-search" id="slActiveSearch" placeholder="Search by sow ID or pen…" oninput="renderSlActive()"/>
       <div id="slActiveContainer"><div class="empty-state" style="color:#aaa;font-size:12px">Navigate here to load records</div></div>
     </div>
@@ -2671,7 +2672,7 @@ function showPage(id) {
     const err = document.getElementById("searchError");
     if (err) err.style.display = "none";
   }
-  if (id === "pageSowLitter") { sowRecordCache = []; boarRecordCache = []; setSlView('active'); }
+  if (id === "pageSowLitter") { sowRecordCache = []; boarRecordCache = []; setSlView('active'); updateSlHomeBanner(); }
   if (id === "pageChecklist") {
     clDateChanged();
     // Load max pen setting only once
@@ -7238,11 +7239,13 @@ async function saveSowLitter() {
 }
 
 function updateSlHomeBanner() {
-  const banner = document.getElementById('slHomeBanner');
-  if (!banner || !allSlRecords.length) return;
-  const html = _slBuildExpiredBanner(allSlRecords);
-  banner.style.display = html ? 'block' : 'none';
-  banner.innerHTML = html || '';
+  const html = allSlRecords.length ? _slBuildExpiredBanner(allSlRecords) : null;
+  // Update home page banner
+  const homeBanner = document.getElementById('slHomeBanner');
+  if (homeBanner) { homeBanner.style.display = html ? 'block' : 'none'; homeBanner.innerHTML = html || ''; }
+  // Update SL page banner (above tabs)
+  const slBanner = document.getElementById('slExpiredBanner');
+  if (slBanner) { slBanner.style.display = html ? 'block' : 'none'; slBanner.innerHTML = html || ''; }
 }
 
 async function loadSlActive() {
