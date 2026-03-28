@@ -2737,6 +2737,28 @@ async function apiPost(body) {
   return apiGet({ payload: encodeURIComponent(b64) }, 60000);
 }
 
+async function apiPostDirect(body) {
+  // Use real POST for large payloads (photos) that exceed URL length limits
+  if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
+  if (APP_TOKEN) body = { ...body, token: APP_TOKEN };
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 60000);
+    const res  = await fetch(SCRIPT_URL, {
+      method:  'POST',
+      body:    JSON.stringify(body),
+      signal:  ctrl.signal,
+      headers: { 'Content-Type': 'application/json' }
+    });
+    clearTimeout(tid);
+    return res.json();
+  } catch(e) {
+    if (e.name === 'AbortError') showToast("Upload timed out", true);
+    else showToast("Upload error: " + e.message, true);
+    return null;
+  }
+}
+
 async function loadRecords() {
   try {
     const data = await apiGet({ action: "getAll" });
@@ -4243,7 +4265,7 @@ async function saveSection(sec) {
     if (p?.data && clEditId) {
       const stat = document.getElementById('clPhotoStatus' + sec);
       if (stat) stat.textContent = '⬆️ Uploading photo…';
-      apiPost({
+      apiPostDirect({
         action: 'clSavePhoto', clId: clEditId, section: sec,
         photoBase64: p.data, mimeType: p.mime || 'image/jpeg', photoTime: p.time || ''
       }).then(r => {
@@ -4616,7 +4638,7 @@ async function clUploadPhotos(clId) {
     const stat = document.getElementById('clPhotoStatus' + sec);
     if (stat) stat.textContent = '⬆️ Uploading…';
     try {
-      const result = await apiPost({
+      const result = await apiPostDirect({
         action: 'clSavePhoto',
         clId, section: sec,
         photoBase64: p.data,
@@ -5104,7 +5126,7 @@ async function clHistoryPhotoSelected(input, clId, sec) {
     const base64 = e.target.result.split(',')[1];
     showToast('⬆️ Uploading photo…');
     try {
-      const result = await apiPost({ action: 'clSavePhoto', clId, section: sec || 1, photoBase64: base64, mimeType: mime, photoTime });
+      const result = await apiPostDirect({ action: 'clSavePhoto', clId, section: sec || 1, photoBase64: base64, mimeType: mime, photoTime });
       if (result && result.success) {
         showToast('✅ Photo uploaded');
         const idx = allChecklists.findIndex(r => String(r.CL_ID) === String(clId));
