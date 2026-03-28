@@ -3436,20 +3436,29 @@ function renderList() {
     }
   }
 
-  // ── Duplicate debug banner ──
+  // ── Duplicate banner — only show when duplicates exist ──
   if (diagBanner) {
-    let info = '';
     if (dupIds.size > 0) {
       const dupRecs = allRecords.filter(r => dupIds.has(String(r.DB_ID)));
       const rows = dupRecs.map(r =>
-        `&nbsp;&nbsp;DB_ID=<b>${r.DB_ID}</b>&nbsp; PIG_ID=<b>"${r["PIG ID"]}"</b>&nbsp; Boar=<b>"${r["Boar"]}"</b>&nbsp; SOW=<b>"${r["SOW"]}"</b>`
-      ).join('<br>');
-      info = `<b>🔍 Duplicate records (${dupRecs.length}):</b><br>${rows}<br><span style="color:#c0392b;font-weight:700">⚠️ DB_IDs: ${[...dupIds].join(', ')}</span>`;
+        `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #fcd34d;flex-wrap:wrap;gap:4px">
+          <span>
+            <strong>${r["PIG ID"] || '—'}</strong>
+            <span style="color:#888;font-size:10px"> · DB_ID: ${r.DB_ID} · ${r.Type||'?'} · Pen ${r.Pen||'?'}</span>
+          </span>
+          <button onclick="editFromList(${r.DB_ID})" style="background:#f59e0b;color:#fff;border:none;border-radius:5px;padding:2px 10px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0">View</button>
+        </div>`
+      ).join('');
+      diagBanner.style.display = 'block';
+      diagBanner.innerHTML = `
+        <div style="background:#fffbeb;border:2px solid #f59e0b;border-radius:10px;padding:10px 14px;font-family:inherit">
+          <div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:6px">⚠️ Duplicate Records Detected — ${dupRecs.length} record${dupRecs.length > 1 ? 's' : ''}</div>
+          <div style="font-size:11px;color:#333;line-height:1.9">${rows}</div>
+        </div>`;
     } else {
-      info = `<span style="color:#2d6a2d;font-weight:700">✓ No duplicates detected across ${allRecords.length} records</span>`;
+      diagBanner.style.display = 'none';
+      diagBanner.innerHTML = '';
     }
-    diagBanner.style.display = 'block';
-    diagBanner.innerHTML = info;
   }
 
   // ── Deworming expiry detection ──
