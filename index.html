@@ -655,9 +655,6 @@
       </div>
     </button>
 
-    <!-- Sow & Litter expired banner — shown on home screen -->
-    <div id="slHomeBanner" style="display:none;margin-bottom:10px"></div>
-
     <button class="action-card" style="border-color:#1a3a8a;background:#fff" onclick="showPage('pageWeekly')">
       <div class="card-icon" style="background:#e3f2fd">📅</div>
       <div>
@@ -6605,13 +6602,6 @@ function initSowLitter() {
   const fd = document.getElementById('slFarrowDate');
   if (fd && !fd.value) fd.value = today;
   slUpdateDayInfo();
-  // Load SL records in background so home banner populates on startup
-  apiGet({ action: 'slGetAll' }).then(r => {
-    if (r?.success) {
-      allSlRecords = r.records || [];
-      updateSlHomeBanner();
-    }
-  }).catch(() => {});
 }
 
 function slUpdateDayInfo() {
@@ -7240,9 +7230,6 @@ async function saveSowLitter() {
 
 function updateSlHomeBanner() {
   const html = allSlRecords.length ? _slBuildExpiredBanner(allSlRecords) : null;
-  // Update home page banner
-  const homeBanner = document.getElementById('slHomeBanner');
-  if (homeBanner) { homeBanner.style.display = html ? 'block' : 'none'; homeBanner.innerHTML = html || ''; }
   // Update SL page banner (above tabs)
   const slBanner = document.getElementById('slExpiredBanner');
   if (slBanner) { slBanner.style.display = html ? 'block' : 'none'; slBanner.innerHTML = html || ''; }
