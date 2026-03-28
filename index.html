@@ -3540,11 +3540,12 @@ function renderList() {
   container.innerHTML = filtered.map(rec => {
     const isDup          = dupIds.has(String(rec.DB_ID));
     const isPreFarrow    = preFarrowIds.has(String(rec.DB_ID));
-    const isDewormExpired = dewormExpiredIds.has(String(rec.DB_ID));
+    const recIssue       = recordIssues.find(i => String(i.rec.DB_ID) === String(rec.DB_ID));
+    const isDewormExpired = recIssue?.issues.some(i => i.type === 'deworm');
     const effectiveStatus = isPreFarrow && rec.Status !== 'Farrowing' && rec.Status !== 'Lactating' && rec.Status !== 'Weaning'
       ? 'Pre-Farrowing' : (rec.Status || '');
     const keyStyle   = isDup ? 'color:#c0392b;font-weight:900;' : '';
-    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : isPreFarrow ? 'border:2.5px solid #c0392b;' : isDewormExpired ? 'border:2px solid #e65100;' : '';
+    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : isPreFarrow ? 'border:2.5px solid #c0392b;' : recIssue ? 'border:2px solid #e65100;' : '';
     const dupBanner  = isDup
       ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">⚠️ Duplicate — PIG ID, Boar &amp; SOW match another record</div>`
       : '';
