@@ -3532,6 +3532,24 @@ function renderList() {
     Object.values(r).some(v => String(v).toLowerCase().includes(filter))
   );
 
+  // Update issues banner and build lookup for card rendering
+  updateRecordIssuesBanner();
+  const _issueMap = {};
+  allRecords.forEach(r => {
+    const st = String(r.Status||'').toLowerCase();
+    if (!String(r["PIG ID"]||'').trim() || st === 'sold' || st === 'deceased') return;
+    const issues = [];
+    ['Pen','SEX','Type','Status','Stage'].forEach(f => { if (!String(r[f]||'').trim()) issues.push(f); });
+    const dw = String(r['Dewormed']||'').trim();
+    if (!dw) issues.push('deworm');
+    else {
+      const d = new Date(dw); d.setHours(0,0,0,0);
+      const months = (today - d) / (1000*60*60*24*30.44);
+      if (isNaN(d) || months > 2) issues.push('deworm');
+    }
+    if (issues.length) _issueMap[String(r.DB_ID)] = issues;
+  });
+
   if (filtered.length === 0) {
     container.innerHTML = `<div class="empty-state">${allRecords.length === 0 ? "No records yet. Add your first pig!" : "No records match your search."}</div>`;
     return;
@@ -3540,12 +3558,12 @@ function renderList() {
   container.innerHTML = filtered.map(rec => {
     const isDup          = dupIds.has(String(rec.DB_ID));
     const isPreFarrow    = preFarrowIds.has(String(rec.DB_ID));
-    const recIssue       = recordIssues.find(i => String(i.rec.DB_ID) === String(rec.DB_ID));
-    const isDewormExpired = recIssue?.issues.some(i => i.type === 'deworm');
+    const recIssues      = _issueMap[String(rec.DB_ID)] || [];
+    const isDewormExpired = recIssues.includes('deworm');
     const effectiveStatus = isPreFarrow && rec.Status !== 'Farrowing' && rec.Status !== 'Lactating' && rec.Status !== 'Weaning'
       ? 'Pre-Farrowing' : (rec.Status || '');
     const keyStyle   = isDup ? 'color:#c0392b;font-weight:900;' : '';
-    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : isPreFarrow ? 'border:2.5px solid #c0392b;' : recIssue ? 'border:2px solid #e65100;' : '';
+    const cardBorder = isDup ? 'border:2.5px solid #c0392b;' : isPreFarrow ? 'border:2.5px solid #c0392b;' : recIssues.length ? 'border:2px solid #e65100;' : '';
     const dupBanner  = isDup
       ? `<div style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:7px;padding:6px 10px;margin-bottom:8px;font-size:11px;font-weight:700;color:#c0392b">⚠️ Duplicate — PIG ID, Boar &amp; SOW match another record</div>`
       : '';
