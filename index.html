@@ -2238,6 +2238,15 @@
           <label class="form-label">Due Date</label>
           <input type="date" id="waDueDate" class="form-input">
         </div>
+        <div style="display:flex;flex-direction:column;gap:4px" id="waStatusGroup">
+          <label class="form-label">Status</label>
+          <select id="waStatus" class="form-select">
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </div>
         <div style="display:flex;flex-direction:column;gap:4px;grid-column:1/-1">
           <label class="form-label">Action / Task Description ✱</label>
           <input type="text" id="waAction" class="form-input" placeholder="Describe the task…">
@@ -7928,8 +7937,9 @@ function waRender() {
           ${rec.Status !== 'Done' ? `
             ${rec.Status !== 'In Progress' ? `<button onclick="waSetStatus('${rec.ACTION_ID}','In Progress')" style="background:#fff3e0;border:1px solid #e65100;color:#e65100;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">▶ Start</button>` : ''}
             <button onclick="waSetStatus('${rec.ACTION_ID}','Done')" style="background:#e8f5e8;border:1px solid #2d6a2d;color:#2d6a2d;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">✓ Done</button>
-          ` : `<span style="font-size:11px;color:#2d6a2d;font-weight:700">✅ Completed${rec.CompletedAt ? ' ' + rec.CompletedAt : ''}</span>`}
-          <button onclick="waEditTask('${rec.ACTION_ID}')" style="background:#f0f0f0;border:1px solid #ddd;color:#333;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">✏️ Edit</button>
+          ` : `<span style="font-size:11px;color:#2d6a2d;font-weight:700">✅ Completed${rec.CompletedAt ? ' ' + rec.CompletedAt : ''}</span>
+            ${isAdminEnabled() ? `<button onclick="waSetStatus('${rec.ACTION_ID}','Pending')" style="background:#f0f0f0;border:1px solid #888;color:#555;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">↩ Reopen</button>` : ''}`}
+          ${isAdminEnabled() ? `<button onclick="waEditTask('${rec.ACTION_ID}')" style="background:#f0f0f0;border:1px solid #ddd;color:#333;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">✏️ Edit</button>` : (rec.Status !== 'Done' ? `<button onclick="waEditTask('${rec.ACTION_ID}')" style="background:#f0f0f0;border:1px solid #ddd;color:#333;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">✏️ Edit</button>` : '')}
           ${isAdminEnabled() ? `<button onclick="waDeleteTask('${rec.ACTION_ID}')" style="background:#fde8e8;border:1px solid #c0392b;color:#c0392b;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer">🗑</button>` : ''}
         </div>
       </div>`;
@@ -7947,6 +7957,10 @@ function waShowAddForm() {
   document.getElementById('waAction').value    = '';
   document.getElementById('waNotes').value     = '';
   document.getElementById('waDueDate').value   = '';
+  document.getElementById('waStatus').value    = 'Pending';
+  // Only show status field for admin
+  const sg = document.getElementById('waStatusGroup');
+  if (sg) sg.style.display = isAdminEnabled() ? 'flex' : 'none';
   document.getElementById('waSaveBtn').textContent = '💾 Save Task';
   document.getElementById('waFormBox').style.display = 'block';
   document.getElementById('waAction').focus();
@@ -7964,6 +7978,10 @@ function waEditTask(id) {
   document.getElementById('waAction').value    = rec.Action || '';
   document.getElementById('waNotes').value     = rec.Notes || '';
   document.getElementById('waDueDate').value   = rec.DueDate || '';
+  document.getElementById('waStatus').value    = rec.Status || 'Pending';
+  // Only show status field for admin
+  const sg = document.getElementById('waStatusGroup');
+  if (sg) sg.style.display = isAdminEnabled() ? 'flex' : 'none';
   document.getElementById('waSaveBtn').textContent = '💾 Update Task';
   document.getElementById('waFormBox').style.display = 'block';
   document.getElementById('waFormBox').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -7980,6 +7998,11 @@ async function waSaveTask() {
   if (!worker)  { showToast('Please select a worker', true); return; }
   if (!action)  { showToast('Please enter a task description', true); return; }
 
+  const currentRec = waEditId ? allWaRecords.find(r => String(r.ACTION_ID) === String(waEditId)) : null;
+  const newStatus  = isAdminEnabled()
+    ? (document.getElementById('waStatus').value || 'Pending')
+    : (currentRec?.Status || 'Pending');
+
   const data = {
     Worker:   worker,
     Priority: document.getElementById('waPriority').value,
@@ -7987,7 +8010,8 @@ async function waSaveTask() {
     Action:   action,
     Notes:    document.getElementById('waNotes').value.trim(),
     DueDate:  document.getElementById('waDueDate').value,
-    Status:   waEditId ? (allWaRecords.find(r => String(r.ACTION_ID) === String(waEditId))?.Status || 'Pending') : 'Pending'
+    Status:   newStatus,
+    CompletedAt: newStatus === 'Done' ? (currentRec?.CompletedAt || new Date().toISOString().split('T')[0]) : ''
   };
 
   const btn = document.getElementById('waSaveBtn');
