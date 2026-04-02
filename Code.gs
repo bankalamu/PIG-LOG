@@ -17,6 +17,10 @@ const KEY_FIELDS = ["PIG ID", "Boar", "SOW"];
 
 // ── Helpers ──────────────────────────────────────────────────
 
+/**
+ * Gets (or creates) the main PigLog spreadsheet tab.
+ * @returns {Sheet} The PigLog Google Sheet object.
+ */
 function getSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_NAME);
@@ -138,6 +142,7 @@ function handlePostPayload(payload) {
     if (action === "slUpsert") return respond(slUpsert(payload.data));
     if (action === "slUpdate") return respond(slUpdate(payload.id, payload.data));
     if (action === "slDelete") return respond(slDelete(payload.id));
+    if (action === "slSavePhoto") return respond(slSavePhoto(payload.slId, payload.photoBase64, payload.mimeType, payload.photoTime, payload.slot));
     if (action === "wkAdd")    return respond(wkAdd(payload.data));
     if (action === "wkUpdate") return respond(wkUpdate(payload.id, payload.data));
     if (action === "wkDelete") return respond(wkDelete(payload.id));
@@ -808,6 +813,7 @@ const SL_HEADERS_GS = ["SL_ID","SowId","LitterBoar","FarrowDate","EstFarrowDate"
   "sl_lightest","sl_heaviest","sl_nursing","sl_weaklings",
   "sl_lightest_today","sl_heaviest_today","sl_castrated",
   "sl_wt_d14","sl_alive_d14","sl_num_weaned","sl_date_weaned","sl_wean_wt",
+  "SlPhotoUrl1","SlPhotoTime1","SlPhotoUrl2","SlPhotoTime2","SlPhotoUrl3","SlPhotoTime3",
   ...SL_TASK_COLS];
 
 const SL_TIME_COLS = [
@@ -939,6 +945,53 @@ function slDelete(slId) {
   if (rowIndex === -1) return { success: false, error: "Record not found" };
   sheet.deleteRow(rowIndex + 2);
   return { success: true };
+}
+
+/**
+ * Saves a litter photo to Google Drive and records the URL in the SowLitter sheet.
+ * Works identically to clSavePhoto but targets the SowLitter sheet.
+ * Creates a "PigLog Photos/Litter" subfolder if needed.
+ * @param {number} slId - The SL_ID of the litter record.
+ * @param {string} photoBase64 - Base64-encoded image data.
+ * @param {string} mimeType - MIME type (e.g. "image/jpeg").
+ * @param {string} photoTime - Timestamp string "YYYY-MM-DD HH:mm".
+ * @param {number} slot - Photo slot number (1, 2, or 3).
+ * @returns {{ success: boolean, viewUrl?: string, fileId?: string, error?: string }}
+ */
+function slSavePhoto(slId, photoBase64, mimeType, photoTime, slot) {
+  try {
+    if (!slId || !photoBase64) return { success: false, error: 'Missing slId or photo data' };
+    const sec = parseInt(slot, 10) || 1;
+
+    // Get or create PigLog Photos/Litter folder
+    const rootFolders = DriveApp.getFoldersByName('PigLog Photos');
+    const root = rootFolders.hasNext() ? rootFolders.next() : DriveApp.createFolder('PigLog Photos');
+    const litFolders = root.getFoldersByName('Litter');
+    const folder = litFolders.hasNext() ? litFolders.next() : root.createFolder('Litter');
+
+    const ext  = (mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+    const tz   = Session.getScriptTimeZone();
+    const ts   = photoTime
+      ? String(photoTime).replace(/[: /]/g, '-').replace(/[^a-zA-Z0-9_-]/g, '')
+      : String(new Date().getTime());
+    const name = `litter_sl${slId}_photo${sec}_${ts}.${ext}`;
+    const blob = Utilities.newBlob(Utilities.base64Decode(photoBase64), mimeType || 'image/jpeg', name);
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const viewUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view';
+
+    // Update the SowLitter record
+    const updateData = {};
+    updateData['SlPhotoUrl'  + sec] = viewUrl;
+    if (photoTime) updateData['SlPhotoTime' + sec] = String(photoTime);
+    const result = slUpdate(slId, updateData);
+    if (!result.success) return { success: false, error: 'Photo saved but sheet update failed: ' + result.error };
+
+    return { success: true, viewUrl, fileId: file.getId(), slot: sec };
+  } catch(e) {
+    return { success: false, error: 'Litter photo save failed: ' + e.message };
+  }
 }
 
 // ============================================================
@@ -1893,12 +1946,15 @@ function runCloseoutOnly() {
   return { success: true, message: msg, marked };
 }
 
-// ── Mark Incomplete — closes all In Progress records older than today ───
+// ── Mark Incomplete — closes all records older than today with missing sections ───
 function _markIncompleteRecords(processDate, sheet, hdrMap, data) {
   const tz        = Session.getScriptTimeZone();
   const today     = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
   const statusCol = hdrMap['Status'];
   const dateCol   = hdrMap['Date'];
+  const sec1Col   = hdrMap['Sec1Time'];
+  const sec2Col   = hdrMap['Sec2Time'];
+  const sec3Col   = hdrMap['Sec3Time'];
   if (statusCol === undefined || dateCol === undefined) return 0;
   let count = 0;
   data.forEach((row, i) => {
@@ -1907,13 +1963,23 @@ function _markIncompleteRecords(processDate, sheet, hdrMap, data) {
     const rowDateStr = rowDate instanceof Date
       ? Utilities.formatDate(rowDate, tz, 'yyyy-MM-dd')
       : String(rowDate || '').trim();
-    // Mark any record from BEFORE today that is still open
+    // Only process records from BEFORE today
     if (!rowDateStr || rowDateStr >= today) return;
     const status = String(row[statusCol] || '').trim();
-    if (status === 'In Progress' || status === 'PARTIAL' || status === '') {
+    // Skip records already fully closed
+    if (status === 'Incomplete' || status === 'Complete' || status === 'ALL OK') return;
+    // Check if any section is missing
+    const sec1 = sec1Col !== undefined ? String(row[sec1Col] || '').trim() : '';
+    const sec2 = sec2Col !== undefined ? String(row[sec2Col] || '').trim() : '';
+    const sec3 = sec3Col !== undefined ? String(row[sec3Col] || '').trim() : '';
+    const missingSections = [];
+    if (!sec1) missingSections.push('Morning');
+    if (!sec2) missingSections.push('Feeding');
+    if (!sec3) missingSections.push('Afternoon');
+    if (missingSections.length > 0) {
       sheet.getRange(sheetRow, statusCol + 1).setValue('Incomplete');
       count++;
-      Logger.log('Marked Incomplete: row ' + sheetRow + ' date ' + rowDateStr);
+      Logger.log('Marked Incomplete: row ' + sheetRow + ' date ' + rowDateStr + ' missing: ' + missingSections.join(', '));
     }
   });
   return count;
@@ -2048,7 +2114,7 @@ Write clearly for a farm worker. Be specific about what you actually see in the 
 
   // Call Anthropic API via UrlFetchApp
   const payload = JSON.stringify({
-    model:      'claude-sonnet-4-5',
+    model:      'claude-opus-4-5',
     max_tokens: 1500,
     messages:   [{ role: 'user', content: messageContent }]
   });

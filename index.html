@@ -1380,6 +1380,65 @@
         </div>
       </div>
 
+      <!-- ── LITTER PHOTOS ── -->
+      <div class="sl-section">
+        <div class="sl-section-title pink">📷 Litter Photos</div>
+        <div style="padding:10px 14px">
+          <div style="font-size:11px;color:#666;margin-bottom:10px">Take up to 3 photos of the litter — sow, piglets, pen condition</div>
+
+          <!-- Photo 1 -->
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:800;color:#880e4f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">📷 Photo 1</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+              <label for="slPhotoInput1" style="display:inline-flex;align-items:center;gap:5px;background:#880e4f;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
+              <input type="file" id="slPhotoInput1" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,1)">
+              <button id="slPhotoClear1" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="slPhotoClear(1)">✕</button>
+              <span id="slPhotoStatus1" style="font-size:11px;color:#666"></span>
+            </div>
+            <div id="slPhotoPreview1" style="display:none;margin-top:8px;position:relative">
+              <img id="slPhotoImg1" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Litter photo 1">
+              <div id="slPhotoTs1" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+            </div>
+          </div>
+
+          <!-- Photo 2 -->
+          <div style="margin-bottom:12px">
+            <div style="font-size:11px;font-weight:800;color:#880e4f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">📷 Photo 2</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+              <label for="slPhotoInput2" style="display:inline-flex;align-items:center;gap:5px;background:#880e4f;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
+              <input type="file" id="slPhotoInput2" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,2)">
+              <button id="slPhotoClear2" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="slPhotoClear(2)">✕</button>
+              <span id="slPhotoStatus2" style="font-size:11px;color:#666"></span>
+            </div>
+            <div id="slPhotoPreview2" style="display:none;margin-top:8px;position:relative">
+              <img id="slPhotoImg2" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Litter photo 2">
+              <div id="slPhotoTs2" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+            </div>
+          </div>
+
+          <!-- Photo 3 -->
+          <div>
+            <div style="font-size:11px;font-weight:800;color:#880e4f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">📷 Photo 3</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+              <label for="slPhotoInput3" style="display:inline-flex;align-items:center;gap:5px;background:#880e4f;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
+              <input type="file" id="slPhotoInput3" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,3)">
+              <button id="slPhotoClear3" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="slPhotoClear(3)">✕</button>
+              <span id="slPhotoStatus3" style="font-size:11px;color:#666"></span>
+            </div>
+            <div id="slPhotoPreview3" style="display:none;margin-top:8px;position:relative">
+              <img id="slPhotoImg3" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Litter photo 3">
+              <div id="slPhotoTs3" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── WEAN BY BANNER — shown after Litter Summary ── -->
+      <div id="slWeanByBanner" style="display:none;margin:8px 0;padding:8px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;font-size:12px;font-weight:700;color:#1b5e20">
+        🗓️ Wean by: <span id="slWeanByBannerDate" style="margin-left:4px">—</span>
+        <span id="slWeanByBannerDays" style="margin-left:8px;font-size:11px;font-weight:600;color:#2d6a2d"></span>
+      </div>
+
       <!-- Daily nursing check -->
       <!-- ── SOW TREATMENTS ── -->
       <div class="sl-section">
@@ -6658,22 +6717,49 @@ function slUpdateDayInfo() {
 
   if (weanByEl) {
     weanByEl.textContent = weanDisplay;
-    // Red if: today is past wean-by AND date_weaned is empty
-    const dateWeanedEl = document.getElementById('sl_date_weaned');
+    const dateWeanedEl  = document.getElementById('sl_date_weaned');
     const dateWeanedVal = dateWeanedEl ? dateWeanedEl.value : '';
     const isOverdue = days > 35 && !dateWeanedVal;
-    const isLate    = dateWeanedVal && dateWeanedVal > weanStr; // weaned after deadline
+    const isLate    = dateWeanedVal && dateWeanedVal > weanStr;
     if (isOverdue || isLate) {
-      weanByEl.style.color      = '#b71c1c';
-      weanByEl.style.background = '#ffebee';
-      weanByEl.style.padding    = '1px 6px';
-      weanByEl.style.borderRadius = '6px';
+      weanByEl.style.color = '#b71c1c'; weanByEl.style.background = '#ffebee';
+      weanByEl.style.padding = '1px 6px'; weanByEl.style.borderRadius = '6px';
     } else {
-      weanByEl.style.color      = '';
-      weanByEl.style.background = '';
-      weanByEl.style.padding    = '';
-      weanByEl.style.borderRadius = '';
+      weanByEl.style.color = ''; weanByEl.style.background = '';
+      weanByEl.style.padding = ''; weanByEl.style.borderRadius = '';
     }
+  }
+
+  // ── Wean By inline banner (below Litter Summary) ──
+  const weanBanner    = document.getElementById('slWeanByBanner');
+  const weanBannerDate= document.getElementById('slWeanByBannerDate');
+  const weanBannerDays= document.getElementById('slWeanByBannerDays');
+  if (weanBanner && fd) {
+    const dateWeanedEl  = document.getElementById('sl_date_weaned');
+    const dateWeanedVal = dateWeanedEl ? dateWeanedEl.value : '';
+    const daysToWean    = 35 - days;
+    const isOverdue     = days > 35 && !dateWeanedVal;
+    const isWeaned      = !!dateWeanedVal;
+
+    if (isWeaned) {
+      weanBanner.style.background = '#e8f5e8'; weanBanner.style.borderColor = '#2d6a2d';
+      weanBannerDate.textContent = weanDisplay;
+      weanBannerDays.textContent = '✅ Weaned on ' + dateWeanedVal;
+      weanBannerDays.style.color = '#2d6a2d';
+    } else if (isOverdue) {
+      weanBanner.style.background = '#ffebee'; weanBanner.style.borderColor = '#c0392b';
+      weanBannerDate.textContent = weanDisplay;
+      weanBannerDays.textContent = '⚠ ' + Math.abs(daysToWean) + ' days overdue!';
+      weanBannerDays.style.color = '#c0392b';
+    } else {
+      weanBanner.style.background = '#e8f5e8'; weanBanner.style.borderColor = '#2d6a2d';
+      weanBannerDate.textContent = weanDisplay;
+      weanBannerDays.textContent = daysToWean > 0 ? '(' + daysToWean + ' days remaining)' : '(today)';
+      weanBannerDays.style.color = daysToWean <= 5 ? '#e65100' : '#2d6a2d';
+    }
+    weanBanner.style.display = 'block';
+  } else if (weanBanner) {
+    weanBanner.style.display = 'none';
   }
 
   _slColorHeaders(days < 0 ? -1 : days);
@@ -6834,6 +6920,123 @@ function _clearSlSecTimestamps() {
   Object.keys(SL_HEADER_RANGES).forEach(id => {
     slSecTimes[id] = '';
     _slRenderSecBadge(id, '');
+  });
+}
+
+// ── SL Litter Photos ─────────────────────────────────────────
+
+let slPhotos = { 1: null, 2: null, 3: null }; // { data, mime, time }
+
+function _slNowDateTime() {
+  const d = new Date();
+  return d.getFullYear() + '-'
+    + String(d.getMonth()+1).padStart(2,'0') + '-'
+    + String(d.getDate()).padStart(2,'0') + ' '
+    + String(d.getHours()).padStart(2,'0') + ':'
+    + String(d.getMinutes()).padStart(2,'0');
+}
+
+function slPhotoSelected(input, slot) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { showToast('Photo too large (max 10 MB)', true); input.value = ''; return; }
+  const mime   = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const nowFull = _slNowDateTime();
+    slPhotos[slot] = { data: dataUrl.split(',')[1], mime, time: nowFull };
+    // Update preview
+    const img    = document.getElementById('slPhotoImg'     + slot);
+    const prev   = document.getElementById('slPhotoPreview' + slot);
+    const stat   = document.getElementById('slPhotoStatus'  + slot);
+    const clrBtn = document.getElementById('slPhotoClear'   + slot);
+    const tsEl   = document.getElementById('slPhotoTs'      + slot);
+    if (img)    img.src = dataUrl;
+    if (prev)   prev.style.display  = 'block';
+    if (stat)   stat.textContent    = '📷 ' + nowFull;
+    if (clrBtn) clrBtn.style.display= 'inline-flex';
+    if (tsEl)   { tsEl.textContent  = '📷 ' + nowFull; tsEl.style.display = 'block'; }
+    showToast('Photo ' + slot + ' selected — will upload on Save');
+  };
+  reader.readAsDataURL(file);
+}
+
+function slPhotoClear(slot) {
+  slPhotos[slot] = null;
+  const img    = document.getElementById('slPhotoImg'     + slot);
+  const prev   = document.getElementById('slPhotoPreview' + slot);
+  const stat   = document.getElementById('slPhotoStatus'  + slot);
+  const clrBtn = document.getElementById('slPhotoClear'   + slot);
+  const tsEl   = document.getElementById('slPhotoTs'      + slot);
+  const input  = document.getElementById('slPhotoInput'   + slot);
+  if (img)    img.src = '';
+  if (prev)   prev.style.display   = 'none';
+  if (stat)   stat.textContent     = '';
+  if (clrBtn) clrBtn.style.display = 'none';
+  if (tsEl)   { tsEl.textContent = ''; tsEl.style.display = 'none'; }
+  if (input)  input.value = '';
+}
+
+function slClearAllPhotos() {
+  [1, 2, 3].forEach(s => slPhotoClear(s));
+}
+
+async function slUploadPhotos(slId) {
+  for (const slot of [1, 2, 3]) {
+    const p = slPhotos[slot];
+    if (!p?.data) continue;
+    const stat = document.getElementById('slPhotoStatus' + slot);
+    if (stat) stat.textContent = '⬆️ Uploading…';
+    try {
+      const result = await apiPost({
+        action: 'slSavePhoto', slId, slot,
+        photoBase64: p.data, mimeType: p.mime || 'image/jpeg', photoTime: p.time || ''
+      });
+      if (result?.success) {
+        if (stat) stat.textContent = '✅ Uploaded';
+        // Update local record cache
+        const idx = allSlRecords.findIndex(r => String(r.SL_ID) === String(slId));
+        if (idx !== -1) {
+          allSlRecords[idx]['SlPhotoUrl'  + slot] = result.viewUrl;
+          allSlRecords[idx]['SlPhotoTime' + slot] = p.time;
+        }
+        slPhotos[slot] = null; // clear after successful upload
+      } else {
+        if (stat) stat.textContent = '⚠️ Upload failed';
+        showToast('Photo ' + slot + ' upload failed: ' + (result?.error || 'unknown'), true);
+      }
+    } catch(e) {
+      if (stat) stat.textContent = '⚠️ Error';
+      showToast('Photo ' + slot + ' error: ' + e.message, true);
+    }
+  }
+}
+
+function slRestorePhotos(rec) {
+  // Show existing photos from a loaded record
+  [1, 2, 3].forEach(slot => {
+    const url  = rec['SlPhotoUrl'  + slot];
+    const time = rec['SlPhotoTime' + slot];
+    const img    = document.getElementById('slPhotoImg'     + slot);
+    const prev   = document.getElementById('slPhotoPreview' + slot);
+    const stat   = document.getElementById('slPhotoStatus'  + slot);
+    const clrBtn = document.getElementById('slPhotoClear'   + slot);
+    const tsEl   = document.getElementById('slPhotoTs'      + slot);
+    if (url) {
+      // Build display URL — try lh3 proxy first, fall back to drive link
+      const fileIdMatch = url.match(/\/d\/([A-Za-z0-9_-]{25,})/);
+      const displayUrl  = fileIdMatch
+        ? 'https://lh3.googleusercontent.com/d/' + fileIdMatch[1] + '=w400'
+        : url;
+      if (img)    { img.src = displayUrl; img.onerror = () => { img.src = url; }; }
+      if (prev)   prev.style.display   = 'block';
+      if (clrBtn) clrBtn.style.display = 'inline-flex';
+      if (stat)   stat.textContent     = time ? '📷 ' + time : '📷 Saved';
+      if (tsEl)   { tsEl.textContent   = time ? '📷 ' + time : ''; tsEl.style.display = time ? 'block' : 'none'; }
+    } else {
+      slPhotoClear(slot);
+    }
   });
 }
 
@@ -7115,6 +7318,7 @@ function cancelSowLitter() {
 function resetSowLitter() {
   slEditId = null;
   _clearSlTasks();
+  slClearAllPhotos();
   const today = new Date().toISOString().split('T')[0];
   ['slSowId','slLitterBoar','slPen','slNotes'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
   const noteEl = document.getElementById('slLitterBoarNote'); if (noteEl) noteEl.textContent = '';
@@ -7245,6 +7449,10 @@ async function saveSowLitter() {
     allSlRecords = [];
     const banner = document.getElementById('slExistingBanner');
     if(banner) { banner.textContent='✅ Saved — updating this record is fine.'; banner.style.display='block'; }
+    // Upload any pending photos non-blocking
+    if (slEditId && [1,2,3].some(s => slPhotos[s]?.data)) {
+      slUploadPhotos(slEditId);
+    }
   } else {
     showToast(result?.error || 'Save failed', true);
     btn.textContent = slEditId ? 'UPDATE RECORD' : 'SAVE RECORD';
@@ -7438,6 +7646,7 @@ async function slOpenRecord(slId) {
   const fd = document.getElementById('slFarrowDate');
   if (fd) fd.value = rec.FarrowDate || '';
   _populateSlForm(rec); // also sets LitterBoar
+  slRestorePhotos(rec); // restore existing photos
 
   // Force colour refresh after render
   setTimeout(slRefreshColors, 50);
