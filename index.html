@@ -1378,60 +1378,27 @@
           <div class="sl-num-field"><label>Lightest Piglet (kg)</label><input type="number" id="sl_lightest" min="0" step="0.01" placeholder="0.00"></div>
           <div class="sl-num-field"><label>Heaviest Piglet (kg)</label><input type="number" id="sl_heaviest" min="0" step="0.01" placeholder="0.00"></div>
         </div>
-      </div>
 
-      <!-- ── LITTER PHOTOS ── -->
-      <div class="sl-section">
-        <div class="sl-section-title pink">📷 Litter Photos</div>
-        <div style="padding:10px 14px">
-          <div style="font-size:11px;color:#666;margin-bottom:10px">Take up to 3 photos of the litter — sow, piglets, pen condition</div>
-
-          <!-- Photo 1 -->
-          <div style="margin-bottom:12px">
-            <div style="font-size:11px;font-weight:800;color:#880e4f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">📷 Photo 1</div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
-              <label for="slPhotoInput1" style="display:inline-flex;align-items:center;gap:5px;background:#880e4f;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
-              <input type="file" id="slPhotoInput1" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,1)">
-              <button id="slPhotoClear1" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="slPhotoClear(1)">✕</button>
-              <span id="slPhotoStatus1" style="font-size:11px;color:#666"></span>
-            </div>
-            <div id="slPhotoPreview1" style="display:none;margin-top:8px;position:relative">
-              <img id="slPhotoImg1" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Litter photo 1">
-              <div id="slPhotoTs1" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
-            </div>
+        <!-- 📝 Section Notes & Photo: shdr_litter -->
+        <div style="padding:8px 14px 4px;border-top:1px solid rgba(0,0,0,0.06)">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Litter summary notes:</label>
+          <textarea id="slNotes_shdr_litter" placeholder="Observations, treatments, concerns…" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+        </div>
+        <div style="padding:6px 14px 10px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Litter summary photo:</span>
+            <label for="slPhotoInput_shdr_litter" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">Take / Choose</label>
+            <input type="file" id="slPhotoInput_shdr_litter" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'shdr_litter')">
+            <button id="slPhotoClear_shdr_litter" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="slPhotoClear('shdr_litter')">✕</button>
+            <span id="slPhotoStatus_shdr_litter" style="font-size:11px;color:#666"></span>
           </div>
-
-          <!-- Photo 2 -->
-          <div style="margin-bottom:12px">
-            <div style="font-size:11px;font-weight:800;color:#880e4f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">📷 Photo 2</div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
-              <label for="slPhotoInput2" style="display:inline-flex;align-items:center;gap:5px;background:#880e4f;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
-              <input type="file" id="slPhotoInput2" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,2)">
-              <button id="slPhotoClear2" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="slPhotoClear(2)">✕</button>
-              <span id="slPhotoStatus2" style="font-size:11px;color:#666"></span>
-            </div>
-            <div id="slPhotoPreview2" style="display:none;margin-top:8px;position:relative">
-              <img id="slPhotoImg2" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Litter photo 2">
-              <div id="slPhotoTs2" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
-            </div>
-          </div>
-
-          <!-- Photo 3 -->
-          <div>
-            <div style="font-size:11px;font-weight:800;color:#880e4f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">📷 Photo 3</div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
-              <label for="slPhotoInput3" style="display:inline-flex;align-items:center;gap:5px;background:#880e4f;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
-              <input type="file" id="slPhotoInput3" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,3)">
-              <button id="slPhotoClear3" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="slPhotoClear(3)">✕</button>
-              <span id="slPhotoStatus3" style="font-size:11px;color:#666"></span>
-            </div>
-            <div id="slPhotoPreview3" style="display:none;margin-top:8px;position:relative">
-              <img id="slPhotoImg3" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Litter photo 3">
-              <div id="slPhotoTs3" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
-            </div>
+          <div id="slPhotoPreview_shdr_litter" style="display:none;margin-top:6px;position:relative">
+            <img id="slPhotoImg_shdr_litter" style="max-width:100%;max-height:140px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Litter summary photo">
+            <div id="slPhotoTs_shdr_litter" style="display:none;position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px"></div>
           </div>
         </div>
       </div>
+
 
       <!-- ── WEAN BY BANNER — shown after Litter Summary ── -->
       <div id="slWeanByBanner" style="display:none;margin:8px 0;padding:8px 14px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;font-size:12px;font-weight:700;color:#1b5e20">
@@ -1458,6 +1425,25 @@
         <div class="sl-task" data-day="0">
           <div class="sl-task-check" id="chk_sow_oxytocin" onclick="slToggleTask('sow_oxytocin',0)"></div>
           <div class="sl-task-label">Oxytocin given (if MMA)<span class="sl-task-note">Given alongside antibiotic to restore milk letdown</span></div>
+        </div>
+
+        <!-- 📝 Section Notes & Photo: shdr_sowtreat -->
+        <div style="padding:8px 14px 4px;border-top:1px solid rgba(0,0,0,0.06)">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Sow treatments notes:</label>
+          <textarea id="slNotes_shdr_sowtreat" placeholder="Observations, treatments, concerns…" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+        </div>
+        <div style="padding:6px 14px 10px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Sow treatments photo:</span>
+            <label for="slPhotoInput_shdr_sowtreat" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">Take / Choose</label>
+            <input type="file" id="slPhotoInput_shdr_sowtreat" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'shdr_sowtreat')">
+            <button id="slPhotoClear_shdr_sowtreat" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="slPhotoClear('shdr_sowtreat')">✕</button>
+            <span id="slPhotoStatus_shdr_sowtreat" style="font-size:11px;color:#666"></span>
+          </div>
+          <div id="slPhotoPreview_shdr_sowtreat" style="display:none;margin-top:6px;position:relative">
+            <img id="slPhotoImg_shdr_sowtreat" style="max-width:100%;max-height:140px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Sow treatments photo">
+            <div id="slPhotoTs_shdr_sowtreat" style="display:none;position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px"></div>
+          </div>
         </div>
       </div>
 
@@ -1498,6 +1484,25 @@
           </div>
         </div>
 
+        <!-- 📝 Section Notes & Photo: mhdr_d01 -->
+        <div style="padding:8px 14px 4px;border-top:1px solid rgba(0,0,0,0.06)">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Days 0–1 notes:</label>
+          <textarea id="slNotes_mhdr_d01" placeholder="Observations, treatments, concerns…" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+        </div>
+        <div style="padding:6px 14px 10px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Days 0–1 photo:</span>
+            <label for="slPhotoInput_mhdr_d01" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">Take / Choose</label>
+            <input type="file" id="slPhotoInput_mhdr_d01" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'mhdr_d01')">
+            <button id="slPhotoClear_mhdr_d01" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="slPhotoClear('mhdr_d01')">✕</button>
+            <span id="slPhotoStatus_mhdr_d01" style="font-size:11px;color:#666"></span>
+          </div>
+          <div id="slPhotoPreview_mhdr_d01" style="display:none;margin-top:6px;position:relative">
+            <img id="slPhotoImg_mhdr_d01" style="max-width:100%;max-height:140px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Days 0–1 photo">
+            <div id="slPhotoTs_mhdr_d01" style="display:none;position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px"></div>
+          </div>
+        </div>
+
         <!-- Day 2–3 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d23">📅 Days 2–3 — Early Treatments <span id="slts_mhdr_d23" style="display:none;float:right;font-size:11px;font-weight:700;color:#333;background:#e0e0e0;border:1px solid #bbb;border-radius:12px;padding:2px 8px"></span></div>
@@ -1523,6 +1528,25 @@
           </div>
         </div>
 
+        <!-- 📝 Section Notes & Photo: mhdr_d23 -->
+        <div style="padding:8px 14px 4px;border-top:1px solid rgba(0,0,0,0.06)">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Days 2–3 notes:</label>
+          <textarea id="slNotes_mhdr_d23" placeholder="Observations, treatments, concerns…" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+        </div>
+        <div style="padding:6px 14px 10px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Days 2–3 photo:</span>
+            <label for="slPhotoInput_mhdr_d23" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">Take / Choose</label>
+            <input type="file" id="slPhotoInput_mhdr_d23" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'mhdr_d23')">
+            <button id="slPhotoClear_mhdr_d23" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="slPhotoClear('mhdr_d23')">✕</button>
+            <span id="slPhotoStatus_mhdr_d23" style="font-size:11px;color:#666"></span>
+          </div>
+          <div id="slPhotoPreview_mhdr_d23" style="display:none;margin-top:6px;position:relative">
+            <img id="slPhotoImg_mhdr_d23" style="max-width:100%;max-height:140px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Days 2–3 photo">
+            <div id="slPhotoTs_mhdr_d23" style="display:none;position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px"></div>
+          </div>
+        </div>
+
         <!-- Day 5–7 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d57">📅 Days 5–7 — Supplements &amp; Feed <span id="slts_mhdr_d57" style="display:none;float:right;font-size:11px;font-weight:700;color:#333;background:#e0e0e0;border:1px solid #bbb;border-radius:12px;padding:2px 8px"></span></div>
@@ -1541,6 +1565,25 @@
           <div class="sl-task">
             <div class="sl-task-check" id="chk_navel_healed" onclick="slToggleTask('navel_healed',5)"></div>
             <div class="sl-task-label">Navel fully healed — confirmed<span class="sl-task-note">All navels dry and closed</span></div>
+          </div>
+        </div>
+
+        <!-- 📝 Section Notes & Photo: mhdr_d57 -->
+        <div style="padding:8px 14px 4px;border-top:1px solid rgba(0,0,0,0.06)">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Days 5–7 notes:</label>
+          <textarea id="slNotes_mhdr_d57" placeholder="Observations, treatments, concerns…" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+        </div>
+        <div style="padding:6px 14px 10px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Days 5–7 photo:</span>
+            <label for="slPhotoInput_mhdr_d57" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">Take / Choose</label>
+            <input type="file" id="slPhotoInput_mhdr_d57" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'mhdr_d57')">
+            <button id="slPhotoClear_mhdr_d57" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="slPhotoClear('mhdr_d57')">✕</button>
+            <span id="slPhotoStatus_mhdr_d57" style="font-size:11px;color:#666"></span>
+          </div>
+          <div id="slPhotoPreview_mhdr_d57" style="display:none;margin-top:6px;position:relative">
+            <img id="slPhotoImg_mhdr_d57" style="max-width:100%;max-height:140px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Days 5–7 photo">
+            <div id="slPhotoTs_mhdr_d57" style="display:none;position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px"></div>
           </div>
         </div>
 
@@ -1568,6 +1611,25 @@
           </div>
         </div>
 
+        <!-- 📝 Section Notes & Photo: mhdr_d710 -->
+        <div style="padding:8px 14px 4px;border-top:1px solid rgba(0,0,0,0.06)">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Days 7–10 notes:</label>
+          <textarea id="slNotes_mhdr_d710" placeholder="Observations, treatments, concerns…" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+        </div>
+        <div style="padding:6px 14px 10px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Days 7–10 photo:</span>
+            <label for="slPhotoInput_mhdr_d710" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">Take / Choose</label>
+            <input type="file" id="slPhotoInput_mhdr_d710" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'mhdr_d710')">
+            <button id="slPhotoClear_mhdr_d710" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="slPhotoClear('mhdr_d710')">✕</button>
+            <span id="slPhotoStatus_mhdr_d710" style="font-size:11px;color:#666"></span>
+          </div>
+          <div id="slPhotoPreview_mhdr_d710" style="display:none;margin-top:6px;position:relative">
+            <img id="slPhotoImg_mhdr_d710" style="max-width:100%;max-height:140px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Days 7–10 photo">
+            <div id="slPhotoTs_mhdr_d710" style="display:none;position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px"></div>
+          </div>
+        </div>
+
         <!-- Day 14 -->
         <div class="sl-milestone">
           <div class="sl-milestone-header" id="mhdr_d14">📅 Day 14 — Health Check &amp; Weights <span id="slts_mhdr_d14" style="display:none;float:right;font-size:11px;font-weight:700;color:#333;background:#e0e0e0;border:1px solid #bbb;border-radius:12px;padding:2px 8px"></span></div>
@@ -1590,6 +1652,25 @@
           <div class="sl-task">
             <div class="sl-task-check" id="chk_mma_d14" onclick="slToggleTask('mma_d14',14)"></div>
             <div class="sl-task-label">Sow MMA check done<span class="sl-task-note">If signs present: antibiotic + oxytocin above</span></div>
+          </div>
+        </div>
+
+        <!-- 📝 Section Notes & Photo: mhdr_d14 -->
+        <div style="padding:8px 14px 4px;border-top:1px solid rgba(0,0,0,0.06)">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Day 14 notes:</label>
+          <textarea id="slNotes_mhdr_d14" placeholder="Observations, treatments, concerns…" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+        </div>
+        <div style="padding:6px 14px 10px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Day 14 photo:</span>
+            <label for="slPhotoInput_mhdr_d14" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">Take / Choose</label>
+            <input type="file" id="slPhotoInput_mhdr_d14" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'mhdr_d14')">
+            <button id="slPhotoClear_mhdr_d14" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="slPhotoClear('mhdr_d14')">✕</button>
+            <span id="slPhotoStatus_mhdr_d14" style="font-size:11px;color:#666"></span>
+          </div>
+          <div id="slPhotoPreview_mhdr_d14" style="display:none;margin-top:6px;position:relative">
+            <img id="slPhotoImg_mhdr_d14" style="max-width:100%;max-height:140px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Day 14 photo">
+            <div id="slPhotoTs_mhdr_d14" style="display:none;position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px"></div>
           </div>
         </div>
 
@@ -1625,6 +1706,27 @@
             <div class="sl-num-field"><label>Date Weaned</label><input type="date" id="sl_date_weaned" oninput="slUpdateDayInfo()"></div>
             <div class="sl-num-field"><label>Avg Wean Weight (kg)</label><input type="number" id="sl_wean_wt" min="0" step="0.01" placeholder="0.00"></div>
           </div>
+
+
+        <!-- 📝 Section Notes -->
+        <div style="padding:6px 14px 4px;border-top:1px solid rgba(0,0,0,0.06)">
+          <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Days 21–28 notes:</label>
+          <textarea id="slNotes_mhdr_d2128" placeholder="Observations, treatments, concerns…" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+        </div>
+        <!-- 📷 Section Photo -->
+        <div style="padding:8px 14px 10px;border-top:1px solid rgba(0,0,0,0.06)">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Days 21-28 photo:</span>
+            <label for="slPhotoInput_mhdr_d2128" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">Take / Choose</label>
+            <input type="file" id="slPhotoInput_mhdr_d2128" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'mhdr_d2128')">
+            <button id="slPhotoClear_mhdr_d2128" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" onclick="slPhotoClear('mhdr_d2128')">✕</button>
+            <span id="slPhotoStatus_mhdr_d2128" style="font-size:11px;color:#666"></span>
+          </div>
+          <div id="slPhotoPreview_mhdr_d2128" style="display:none;margin-top:6px;position:relative">
+            <img id="slPhotoImg_mhdr_d2128" style="max-width:100%;max-height:140px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Days 21-28 photo">
+            <div id="slPhotoTs_mhdr_d2128" style="display:none;position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px"></div>
+          </div>
+        </div>
         </div>
 
       </div><!-- end piglet milestones -->
@@ -6925,7 +7027,8 @@ function _clearSlSecTimestamps() {
 
 // ── SL Litter Photos ─────────────────────────────────────────
 
-let slPhotos = { 1: null, 2: null, 3: null }; // { data, mime, time }
+const SL_PHOTO_KEYS = ['shdr_litter','shdr_sowtreat','mhdr_d01','mhdr_d23','mhdr_d57','mhdr_d710','mhdr_d14','mhdr_d2128'];
+let slPhotos = {}; // key -> { data, mime, time }
 
 function _slNowDateTime() {
   const d = new Date();
@@ -6936,7 +7039,7 @@ function _slNowDateTime() {
     + String(d.getMinutes()).padStart(2,'0');
 }
 
-function slPhotoSelected(input, slot) {
+function slPhotoSelected(input, sectionKey) {
   const file = input.files[0];
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) { showToast('Photo too large (max 10 MB)', true); input.value = ''; return; }
@@ -6945,31 +7048,32 @@ function slPhotoSelected(input, slot) {
   reader.onload = e => {
     const dataUrl = e.target.result;
     const nowFull = _slNowDateTime();
-    slPhotos[slot] = { data: dataUrl.split(',')[1], mime, time: nowFull };
-    // Update preview
-    const img    = document.getElementById('slPhotoImg'     + slot);
-    const prev   = document.getElementById('slPhotoPreview' + slot);
-    const stat   = document.getElementById('slPhotoStatus'  + slot);
-    const clrBtn = document.getElementById('slPhotoClear'   + slot);
-    const tsEl   = document.getElementById('slPhotoTs'      + slot);
+    slPhotos[sectionKey] = { data: dataUrl.split(',')[1], mime, time: nowFull };
+    const k = sectionKey;
+    const img    = document.getElementById('slPhotoImg_'     + k);
+    const prev   = document.getElementById('slPhotoPreview_' + k);
+    const stat   = document.getElementById('slPhotoStatus_'  + k);
+    const clrBtn = document.getElementById('slPhotoClear_'   + k);
+    const tsEl   = document.getElementById('slPhotoTs_'      + k);
     if (img)    img.src = dataUrl;
-    if (prev)   prev.style.display  = 'block';
-    if (stat)   stat.textContent    = '📷 ' + nowFull;
-    if (clrBtn) clrBtn.style.display= 'inline-flex';
-    if (tsEl)   { tsEl.textContent  = '📷 ' + nowFull; tsEl.style.display = 'block'; }
-    showToast('Photo ' + slot + ' selected — will upload on Save');
+    if (prev)   prev.style.display   = 'block';
+    if (stat)   stat.textContent     = '📷 ' + nowFull;
+    if (clrBtn) clrBtn.style.display = 'inline-flex';
+    if (tsEl)   { tsEl.textContent   = '📷 ' + nowFull; tsEl.style.display = 'block'; }
+    showToast('Photo selected — will upload on Save');
   };
   reader.readAsDataURL(file);
 }
 
-function slPhotoClear(slot) {
-  slPhotos[slot] = null;
-  const img    = document.getElementById('slPhotoImg'     + slot);
-  const prev   = document.getElementById('slPhotoPreview' + slot);
-  const stat   = document.getElementById('slPhotoStatus'  + slot);
-  const clrBtn = document.getElementById('slPhotoClear'   + slot);
-  const tsEl   = document.getElementById('slPhotoTs'      + slot);
-  const input  = document.getElementById('slPhotoInput'   + slot);
+function slPhotoClear(sectionKey) {
+  slPhotos[sectionKey] = null;
+  const k = sectionKey;
+  const img    = document.getElementById('slPhotoImg_'     + k);
+  const prev   = document.getElementById('slPhotoPreview_' + k);
+  const stat   = document.getElementById('slPhotoStatus_'  + k);
+  const clrBtn = document.getElementById('slPhotoClear_'   + k);
+  const tsEl   = document.getElementById('slPhotoTs_'      + k);
+  const input  = document.getElementById('slPhotoInput_'   + k);
   if (img)    img.src = '';
   if (prev)   prev.style.display   = 'none';
   if (stat)   stat.textContent     = '';
@@ -6979,52 +7083,53 @@ function slPhotoClear(slot) {
 }
 
 function slClearAllPhotos() {
-  [1, 2, 3].forEach(s => slPhotoClear(s));
+  SL_PHOTO_KEYS.forEach(k => slPhotoClear(k));
 }
 
 async function slUploadPhotos(slId) {
-  for (const slot of [1, 2, 3]) {
-    const p = slPhotos[slot];
+  for (const key of SL_PHOTO_KEYS) {
+    const p = slPhotos[key];
     if (!p?.data) continue;
-    const stat = document.getElementById('slPhotoStatus' + slot);
+    const stat = document.getElementById('slPhotoStatus_' + key);
     if (stat) stat.textContent = '⬆️ Uploading…';
     try {
       const result = await apiPost({
-        action: 'slSavePhoto', slId, slot,
+        action: 'slSavePhoto', slId, sectionKey: key,
         photoBase64: p.data, mimeType: p.mime || 'image/jpeg', photoTime: p.time || ''
       });
       if (result?.success) {
         if (stat) stat.textContent = '✅ Uploaded';
-        // Update local record cache
         const idx = allSlRecords.findIndex(r => String(r.SL_ID) === String(slId));
         if (idx !== -1) {
-          allSlRecords[idx]['SlPhotoUrl'  + slot] = result.viewUrl;
-          allSlRecords[idx]['SlPhotoTime' + slot] = p.time;
+          allSlRecords[idx]['SlPhoto_'     + key] = result.viewUrl;
+          allSlRecords[idx]['SlPhotoTime_' + key] = p.time;
         }
-        slPhotos[slot] = null; // clear after successful upload
+        slPhotos[key] = null;
       } else {
         if (stat) stat.textContent = '⚠️ Upload failed';
-        showToast('Photo ' + slot + ' upload failed: ' + (result?.error || 'unknown'), true);
+        showToast('Photo upload failed (' + key + '): ' + (result?.error || 'unknown'), true);
       }
     } catch(e) {
       if (stat) stat.textContent = '⚠️ Error';
-      showToast('Photo ' + slot + ' error: ' + e.message, true);
     }
   }
 }
 
 function slRestorePhotos(rec) {
-  // Show existing photos from a loaded record
-  [1, 2, 3].forEach(slot => {
-    const url  = rec['SlPhotoUrl'  + slot];
-    const time = rec['SlPhotoTime' + slot];
-    const img    = document.getElementById('slPhotoImg'     + slot);
-    const prev   = document.getElementById('slPhotoPreview' + slot);
-    const stat   = document.getElementById('slPhotoStatus'  + slot);
-    const clrBtn = document.getElementById('slPhotoClear'   + slot);
-    const tsEl   = document.getElementById('slPhotoTs'      + slot);
+  SL_PHOTO_KEYS.forEach(key => {
+    // Restore notes
+    const notesEl = document.getElementById('slNotes_' + key);
+    if (notesEl) notesEl.value = rec['SlNotes_' + key] || '';
+
+    // Restore photo
+    const url  = rec['SlPhoto_'     + key];
+    const time = rec['SlPhotoTime_' + key];
+    const img    = document.getElementById('slPhotoImg_'     + key);
+    const prev   = document.getElementById('slPhotoPreview_' + key);
+    const stat   = document.getElementById('slPhotoStatus_'  + key);
+    const clrBtn = document.getElementById('slPhotoClear_'   + key);
+    const tsEl   = document.getElementById('slPhotoTs_'      + key);
     if (url) {
-      // Build display URL — try lh3 proxy first, fall back to drive link
       const fileIdMatch = url.match(/\/d\/([A-Za-z0-9_-]{25,})/);
       const displayUrl  = fileIdMatch
         ? 'https://lh3.googleusercontent.com/d/' + fileIdMatch[1] + '=w400'
@@ -7035,7 +7140,7 @@ function slRestorePhotos(rec) {
       if (stat)   stat.textContent     = time ? '📷 ' + time : '📷 Saved';
       if (tsEl)   { tsEl.textContent   = time ? '📷 ' + time : ''; tsEl.style.display = time ? 'block' : 'none'; }
     } else {
-      slPhotoClear(slot);
+      slPhotoClear(key);
     }
   });
 }
@@ -7195,6 +7300,11 @@ async function slLookupExisting() {
 function _populateSlForm(rec) {
   if(document.getElementById('slPen'))   document.getElementById('slPen').value   = rec.Pen   || '';
   if(document.getElementById('slNotes')) document.getElementById('slNotes').value = rec.Notes || '';
+  // Restore section notes
+  SL_PHOTO_KEYS.forEach(key => {
+    const el = document.getElementById('slNotes_' + key);
+    if (el) el.value = rec['SlNotes_' + key] || '';
+  });
   // Restore EstFarrowDate
   const estEl = document.getElementById('slEstFarrowDate');
   if (estEl) {
@@ -7319,6 +7429,8 @@ function resetSowLitter() {
   slEditId = null;
   _clearSlTasks();
   slClearAllPhotos();
+  // Clear section notes
+  SL_PHOTO_KEYS.forEach(key => { const el = document.getElementById('slNotes_' + key); if (el) el.value = ''; });
   const today = new Date().toISOString().split('T')[0];
   ['slSowId','slLitterBoar','slPen','slNotes'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
   const noteEl = document.getElementById('slLitterBoarNote'); if (noteEl) noteEl.textContent = '';
@@ -7423,6 +7535,10 @@ async function saveSowLitter() {
   // Section timestamps
   Object.keys(SL_HEADER_RANGES).forEach(id => {
     data['SlTime_' + id] = slSecTimes[id] || '';
+  });
+  // Section notes
+  SL_PHOTO_KEYS.forEach(key => {
+    data['SlNotes_' + key] = document.getElementById('slNotes_' + key)?.value?.trim() || '';
   });
   SL_TASKS.forEach(t => { data[t] = slTaskState[t] ? 'done' : ''; });
   numFields.forEach(id => { data[id] = g(id); });
