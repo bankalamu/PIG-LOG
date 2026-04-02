@@ -142,7 +142,7 @@ function handlePostPayload(payload) {
     if (action === "slUpsert") return respond(slUpsert(payload.data));
     if (action === "slUpdate") return respond(slUpdate(payload.id, payload.data));
     if (action === "slDelete") return respond(slDelete(payload.id));
-    if (action === "slSavePhoto") return respond(slSavePhoto(payload.slId, payload.photoBase64, payload.mimeType, payload.photoTime, payload.slot));
+    if (action === "slSavePhoto") return respond(slSavePhoto(payload.slId, payload.photoBase64, payload.mimeType, payload.photoTime, payload.sectionKey));
     if (action === "wkAdd")    return respond(wkAdd(payload.data));
     if (action === "wkUpdate") return respond(wkUpdate(payload.id, payload.data));
     if (action === "wkDelete") return respond(wkDelete(payload.id));
@@ -813,7 +813,15 @@ const SL_HEADERS_GS = ["SL_ID","SowId","LitterBoar","FarrowDate","EstFarrowDate"
   "sl_lightest","sl_heaviest","sl_nursing","sl_weaklings",
   "sl_lightest_today","sl_heaviest_today","sl_castrated",
   "sl_wt_d14","sl_alive_d14","sl_num_weaned","sl_date_weaned","sl_wean_wt",
-  "SlPhotoUrl1","SlPhotoTime1","SlPhotoUrl2","SlPhotoTime2","SlPhotoUrl3","SlPhotoTime3",
+  // Section photos & notes — one per highlighted section banner
+  "SlPhoto_shdr_litter","SlPhotoTime_shdr_litter","SlNotes_shdr_litter",
+  "SlPhoto_shdr_sowtreat","SlPhotoTime_shdr_sowtreat","SlNotes_shdr_sowtreat",
+  "SlPhoto_mhdr_d01","SlPhotoTime_mhdr_d01","SlNotes_mhdr_d01",
+  "SlPhoto_mhdr_d23","SlPhotoTime_mhdr_d23","SlNotes_mhdr_d23",
+  "SlPhoto_mhdr_d57","SlPhotoTime_mhdr_d57","SlNotes_mhdr_d57",
+  "SlPhoto_mhdr_d710","SlPhotoTime_mhdr_d710","SlNotes_mhdr_d710",
+  "SlPhoto_mhdr_d14","SlPhotoTime_mhdr_d14","SlNotes_mhdr_d14",
+  "SlPhoto_mhdr_d2128","SlPhotoTime_mhdr_d2128","SlNotes_mhdr_d2128",
   ...SL_TASK_COLS];
 
 const SL_TIME_COLS = [
@@ -948,20 +956,19 @@ function slDelete(slId) {
 }
 
 /**
- * Saves a litter photo to Google Drive and records the URL in the SowLitter sheet.
- * Works identically to clSavePhoto but targets the SowLitter sheet.
- * Creates a "PigLog Photos/Litter" subfolder if needed.
+ * Saves a section photo for a Sow & Litter record to Google Drive.
+ * Each section banner gets its own photo slot identified by sectionKey.
  * @param {number} slId - The SL_ID of the litter record.
  * @param {string} photoBase64 - Base64-encoded image data.
  * @param {string} mimeType - MIME type (e.g. "image/jpeg").
  * @param {string} photoTime - Timestamp string "YYYY-MM-DD HH:mm".
- * @param {number} slot - Photo slot number (1, 2, or 3).
+ * @param {string} sectionKey - Section identifier e.g. "shdr_litter", "mhdr_d01" etc.
  * @returns {{ success: boolean, viewUrl?: string, fileId?: string, error?: string }}
  */
-function slSavePhoto(slId, photoBase64, mimeType, photoTime, slot) {
+function slSavePhoto(slId, photoBase64, mimeType, photoTime, sectionKey) {
   try {
     if (!slId || !photoBase64) return { success: false, error: 'Missing slId or photo data' };
-    const sec = parseInt(slot, 10) || 1;
+    const key = String(sectionKey || 'shdr_litter');
 
     // Get or create PigLog Photos/Litter folder
     const rootFolders = DriveApp.getFoldersByName('PigLog Photos');
@@ -970,25 +977,24 @@ function slSavePhoto(slId, photoBase64, mimeType, photoTime, slot) {
     const folder = litFolders.hasNext() ? litFolders.next() : root.createFolder('Litter');
 
     const ext  = (mimeType || 'image/jpeg').split('/')[1] || 'jpg';
-    const tz   = Session.getScriptTimeZone();
     const ts   = photoTime
       ? String(photoTime).replace(/[: /]/g, '-').replace(/[^a-zA-Z0-9_-]/g, '')
       : String(new Date().getTime());
-    const name = `litter_sl${slId}_photo${sec}_${ts}.${ext}`;
+    const name = `litter_sl${slId}_${key}_${ts}.${ext}`;
     const blob = Utilities.newBlob(Utilities.base64Decode(photoBase64), mimeType || 'image/jpeg', name);
     const file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
     const viewUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view';
 
-    // Update the SowLitter record
+    // Update the SowLitter record with the named column
     const updateData = {};
-    updateData['SlPhotoUrl'  + sec] = viewUrl;
-    if (photoTime) updateData['SlPhotoTime' + sec] = String(photoTime);
+    updateData['SlPhoto_'     + key] = viewUrl;
+    if (photoTime) updateData['SlPhotoTime_' + key] = String(photoTime);
     const result = slUpdate(slId, updateData);
     if (!result.success) return { success: false, error: 'Photo saved but sheet update failed: ' + result.error };
 
-    return { success: true, viewUrl, fileId: file.getId(), slot: sec };
+    return { success: true, viewUrl, fileId: file.getId(), sectionKey: key };
   } catch(e) {
     return { success: false, error: 'Litter photo save failed: ' + e.message };
   }
