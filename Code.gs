@@ -814,6 +814,7 @@ const SL_HEADERS_GS = ["SL_ID","SowId","LitterBoar","FarrowDate","EstFarrowDate"
   "sl_lightest_today","sl_heaviest_today","sl_castrated",
   "sl_wt_d14","sl_alive_d14","sl_num_weaned","sl_date_weaned","sl_wean_wt",
   // Section photos & notes — one per highlighted section banner
+  "SlPhoto_farrow","SlPhotoTime_farrow","SlNotes_farrow",
   "SlPhoto_shdr_litter","SlPhotoTime_shdr_litter","SlNotes_shdr_litter",
   "SlPhoto_shdr_sowtreat","SlPhotoTime_shdr_sowtreat","SlNotes_shdr_sowtreat",
   "SlPhoto_mhdr_d01","SlPhotoTime_mhdr_d01","SlNotes_mhdr_d01",
