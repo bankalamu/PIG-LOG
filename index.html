@@ -1326,27 +1326,12 @@
           <input type="number" id="slPen" min="1" max="999" placeholder="1" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700" oninput="slLookupExisting();slCalcTotalPiglets()">
         </div>
 
-        <!-- Row 3: Est. Farrow Date (auto) · Foster -->
+        <!-- Row 3: Est. Farrow Date (auto) — full width -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Est. Farrow Date <span style="font-size:10px;font-weight:400;color:#666">(Service + 115 days)</span></label>
           <div id="slEstFarrowDate" style="background:#e8f0ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:14px;font-weight:800;color:#1a3a8a;min-height:38px;display:flex;align-items:center">—</div>
         </div>
-        <div style="display:flex;flex-direction:column">
-          <label class="form-label">Foster <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label>
-          <input type="number" id="slFoster" min="0" max="20" step="1" placeholder="0" class="form-input" style="font-weight:700;font-size:13px;padding:6px 8px" oninput="slCalcTotalPiglets()">
-        </div>
-
-        <!-- Row 4: Total · Mortality -->
-        <div style="display:flex;flex-direction:column">
-          <label class="form-label">Total <span style="font-size:10px;font-weight:400;color:#666">(Foster + Nursing)</span></label>
-          <div id="slTotalPiglets" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:7px 10px;font-size:20px;font-weight:900;color:#2d6a2d;text-align:center;min-height:38px;line-height:1.3">—</div>
-          <div id="slTotalNote" style="font-size:10px;color:#666;margin-top:2px;text-align:center;min-height:13px"></div>
-        </div>
-        <div style="display:flex;flex-direction:column">
-          <label class="form-label">Mortality <span style="font-size:10px;font-weight:400;color:#666">(Born+Foster−Total)</span></label>
-          <div id="slMortality" style="background:#f5f5f5;border:1.5px solid #bbb;border-radius:8px;padding:7px 10px;font-size:20px;font-weight:900;color:#555;text-align:center;min-height:38px;line-height:1.3">—</div>
-          <div id="slMortalityNote" style="font-size:10px;color:#666;margin-top:2px;text-align:center;min-height:13px"></div>
-        </div>
+        <div><!-- spacer --></div>
 
         <!-- Existing record banner — full width -->
         <div id="slExistingBanner" style="display:none;grid-column:1/-1;padding:8px 12px;background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;font-size:12px;font-weight:700;color:#1a4a1a">
@@ -1403,6 +1388,18 @@
           <div class="sl-num-field"><label>Total Birth Wt (kg)</label><input type="number" id="sl_total_birth_wt" min="0" step="0.1" placeholder="0.0"></div>
           <div class="sl-num-field"><label>Lightest Piglet (kg)</label><input type="number" id="sl_lightest" min="0" step="0.01" placeholder="0.00"></div>
           <div class="sl-num-field"><label>Heaviest Piglet (kg)</label><input type="number" id="sl_heaviest" min="0" step="0.01" placeholder="0.00"></div>
+          <div class="sl-num-field"><label>Foster <span style="font-weight:400;font-size:10px;color:#666">(0–20)</span></label><input type="number" id="slFoster" min="0" max="20" step="1" placeholder="0" oninput="slCalcTotalPiglets();_slStampSection('shdr_litter')"></div>
+          <div class="sl-num-field" style="grid-column:span 1">
+            <label>F SOW <span style="font-size:10px;font-weight:600;color:#c0392b" id="slFSowReq" style="display:none">*required if Foster&gt;0</span></label>
+            <select id="slFSow" class="form-input" style="font-weight:700;color:#000;font-size:12px;padding:4px 6px">
+              <option value="">— Select —</option>
+            </select>
+          </div>
+          <div class="sl-num-field" style="grid-column:span 2">
+            <label>Total Litter <span style="font-size:10px;font-weight:400;color:#666">(Born Alive + Foster)</span></label>
+            <div id="slTotalPiglets" style="background:#e8f5e8;border:1.5px solid #2d6a2d;border-radius:8px;padding:7px 10px;font-size:20px;font-weight:900;color:#2d6a2d;text-align:center;min-height:38px;line-height:1.3">—</div>
+            <div id="slTotalNote" style="font-size:10px;color:#666;margin-top:2px;text-align:center;min-height:13px"></div>
+          </div>
         </div>
 
         <!-- 📝 Section Notes & Photo: shdr_litter -->
@@ -1728,9 +1725,14 @@
             <div class="sl-task-label">Weaned — piglets moved to weaner pen<span class="sl-task-note">Record number weaned and date below</span></div>
           </div>
           <div class="sl-num-grid">
-            <div class="sl-num-field"><label>Number Weaned</label><input type="number" id="sl_num_weaned" min="0" placeholder="0"></div>
+            <div class="sl-num-field"><label>Number Weaned</label><input type="number" id="sl_num_weaned" min="0" placeholder="0" oninput="slCalcMortality()"></div>
             <div class="sl-num-field"><label>Date Weaned</label><input type="date" id="sl_date_weaned" oninput="slUpdateDayInfo()"></div>
             <div class="sl-num-field"><label>Avg Wean Weight (kg)</label><input type="number" id="sl_wean_wt" min="0" step="0.01" placeholder="0.00"></div>
+            <div class="sl-num-field" style="grid-column:span 3">
+              <label>Mortality <span style="font-size:10px;font-weight:400;color:#666">(Total Litter − Number Weaned)</span></label>
+              <div id="slMortality" style="background:#f5f5f5;border:1.5px solid #bbb;border-radius:8px;padding:7px 10px;font-size:20px;font-weight:900;color:#555;text-align:center;min-height:38px;line-height:1.3">—</div>
+              <div id="slMortalityNote" style="font-size:10px;color:#666;margin-top:2px;text-align:center;min-height:13px"></div>
+            </div>
           </div>
 
 
@@ -6793,6 +6795,21 @@ async function populateSlBoarDropdown() {
   }
 }
 
+async function populateSlFSowDropdown() {
+  const sows = await loadSowRecords();
+  const sel  = document.getElementById('slFSow');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Select F Sow —</option>';
+  sows.forEach(({ dbId, pigId }) => {
+    const opt = document.createElement('option');
+    opt.value       = dbId;
+    opt.textContent = pigId + '  (DB:' + dbId + ')';
+    if (dbId === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
 function slClearBoarError() {
   const sel = document.getElementById('slLitterBoar');
   if (sel) { sel.style.border = ''; sel.style.background = ''; }
@@ -7207,78 +7224,45 @@ function slRestorePhotos(rec) {
 
 // Total = Foster + cl_nursing (Actively Nursing) from today's DailyChecklist for this pen
 // Mortality = (Born Alive + Foster) − Total
-async function slCalcTotalPiglets() {
-  const foster    = parseInt(document.getElementById('slFoster')?.value    || '0', 10) || 0;
+function slCalcTotalPiglets() {
   const bornAlive = parseInt(document.getElementById('sl_born_alive')?.value || '0', 10) || 0;
-  const pen       = (document.getElementById('slPen')?.value || '').trim();
+  const foster    = parseInt(document.getElementById('slFoster')?.value    || '0', 10) || 0;
+  const total     = bornAlive + foster;
+  const totalEl   = document.getElementById('slTotalPiglets');
+  const noteEl    = document.getElementById('slTotalNote');
+  if (totalEl) {
+    totalEl.textContent   = total > 0 ? String(total) : '—';
+    totalEl.dataset.value = total > 0 ? String(total) : '';
+  }
+  if (noteEl) noteEl.textContent = total > 0 ? `${bornAlive} born alive + ${foster} foster` : '';
+  // Show/hide F SOW required indicator
+  const fsowReq = document.getElementById('slFSowReq');
+  if (fsowReq) fsowReq.style.display = foster > 0 ? 'inline' : 'none';
+  slCalcMortality();
+}
+
+function slCalcMortality() {
   const totalEl   = document.getElementById('slTotalPiglets');
   const mortEl    = document.getElementById('slMortality');
-  const noteEl    = document.getElementById('slTotalNote');
   const mortNote  = document.getElementById('slMortalityNote');
-  if (!totalEl) return;
-
-  // Local date to match GAS yyyy-MM-dd
-  const now   = new Date();
-  const today = now.getFullYear() + '-'
-              + String(now.getMonth()+1).padStart(2,'0') + '-'
-              + String(now.getDate()).padStart(2,'0');
-
-  let nursing  = 0;
-  let noteText = '';
-
-  if (pen) {
-    try {
-      const r = await apiGet({ action: 'clGetAll' });
-      if (r && r.success) {
-        const clRec = (r.records || []).find(rec =>
-          String(rec.Date||'').trim().slice(0,10) === today &&
-          String(rec.Pen||'').trim().toLowerCase() === pen.toLowerCase()
-        );
-        if (clRec) {
-          nursing  = parseInt(clRec.cl_nursing || '0', 10) || 0;
-          noteText = `Foster ${foster} + Nursing ${nursing} (Pen ${pen})`;
-        } else {
-          noteText = `No Daily Checklist for Pen ${pen} today`;
-        }
-      }
-    } catch(e) {
-      noteText = 'Could not fetch checklist data';
-    }
+  const numWeaned = parseInt(document.getElementById('sl_num_weaned')?.value || '0', 10) || 0;
+  const total     = parseInt(totalEl?.dataset?.value || '0', 10) || 0;
+  if (!mortEl) return;
+  if (total > 0 && numWeaned > 0) {
+    const mort = Math.max(0, total - numWeaned);
+    mortEl.textContent   = String(mort);
+    mortEl.dataset.value = String(mort);
+    mortEl.style.background  = mort > 0 ? '#ffebee' : '#e8f5e8';
+    mortEl.style.borderColor = mort > 0 ? '#ef5350' : '#2d6a2d';
+    mortEl.style.color       = mort > 0 ? '#b71c1c' : '#2d6a2d';
+    if (mortNote) mortNote.textContent = `${total} total − ${numWeaned} weaned`;
   } else {
-    noteText = 'Enter Pen No. to include nursing count';
-  }
-
-  const total = foster + nursing;
-  totalEl.textContent   = total > 0 ? String(total) : '—';
-  totalEl.dataset.value = total > 0 ? String(total) : '';
-  if (noteEl) noteEl.textContent = noteText;
-
-  // Mortality = (Born Alive + Foster) − Total
-  if (mortEl) {
-    const pool = bornAlive + foster;
-    if (pool > 0 && total > 0) {
-      const mort = Math.max(0, pool - total);
-      mortEl.textContent = String(mort);
-      mortEl.dataset.value = String(mort);
-      // Red with count if mortality > 0, green if zero
-      if (mort > 0) {
-        mortEl.style.background  = '#ffebee';
-        mortEl.style.borderColor = '#ef5350';
-        mortEl.style.color       = '#b71c1c';
-      } else {
-        mortEl.style.background  = '#e8f5e8';
-        mortEl.style.borderColor = '#2d6a2d';
-        mortEl.style.color       = '#2d6a2d';
-      }
-      if (mortNote) mortNote.textContent = `${bornAlive} born + ${foster} foster − ${total} alive`;
-    } else {
-      mortEl.textContent       = '—';
-      mortEl.dataset.value     = '';
-      mortEl.style.background  = '#f5f5f5';
-      mortEl.style.borderColor = '#bbb';
-      mortEl.style.color       = '#555';
-      if (mortNote) mortNote.textContent = bornAlive > 0 ? 'Enter Pen No. for live count' : 'Enter Born Alive above';
-    }
+    mortEl.textContent       = '—';
+    mortEl.dataset.value     = '';
+    mortEl.style.background  = '#f5f5f5';
+    mortEl.style.borderColor = '#bbb';
+    mortEl.style.color       = '#555';
+    if (mortNote) mortNote.textContent = '';
   }
 }
 
@@ -7360,6 +7344,8 @@ async function slLookupExisting() {
 function _populateSlForm(rec) {
   if(document.getElementById('slPen'))   document.getElementById('slPen').value   = rec.Pen   || '';
   if(document.getElementById('slNotes')) document.getElementById('slNotes').value = rec.Notes || '';
+  const fSowEl = document.getElementById('slFSow');
+  if (fSowEl) fSowEl.value = rec.sl_fsow || '';
   // Restore section notes
   SL_PHOTO_KEYS.forEach(key => {
     const el = document.getElementById('slNotes_' + key);
@@ -7475,6 +7461,7 @@ function setSlView(view, resetForm) {
     // Populate dropdowns when opening form (deferred from init)
     populateSlSowDropdown();
     populateSlBoarDropdown();
+    populateSlFSowDropdown();
   }
   if (view === 'active')  {
     if (allSlRecords.length === 0) { loadSlActive(); }
@@ -7498,7 +7485,7 @@ function resetSowLitter() {
   // Clear section notes
   SL_PHOTO_KEYS.forEach(key => { const el = document.getElementById('slNotes_' + key); if (el) el.value = ''; });
   const today = new Date().toISOString().split('T')[0];
-  ['slSowId','slLitterBoar','slPen','slNotes'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
+  ['slSowId','slLitterBoar','slPen','slNotes','slFSow'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
   const noteEl = document.getElementById('slLitterBoarNote'); if (noteEl) noteEl.textContent = '';
   const slErr = document.getElementById('slValidationError');
   if (slErr) slErr.style.display = 'none';
@@ -7538,6 +7525,16 @@ async function saveSowLitter() {
     } else {
       showSlErr('⚠️ Please select the Litter Boar before saving.');
     }
+    return;
+  }
+
+  // F SOW required when Foster > 0
+  const fosterVal = parseInt(document.getElementById('slFoster')?.value || '0', 10) || 0;
+  const fSow      = (document.getElementById('slFSow')?.value || '').trim();
+  if (fosterVal > 0 && !fSow) {
+    const fSowSel = document.getElementById('slFSow');
+    if (fSowSel) { fSowSel.style.border = '2px solid #c0392b'; fSowSel.style.background = '#fde8e8'; fSowSel.scrollIntoView({ behavior:'smooth', block:'center' }); }
+    showSlErr('⚠️ F SOW is required when Foster piglets are entered. Please select the foster sow.');
     return;
   }
 
@@ -7590,6 +7587,7 @@ async function saveSowLitter() {
     EstFarrowDate: document.getElementById('slEstFarrowDate')?.dataset?.value || '',
     Pen: pen, Notes: notes,
     sl_foster:       fosterRaw || '',
+    sl_fsow:         (document.getElementById('slFSow')?.value||'').trim(),
     sl_total_piglets: totalPigletsEl?.dataset?.value || '',
     sl_mortality:    document.getElementById('slMortality')?.dataset?.value || '',
     ByLitter:     g('slBy_litter'),     ByNursing:    g('slBy_nursing'),
@@ -7823,6 +7821,7 @@ async function slOpenRecord(slId) {
   // Refresh both dropdowns then set values by DB_ID
   await populateSlSowDropdown();
   await populateSlBoarDropdown();
+  await populateSlFSowDropdown();
   const sowSel = document.getElementById('slSowId');
   if (sowSel) sowSel.value = rec.SowId || '';
   const fd = document.getElementById('slFarrowDate');
