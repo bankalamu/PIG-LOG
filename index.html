@@ -1397,9 +1397,9 @@
           <input type="text" id="slBy_litter" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
         </div>
         <div class="sl-num-grid">
-          <div class="sl-num-field"><label>Born Alive</label><input type="number" id="sl_born_alive" min="0" placeholder="0" oninput="slRefreshColors();slCalcTotalPiglets()"></div>
-          <div class="sl-num-field"><label>Stillborn</label><input type="number" id="sl_stillborn" min="0" placeholder="0" oninput="slRefreshColors()"></div>
-          <div class="sl-num-field"><label>Mummified</label><input type="number" id="sl_mummified" min="0" placeholder="0" oninput="slRefreshColors()"></div>
+          <div class="sl-num-field"><label>Born Alive</label><input type="number" id="sl_born_alive" min="0" placeholder="0" oninput="slRefreshColors();slCalcTotalPiglets();_slStampSection('shdr_litter')"></div>
+          <div class="sl-num-field"><label>Stillborn</label><input type="number" id="sl_stillborn" min="0" placeholder="0" oninput="slRefreshColors();_slStampSection('shdr_litter')"></div>
+          <div class="sl-num-field"><label>Mummified</label><input type="number" id="sl_mummified" min="0" placeholder="0" oninput="slRefreshColors();_slStampSection('shdr_litter')"></div>
           <div class="sl-num-field"><label>Total Birth Wt (kg)</label><input type="number" id="sl_total_birth_wt" min="0" step="0.1" placeholder="0.0"></div>
           <div class="sl-num-field"><label>Lightest Piglet (kg)</label><input type="number" id="sl_lightest" min="0" step="0.01" placeholder="0.00"></div>
           <div class="sl-num-field"><label>Heaviest Piglet (kg)</label><input type="number" id="sl_heaviest" min="0" step="0.01" placeholder="0.00"></div>
@@ -1438,7 +1438,7 @@
         <div class="sl-section-title pink" id="shdr_sowtreat">💊 Sow Treatments — Days 0–5 <span id="slts_shdr_sowtreat" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#880e4f;background:#fce4ec;border:1px solid #f8bbd0;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
         <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#fafafa;display:flex;align-items:center;gap:10px">
           <label style="font-size:10px;font-weight:800;color:#555;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">Completed by</label>
-          <input type="text" id="slBy_sowtreat" placeholder="Name" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
+          <input type="text" id="slBy_sowtreat" placeholder="Name" oninput="_slStampSection('shdr_sowtreat')" style="flex:1;background:#fff;border:1.5px solid var(--border-dark);border-radius:6px;padding:5px 10px;font-size:13px;font-weight:600;color:#000;font-family:'Source Serif 4',serif">
         </div>
         <div class="sl-task" data-day="0">
           <div class="sl-task-check" id="chk_sow_antiinflam" onclick="slToggleTask('sow_antiinflam',0)"></div>
@@ -1668,8 +1668,8 @@
             <div class="sl-task-label">Individual weights recorded<span class="sl-task-note">Weigh each piglet and record</span></div>
           </div>
           <div class="sl-num-grid">
-            <div class="sl-num-field"><label>Avg Weight Day 14 (kg)</label><input type="number" id="sl_wt_d14" min="0" step="0.01" placeholder="0.00" oninput="slRefreshColors()"></div>
-            <div class="sl-num-field"><label>Number Still Alive</label><input type="number" id="sl_alive_d14" min="0" placeholder="0" oninput="slRefreshColors()"></div>
+            <div class="sl-num-field"><label>Avg Weight Day 14 (kg)</label><input type="number" id="sl_wt_d14" min="0" step="0.01" placeholder="0.00" oninput="slRefreshColors();_slStampSection('mhdr_d14')"></div>
+            <div class="sl-num-field"><label>Number Still Alive</label><input type="number" id="sl_alive_d14" min="0" placeholder="0" oninput="slRefreshColors();_slStampSection('mhdr_d14')"></div>
           </div>
           <div class="sl-task">
             <div class="sl-task-check" id="chk_health_d14" onclick="slToggleTask('health_d14',14)"></div>
@@ -6969,14 +6969,11 @@ function _slColorHeaders(days) {
     let bg, color, border;
 
     if (days < 0 || days < cfg.min) {
-      // Before range or no date — always default
       bg = cfg.defBg; color = cfg.defColor;
       border = cfg.defBorder ? '1.5px solid ' + cfg.defBorder : '';
     } else if (days >= cfg.min && days <= cfg.max) {
-      // Within range — ORANGE (action due)
       bg = _SL_HDR_ORANGE.bg; color = _SL_HDR_ORANGE.color; border = _SL_HDR_ORANGE.border;
     } else {
-      // Past upper bound — RED if empty, DEFAULT if filled
       if (_slSectionFilled(cfg)) {
         bg = cfg.defBg; color = cfg.defColor;
         border = cfg.defBorder ? '1.5px solid ' + cfg.defBorder : '';
@@ -6989,8 +6986,10 @@ function _slColorHeaders(days) {
     el.style.color        = color;
     el.style.borderBottom = border;
 
-    // Update timestamp badge for this header
-    _slUpdateSecBadge(id, cfg, days);
+    // Only RENDER the existing timestamp badge — never write a new one here.
+    // Timestamps are only set by _slStampSection() called from slToggleTask()
+    // and field oninput handlers on the section's own inputs.
+    _slRenderSecBadge(id, slSecTimes[id]);
   });
 }
 
@@ -7003,18 +7002,24 @@ function _slNowTime() {
   return date + ' ' + time;
 }
 
-// Update the timestamp for one header: stamp/re-stamp when filled, clear when not
-function _slUpdateSecBadge(headerId, cfg, days) {
+/**
+ * Called only when a user directly completes an action in a specific section.
+ * Sets the section timestamp the FIRST time it is filled.
+ * Subsequent calls (from other sections being completed) never reach here — 
+ * _slColorHeaders only renders existing timestamps, never writes new ones.
+ * Clears timestamp if the section becomes unfilled (task un-ticked).
+ */
+function _slStampSection(headerId) {
+  const cfg = SL_HEADER_RANGES[headerId];
+  if (!cfg) return;
   const filled = _slSectionFilled(cfg);
-  if (filled && days >= 0) {
-    // Only stamp the FIRST time this section becomes complete.
-    // If a timestamp already exists, preserve it — completing other sections
-    // must not alter this section's completion time.
+  if (filled) {
+    // Only stamp the first time — never overwrite an existing timestamp
     if (!slSecTimes[headerId]) {
       slSecTimes[headerId] = _slNowTime();
     }
-  } else if (!filled) {
-    // Section is no longer complete (tasks unticked) — clear the timestamp
+  } else {
+    // Section no longer complete — clear so it can be re-stamped when done again
     slSecTimes[headerId] = '';
   }
   _slRenderSecBadge(headerId, slSecTimes[headerId]);
@@ -7415,13 +7420,19 @@ function slToggleTask(taskKey) {
   slTaskState[taskKey] = !slTaskState[taskKey];
   const el = document.getElementById('chk_' + taskKey);
   if (el) el.textContent = slTaskState[taskKey] ? '✓' : '';
-  // Refresh header colours so "filled" state updates immediately
+  // Refresh header colours
   const fd = document.getElementById('slFarrowDate')?.value;
   if (fd) {
     const farrow = new Date(fd); farrow.setHours(0,0,0,0);
     const today  = new Date();   today.setHours(0,0,0,0);
     _slColorHeaders(Math.floor((today - farrow) / 86400000));
   }
+  // Stamp ONLY the section that owns this task — find which header it belongs to
+  const ownerSection = Object.keys(SL_HEADER_RANGES).find(id => {
+    const cfg = SL_HEADER_RANGES[id];
+    return cfg.tasks && cfg.tasks.includes(taskKey);
+  });
+  if (ownerSection) _slStampSection(ownerSection);
 }
 
 function setSlView(view, resetForm) {
