@@ -7006,12 +7006,15 @@ function _slNowTime() {
 // Update the timestamp for one header: stamp/re-stamp when filled, clear when not
 function _slUpdateSecBadge(headerId, cfg, days) {
   const filled = _slSectionFilled(cfg);
-  // Only show timestamp when section is past its window (days > max) and filled
-  // — that's when it matters (completed). Also show if in-window and filled.
   if (filled && days >= 0) {
-    // Re-stamp every time section becomes fully filled (= last completion time)
-    slSecTimes[headerId] = _slNowTime();
+    // Only stamp the FIRST time this section becomes complete.
+    // If a timestamp already exists, preserve it — completing other sections
+    // must not alter this section's completion time.
+    if (!slSecTimes[headerId]) {
+      slSecTimes[headerId] = _slNowTime();
+    }
   } else if (!filled) {
+    // Section is no longer complete (tasks unticked) — clear the timestamp
     slSecTimes[headerId] = '';
   }
   _slRenderSecBadge(headerId, slSecTimes[headerId]);
