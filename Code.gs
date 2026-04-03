@@ -48,6 +48,12 @@ function getSheet() {
   return sheet;
 }
 
+/**
+ * Returns the next available DB_ID for a new pig record.
+ * Scans column 1 for all existing IDs and returns max+1.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The PigLog sheet.
+ * @returns {number} Next DB_ID integer (starts at 1 if sheet is empty).
+ */
 function getNextId(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return 1;
@@ -56,12 +62,24 @@ function getNextId(sheet) {
   return Math.max(...ids.map(Number)) + 1;
 }
 
+/**
+ * Wraps a JS object as a JSON ContentService HTTP response.
+ * Used by both doGet() and doPost() to return data to the frontend.
+ * @param {Object} data - Any JSON-serialisable object to return.
+ * @returns {GoogleAppsScript.Content.TextOutput} JSON HTTP response.
+ */
 function respond(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+/**
+ * Alias for respond() kept for backward compatibility.
+ * All POST and payload-GET requests use this to return JSON.
+ * @param {Object} data - Any JSON-serialisable object to return.
+ * @returns {GoogleAppsScript.Content.TextOutput} JSON HTTP response.
+ */
 function corsRespond(data) {
   // For POST requests wrapped in JSONP-style — Apps Script handles CORS via GET
   return respond(data);
@@ -70,12 +88,28 @@ function corsRespond(data) {
 // ── Router ───────────────────────────────────────────────────
 
 // ── Request token validation ─────────────────────
+/**
+ * Validates the APP_TOKEN sent with each request for basic auth.
+ * Token is stored in Script Properties under the key "APP_TOKEN".
+ * If no APP_TOKEN is set, all requests are allowed through.
+ * To disable auth: delete the APP_TOKEN property in Script Properties.
+ * @param {string} token - Token value sent by the client in the request.
+ * @returns {boolean} True if token matches or no token is configured.
+ */
 function _validateToken(token) {
   const expected = PropertiesService.getScriptProperties().getProperty('APP_TOKEN');
   if (!expected) return true; // no token set — allow all
   return String(token || '') === String(expected);
 }
 
+/**
+ * HTTP GET handler — entry point for all read requests and GET+payload writes.
+ * Routes by e.parameter.action.
+ * Also decodes base64 "payload=" parameter for write actions that cannot
+ * use POST due to GitHub Pages CSP restrictions (used by apiGet fallback).
+ * @param {GoogleAppsScript.Events.DoGet} e - Apps Script GET event.
+ * @returns {GoogleAppsScript.Content.TextOutput} JSON response.
+ */
 function doGet(e) {
   const action = e.parameter.action;
 
@@ -118,6 +152,12 @@ function doGet(e) {
   }
 }
 
+/**
+ * HTTP POST handler — entry point for all write requests.
+ * Parses the JSON body from e.postData.contents and delegates to handlePostPayload().
+ * @param {GoogleAppsScript.Events.DoPost} e - Apps Script POST event.
+ * @returns {GoogleAppsScript.Content.TextOutput} JSON response.
+ */
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
@@ -127,6 +167,21 @@ function doPost(e) {
   }
 }
 
+/**
+ * Routes all write actions from both POST body and GET+payload requests.
+ * Every create/update/delete operation in the app passes through here.
+ * @param {Object} payload - Parsed JSON object with at minimum { action: string }.
+ *   Common shapes:
+ *     { action: "add",       data: Object }
+ *     { action: "update",    id: number, data: Object }
+ *     { action: "delete",    id: number }
+ *     { action: "clAdd",     data: Object }
+ *     { action: "clSavePhoto", clId, photoBase64, mimeType, photoTime, section }
+ *     { action: "slSavePhoto", slId, photoBase64, mimeType, photoTime, sectionKey }
+ *     { action: "saveSetting", key: string, value: string }
+ *     { action: "runAISingle", clId: number, force: boolean }
+ * @returns {GoogleAppsScript.Content.TextOutput} JSON response from the handler.
+ */
 function handlePostPayload(payload) {
   try {
     const action = payload.action;
@@ -167,6 +222,13 @@ function handlePostPayload(payload) {
 
 // ── CRUD Operations ──────────────────────────────────────────
 
+/**
+ * Returns all pig records from the PigLog sheet.
+ * Builds a header map once and converts each row to a named object.
+ * Formats Date objects as YYYY-MM-DD strings for consistent frontend display.
+ * @returns {{ success: boolean, records: Object[] }}
+ *   records — array of pig objects with all HEADERS fields as keys.
+ */
 function getAllRecords() {
   const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
@@ -200,6 +262,13 @@ function getAllRecords() {
   return { success: true, records };
 }
 
+/**
+ * Looks up a single pig record by its PIG ID string (ear tag).
+ * Case-insensitive match on the "PIG ID" column.
+ * @param {string} pigId - The PIG ID / ear tag to search for.
+ * @returns {{ success: boolean, record?: Object, error?: string }}
+ *   record — full pig object if found; error — message if not found.
+ */
 function getByPigId(pigId) {
   if (!pigId) return { success: false, error: "No PIG ID provided" };
   const sheet   = getSheet();
@@ -230,6 +299,11 @@ function getByPigId(pigId) {
   return { success: true, record: rec };
 }
 
+/**
+ * Returns the header row of the PigLog sheet as a string array.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The PigLog sheet.
+ * @returns {string[]} Array of column header names in order.
+ */
 function _getPigLogHeaders(sheet) {
   const lastCol = sheet.getLastColumn();
   const hdrRow  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
@@ -238,6 +312,15 @@ function _getPigLogHeaders(sheet) {
   return { map, lastCol, hdrRow };
 }
 
+/**
+ * Adds a new pig record to the PigLog sheet.
+ * Assigns the next available DB_ID automatically.
+ * Performs duplicate check: blocks records with same PIG ID + Boar + SOW.
+ * Validates that PIG ID is not blank before inserting.
+ * @param {Object} data - Pig record fields matching HEADERS (DB_ID assigned automatically).
+ * @returns {{ success: boolean, db_id?: number, error?: string }}
+ *   db_id — the assigned DB_ID if successful; error — reason if failed.
+ */
 function addRecord(data) {
   const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
@@ -290,6 +373,13 @@ function addRecord(data) {
   return { success: true, db_id: newId };
 }
 
+/**
+ * Updates fields on an existing pig record identified by DB_ID.
+ * Only columns present in data are updated; others are left unchanged.
+ * @param {number} dbId - The DB_ID of the record to update.
+ * @param {Object} data - Object of field names → new values to write.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function updateRecord(dbId, data) {
   const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
@@ -356,6 +446,11 @@ function updateRecord(dbId, data) {
   return { success: true };
 }
 
+/**
+ * Permanently deletes a pig record row identified by DB_ID.
+ * @param {number} dbId - The DB_ID of the record to delete.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function deleteRecord(dbId) {
   const sheet = getSheet();
   const lastRow = sheet.getLastRow();
@@ -385,6 +480,12 @@ const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes"
                     "AIAnalysis",
                     ...CL_KEYS_GS];
 
+/**
+ * Gets or creates the DailyChecklist sheet with all required CL_HEADERS columns.
+ * Forces plain text (@) number format on all time columns (Sec1/2/3Time,
+ * PhotoTime1/2/3) to prevent Google Sheets from auto-converting to Date objects.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The DailyChecklist sheet.
+ */
 function getClSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(CL_SHEET);
@@ -413,6 +514,11 @@ function getClSheet() {
   return sheet;
 }
 
+/**
+ * Returns the next available CL_ID for a new checklist record.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The DailyChecklist sheet.
+ * @returns {number} Next CL_ID integer (starts at 1 if sheet is empty).
+ */
 function getNextClId(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return 1;
@@ -423,6 +529,14 @@ function getNextClId(sheet) {
 
 const CL_TIME_COLS = ["Sec1Time","Sec2Time","Sec3Time"];
 
+/**
+ * Returns all Daily Checklist records from the DailyChecklist sheet.
+ * Skips any orphan columns whose header starts with "—".
+ * Converts Date objects in time columns to HH:mm or yyyy-MM-dd HH:mm strings
+ * using the script timezone (Africa/Lusaka) to prevent UTC offset corruption.
+ * @returns {{ success: boolean, records: Object[] }}
+ *   records — array of checklist objects with all CL_HEADERS fields.
+ */
 function clGetAll() {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
@@ -485,6 +599,17 @@ function clGetAll() {
   return { success: true, records };
 }
 
+/**
+ * Converts a raw sheet row array into a typed checklist record object.
+ * Handles three value types per column:
+ *   - Time columns (Sec1/2/3Time): formats as "HH:mm" 24hr string.
+ *   - PhotoTime columns: formats as "yyyy-MM-dd HH:mm" string.
+ *   - All other columns: converts to plain string.
+ * @param {any[]} row - Raw values array from sheet.getValues() for one row.
+ * @param {string[]} sheetHeaders - Column header names in same order as row.
+ * @param {string} tz - Script timezone string e.g. "Africa/Lusaka".
+ * @returns {Object} Typed record object keyed by header name.
+ */
 function rowToClRecord(row, sheetHeaders, tz) {
   if (!tz) tz = Session.getScriptTimeZone();
   const valMap = {};
@@ -520,6 +645,12 @@ function rowToClRecord(row, sheetHeaders, tz) {
 }
 
 // Diagnostic: returns sheet info without processing any rows
+/**
+ * Returns debug diagnostics for the DailyChecklist sheet.
+ * Used by the admin "Test Connection" button to verify setup.
+ * @returns {{ success: boolean, headers: string[], rows: number, ms: number }}
+ *   headers — first row values; rows — total row count; ms — response time.
+ */
 function clDebug() {
   try {
     const t0    = new Date().getTime();
@@ -546,6 +677,10 @@ function clDebug() {
 }
 
 // Just return row count — fast diagnostic
+/**
+ * Returns the total count of checklist records (excluding header row).
+ * @returns {{ success: boolean, count: number }}
+ */
 function clCount() {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
@@ -554,6 +689,14 @@ function clCount() {
 }
 
 // Return only records from the last N days — much faster than clGetAll for large sheets
+/**
+ * Returns checklist records from the last N calendar days.
+ * Filters by the Date column — compares dates as YYYY-MM-DD strings.
+ * More efficient than clGetAll() for the History tab which only needs recent records.
+ * @param {number} [days=30] - Number of days back from today to include.
+ * @returns {{ success: boolean, records: Object[], days: number, cutoff: string }}
+ *   records — matching records; cutoff — the earliest date included (YYYY-MM-DD).
+ */
 function clGetRecent(days) {
   days = days || 30;
   const sheet = getClSheet();
@@ -606,6 +749,12 @@ function clGetRecent(days) {
     });
   return { success: true, records, days, cutoff: cutoffStr };
 }
+/**
+ * Builds a column-name → 1-based column-number map for the DailyChecklist sheet.
+ * Used by clAdd/clUpdate to write specific columns by name without scanning headers each time.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The DailyChecklist sheet.
+ * @returns {Object} Map of { headerName: columnIndex } (1-based).
+ */
 function _clSheetColMap(sheet) {
   const lastCol = sheet.getLastColumn();
   if (lastCol === 0) return {};
@@ -615,6 +764,14 @@ function _clSheetColMap(sheet) {
   return map;
 }
 
+/**
+ * Creates or updates a checklist record matching the given Date + Pen combination.
+ * If a record already exists for that Date+Pen pair it updates it (prevents duplicates).
+ * If no match is found it creates a new record via clAdd().
+ * @param {Object} data - Checklist fields including Date (YYYY-MM-DD) and Pen number.
+ * @returns {{ success: boolean, cl_id: number, updated?: boolean, error?: string }}
+ *   updated — true if an existing record was updated rather than created.
+ */
 function clUpsert(data) {
   const sheet  = getClSheet();
   const colMap = _clSheetColMap(sheet);
@@ -640,6 +797,14 @@ function clUpsert(data) {
   return clAdd(data);
 }
 
+/**
+ * Appends a new row to the DailyChecklist sheet.
+ * Server-side duplicate guard: blocks a second record for the same Date+Pen.
+ * After appending, forces @-format (plain text) on all time columns in the new row
+ * to prevent Google Sheets auto-converting HH:mm strings to Date fractions.
+ * @param {Object} data - Checklist fields. CL_ID and Status are assigned automatically.
+ * @returns {{ success: boolean, cl_id: number, error?: string }}
+ */
 function clAdd(data) {
   const sheet   = getClSheet();
   const colMap  = _clSheetColMap(sheet);
@@ -681,6 +846,16 @@ function clAdd(data) {
   return { success: true, cl_id: newId };
 }
 
+/**
+ * Updates specific fields on an existing checklist record by CL_ID.
+ * Key behaviours:
+ *   - Preserves existing timestamps — never overwrites a filled time column with blank.
+ *   - Forces @-format (plain text) on all time columns after writing to prevent
+ *     Google Sheets from converting HH:mm strings to Date objects on next read.
+ * @param {number} clId - The CL_ID of the record to update.
+ * @param {Object} data - Field name → value pairs to write (only provided fields are changed).
+ * @returns {{ success: boolean, error?: string }}
+ */
 function clUpdate(clId, data) {
   const sheet   = getClSheet();
   const colMap  = _clSheetColMap(sheet);
@@ -715,6 +890,11 @@ function clUpdate(clId, data) {
   return { success: true };
 }
 
+/**
+ * Permanently deletes a Daily Checklist record row by CL_ID.
+ * @param {number} clId - The CL_ID of the record to delete.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function clDelete(clId) {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
@@ -726,6 +906,19 @@ function clDelete(clId) {
   return { success: true };
 }
 
+/**
+ * Saves a health check section photo to Google Drive and records its URL in the sheet.
+ * Stores photos in a "PigLog Photos" root folder (created if missing).
+ * Sets the file as publicly viewable so the app can display it inline.
+ * Writes the Drive URL to PhotoUrl{section} and timestamp to PhotoTime{section}.
+ * @param {number} clId - The CL_ID of the checklist record this photo belongs to.
+ * @param {string} photoBase64 - Base64-encoded image bytes (no data URL prefix).
+ * @param {string} mimeType - Image MIME type e.g. "image/jpeg" or "image/png".
+ * @param {string} photoTime - Capture timestamp as "YYYY-MM-DD HH:mm" string.
+ * @param {number} section - Section number: 1 = Morning, 2 = Feeding, 3 = Afternoon.
+ * @returns {{ success: boolean, viewUrl?: string, fileId?: string, error?: string }}
+ *   viewUrl — full Drive view URL; fileId — Drive file ID for direct proxy access.
+ */
 function clSavePhoto(clId, photoBase64, mimeType, photoTime, section) {
   try {
     if (!clId || !photoBase64) return { success: false, error: "Missing clId or photo data" };
@@ -763,12 +956,27 @@ function clSavePhoto(clId, photoBase64, mimeType, photoTime, section) {
 
 // Run this function ONCE manually in the Apps Script editor to grant Drive permission.
 // Click the ▶ Run button next to "testDriveAccess" in the editor.
+/**
+ * Tests that Drive access is correctly authorised for this script.
+ * Run manually from the Apps Script editor after first deployment to verify
+ * that the drive scope has been granted. Logs the root folder name.
+ */
 function testDriveAccess() {
   const folder = DriveApp.getRootFolder();
   Logger.log("Drive access OK. Root folder: " + folder.getName());
 }
 
 // Fetch a Drive file and return it as a base64 data URL — bypasses CORS for <img> tags
+/**
+ * Fetches a Google Drive file and returns it as a base64 data URL for inline display.
+ * The thumbnail API returns 403 for private files, so this always uses DriveApp.
+ * If the file exceeds 4 MB it falls back to a compressed lh3.googleusercontent.com
+ * thumbnail URL instead of returning the full file bytes.
+ * Called by the frontend when displaying saved checklist photos.
+ * @param {string} fileId - Google Drive file ID (not the full URL).
+ * @returns {{ success: boolean, dataUrl?: string, error?: string }}
+ *   dataUrl — "data:image/jpeg;base64,..." string ready for an <img> src attribute.
+ */
 function getPhotoAsBase64(fileId) {
   try {
     if (!fileId) return { success: false, error: 'No fileId provided' };
@@ -831,6 +1039,12 @@ const SL_TIME_COLS = [
   "SlTime_mhdr_d710","SlTime_mhdr_d14","SlTime_mhdr_d2128"
 ];
 
+/**
+ * Gets or creates the SowLitter sheet with all required SL_HEADERS_GS columns.
+ * On first creation applies pink header formatting and freezes row 1.
+ * Existing sheets: adds any missing columns to the right without touching data.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The SowLitter sheet.
+ */
 function getSlSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SL_SHEET);
@@ -843,6 +1057,12 @@ function getSlSheet() {
   return sheet;
 }
 
+/**
+ * Returns all Sow & Litter records from the SowLitter sheet.
+ * Converts Date objects to YYYY-MM-DD strings for consistent frontend handling.
+ * @returns {{ success: boolean, records: Object[] }}
+ *   records — array of SL objects with all SL_HEADERS_GS fields as keys.
+ */
 function slGetAll() {
   const sheet = getSlSheet();
   const lastRow = sheet.getLastRow();
@@ -876,6 +1096,13 @@ function slGetAll() {
 }
 
 // Upsert: update if SowId+FarrowDate exists, otherwise insert
+/**
+ * Creates or updates a Sow & Litter record for a given SowId + FarrowDate pair.
+ * If an active (non-closed) record exists for this sow, updates it instead of
+ * creating a duplicate. If none found, delegates to slAdd().
+ * @param {Object} data - SL fields including SowId and FarrowDate (YYYY-MM-DD).
+ * @returns {{ success: boolean, sl_id: number, updated?: boolean, error?: string }}
+ */
 function slUpsert(data) {
   const sheet  = getSlSheet();
   const colMap = _slSheetColMap(sheet);
@@ -901,6 +1128,11 @@ function slUpsert(data) {
 }
 
 // Returns { headerName -> 1-based col } from actual sheet header row
+/**
+ * Builds a column-name → 1-based column-number map for the SowLitter sheet.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The SowLitter sheet.
+ * @returns {Object} Map of { headerName: columnIndex } (1-based).
+ */
 function _slSheetColMap(sheet) {
   const lastCol = sheet.getLastColumn();
   if (lastCol === 0) return {};
@@ -910,6 +1142,12 @@ function _slSheetColMap(sheet) {
   return map;
 }
 
+/**
+ * Appends a new Sow & Litter record row to the SowLitter sheet.
+ * Assigns the next available SL_ID automatically.
+ * @param {Object} data - SL fields (SL_ID assigned automatically).
+ * @returns {{ success: boolean, sl_id: number, error?: string }}
+ */
 function slAdd(data) {
   const sheet  = getSlSheet();
   const colMap = _slSheetColMap(sheet);
@@ -927,6 +1165,13 @@ function slAdd(data) {
   return { success: true, sl_id: newId };
 }
 
+/**
+ * Updates specific fields on an existing SL record by SL_ID.
+ * Only columns present in data are written; all others are preserved.
+ * @param {number} slId - The SL_ID of the record to update.
+ * @param {Object} data - Field name → value pairs to write.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function slUpdate(slId, data) {
   const sheet  = getSlSheet();
   const colMap = _slSheetColMap(sheet);
@@ -945,6 +1190,11 @@ function slUpdate(slId, data) {
   return { success: true };
 }
 
+/**
+ * Permanently deletes a Sow & Litter record row by SL_ID.
+ * @param {number} slId - The SL_ID of the record to delete.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function slDelete(slId) {
   const sheet = getSlSheet();
   const lastRow = sheet.getLastRow();
@@ -965,6 +1215,19 @@ function slDelete(slId) {
  * @param {string} photoTime - Timestamp string "YYYY-MM-DD HH:mm".
  * @param {string} sectionKey - Section identifier e.g. "shdr_litter", "mhdr_d01" etc.
  * @returns {{ success: boolean, viewUrl?: string, fileId?: string, error?: string }}
+ /**
+ * Saves a litter section photo to Google Drive and records its URL in the SowLitter sheet.
+ * Stores photos in "PigLog Photos/Litter" subfolder (created if missing).
+ * Each section banner gets its own named photo slot identified by sectionKey.
+ * Section keys map to sheet columns: SlPhoto_{sectionKey} and SlPhotoTime_{sectionKey}.
+ * @param {number} slId - The SL_ID of the litter record this photo belongs to.
+ * @param {string} photoBase64 - Base64-encoded image bytes (no data URL prefix).
+ * @param {string} mimeType - Image MIME type e.g. "image/jpeg".
+ * @param {string} photoTime - Capture timestamp as "YYYY-MM-DD HH:mm" string.
+ * @param {string} sectionKey - Section identifier matching a SL_HEADER_RANGES key:
+ *   "farrow" | "shdr_litter" | "shdr_sowtreat" | "mhdr_d01" | "mhdr_d23" |
+ *   "mhdr_d57" | "mhdr_d710" | "mhdr_d14" | "mhdr_d2128"
+ * @returns {{ success: boolean, viewUrl?: string, fileId?: string, sectionKey?: string, error?: string }}
  */
 function slSavePhoto(slId, photoBase64, mimeType, photoTime, sectionKey) {
   try {
@@ -1012,6 +1275,10 @@ const WK_KEYS_GS = ['wk_weight_spot','wk_body_condition','wk_behaviour',
 const WK_HEADERS_GS = ["WK_ID","Date","WeekNum","WeekYear","WeekKey","Pen","CheckedBy","Status","Concerns","Notes",
   "AvgWeight","FeedKg","ByCondition","ByHealth","ByFarm",...WK_KEYS_GS];
 
+/**
+ * Gets or creates the WeeklyChecklist sheet with all required WK_HEADERS_GS columns.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WeeklyChecklist sheet.
+ */
 function getWkSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(WK_SHEET);
@@ -1024,6 +1291,10 @@ function getWkSheet() {
   return sheet;
 }
 
+/**
+ * Returns all Weekly Checklist records from the WeeklyChecklist sheet.
+ * @returns {{ success: boolean, records: Object[] }}
+ */
 function wkGetAll() {
   const sheet = getWkSheet();
   const lastRow = sheet.getLastRow();
@@ -1044,6 +1315,11 @@ function wkGetAll() {
   })};
 }
 
+/**
+ * Builds a column-name → 1-based column-number map for the WeeklyChecklist sheet.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The WeeklyChecklist sheet.
+ * @returns {Object} Map of { headerName: columnIndex } (1-based).
+ */
 function _wkSheetColMap(sheet) {
   const lastCol = sheet.getLastColumn();
   if (lastCol === 0) return {};
@@ -1053,6 +1329,12 @@ function _wkSheetColMap(sheet) {
   return map;
 }
 
+/**
+ * Appends a new Weekly Checklist record to the WeeklyChecklist sheet.
+ * Assigns the next WK_ID automatically.
+ * @param {Object} data - WK fields including Date (YYYY-MM-DD), Pen, and WeekNum.
+ * @returns {{ success: boolean, wk_id: number, error?: string }}
+ */
 function wkAdd(data) {
   const sheet   = getWkSheet();
   const colMap  = _wkSheetColMap(sheet);
@@ -1084,6 +1366,12 @@ function wkAdd(data) {
   return { success: true, wk_id: newId };
 }
 
+/**
+ * Updates specific fields on an existing weekly record by WK_ID.
+ * @param {number} wkId - The WK_ID of the record to update.
+ * @param {Object} data - Field name → value pairs to write.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function wkUpdate(wkId, data) {
   const sheet  = getWkSheet();
   const colMap = _wkSheetColMap(sheet);
@@ -1101,6 +1389,11 @@ function wkUpdate(wkId, data) {
   return { success: true };
 }
 
+/**
+ * Permanently deletes a Weekly Checklist record row by WK_ID.
+ * @param {number} wkId - The WK_ID of the record to delete.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function wkDelete(wkId) {
   const sheet = getWkSheet(); const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records" };
@@ -1124,6 +1417,13 @@ const MO_HEADERS_GS = ["MO_ID","Month","CreatedDate","CheckedBy","Status","Conce
   "ByGrowth","ByHealth","ByFarm",...MO_KEYS_GS];
 
 // Convert any value to YYYY-MM using LOCAL timezone (critical for GAS Date objects)
+/**
+ * Normalises any date-like value to a "YYYY-MM" month key string.
+ * Handles both Date objects (from Sheets) and string inputs ("2026-03", "2026-03-15", etc.).
+ * Returns empty string for null, undefined, or unparseable values.
+ * @param {Date|string} val - A Date object or date string to normalise.
+ * @returns {string} Month key in "YYYY-MM" format, or "" if invalid.
+ */
 function _toMonthKey(val) {
   if (!val && val !== 0) return '';
   // GAS returns Date objects for date-formatted cells; use local TZ methods
@@ -1149,6 +1449,10 @@ function _toMonthKey(val) {
   return '';
 }
 
+/**
+ * Gets or creates the MonthlyChecklist sheet with all required headers.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The MonthlyChecklist sheet.
+ */
 function getMoSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(MO_SHEET);
@@ -1161,6 +1465,11 @@ function getMoSheet() {
   return sheet;
 }
 
+/**
+ * Returns the header row of the MonthlyChecklist sheet as a string array.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The MonthlyChecklist sheet.
+ * @returns {string[]} Array of header names.
+ */
 function _moGetSheetHeaders(sheet) {
   const lastCol = sheet.getLastColumn();
   if (lastCol < 1) return {};
@@ -1170,6 +1479,11 @@ function _moGetSheetHeaders(sheet) {
   return map;
 }
 
+/**
+ * Returns all Monthly Checklist records from the MonthlyChecklist sheet.
+ * Normalises the Month column to "YYYY-MM" format using _toMonthKey().
+ * @returns {{ success: boolean, records: Object[] }}
+ */
 function moGetAll() {
   const sheet   = getMoSheet();
   const lastRow = sheet.getLastRow();
@@ -1189,6 +1503,12 @@ function moGetAll() {
   return { success: true, records };
 }
 
+/**
+ * Creates or updates a Monthly Checklist record for a given month.
+ * Matches on the normalised Month key (YYYY-MM). Updates if found, creates if not.
+ * @param {Object} data - MO fields including Month (YYYY-MM or any date string).
+ * @returns {{ success: boolean, mo_id: number, updated?: boolean, error?: string }}
+ */
 function moUpsert(data) {
   const sheet    = getMoSheet();
   const monthKey = String(data['Month'] || '').trim().substring(0, 7);
@@ -1244,6 +1564,12 @@ function moUpsert(data) {
   return { success: true, mo_id: newId, updated: false };
 }
 
+/**
+ * Updates specific fields on an existing monthly record by MO_ID.
+ * @param {number} moId - The MO_ID of the record to update.
+ * @param {Object} data - Field name → value pairs to write.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function moUpdate(moId, data) {
   const sheet = getMoSheet(); const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records" };
@@ -1263,6 +1589,11 @@ function moUpdate(moId, data) {
   return { success: true };
 }
 
+/**
+ * Permanently deletes a Monthly Checklist record row by MO_ID.
+ * @param {number} moId - The MO_ID of the record to delete.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function moDelete(moId) {
   const sheet = getMoSheet(); const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return { success: false, error: "No records" };
@@ -1276,6 +1607,14 @@ function moDelete(moId) {
 }
 
 // Run from Apps Script editor OR call ?action=moDedup to clean existing duplicates
+/**
+ * ONE-TIME UTILITY — Safe to run at any time from the Apps Script editor.
+ * Removes duplicate Monthly Checklist rows, keeping only the row with the
+ * highest MO_ID for each YYYY-MM month key. Useful after bulk imports
+ * or if upsert logic created accidental duplicates.
+ * @returns {{ success: boolean, removed: number }}
+ *   removed — count of duplicate rows deleted.
+ */
 function moDeduplicateAll() {
   const sheet   = getMoSheet();
   const lastRow = sheet.getLastRow();
@@ -1303,6 +1642,12 @@ function moDeduplicateAll() {
 //  SETTINGS — Sheet: Settings
 // ============================================================
 
+/**
+ * Gets or creates the Settings sheet used to store persistent app configuration.
+ * Settings are key-value pairs editable from the admin panel in the frontend.
+ * Common keys: "AI_ANALYSIS_ENABLED", "WEANING_WEEKS", "WORKER_NAMES", "MAX_PEN".
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The Settings sheet.
+ */
 function getSettingsSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName("Settings");
@@ -1318,6 +1663,12 @@ function getSettingsSheet() {
   return sheet;
 }
 
+/**
+ * Reads a setting value from the Settings sheet by its key.
+ * @param {string} key - Setting key name e.g. "AI_ANALYSIS_ENABLED".
+ * @returns {{ success: boolean, value: string|null }}
+ *   value — the stored string value, or null if the key does not exist.
+ */
 function getSetting(key) {
   const sheet = getSettingsSheet();
   const lastRow = sheet.getLastRow();
@@ -1327,6 +1678,14 @@ function getSetting(key) {
   return { success: true, value: row ? String(row[1]) : null };
 }
 
+/**
+ * Writes or updates a setting in the Settings sheet.
+ * If a row with the given key already exists, updates its Value column.
+ * If not found, appends a new row with the key, value, updater and timestamp.
+ * @param {string} key - Setting key name.
+ * @param {string} value - New value to store.
+ * @returns {{ success: boolean }}
+ */
 function saveSetting(key, value) {
   const sheet = getSettingsSheet();
   const lastRow = sheet.getLastRow();
@@ -1364,6 +1723,13 @@ function saveSetting(key, value) {
 //    Safe to run multiple times — sheets already correct are skipped.
 // ============================================================
 
+/**
+ * ONE-TIME UTILITY — Run manually from the Apps Script editor after deploying new Code.gs.
+ * Ensures every sheet has the correct columns in the right positions.
+ * Adds any missing columns to the right of existing data — never deletes or reorders columns.
+ * Safe to run multiple times (idempotent). Logs a full report of all changes made.
+ * Run this after adding new sheet columns (e.g. SlPhoto_*, SlNotes_*).
+ */
 function migrateAllSheetHeaders() {
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
   const log = [];
@@ -1519,6 +1885,11 @@ function migrateAllSheetHeaders() {
 //  WITHOUT making any changes. Check the Execution Log output.
 //  This confirms the new Code.gs is active before you migrate.
 // ============================================================
+/**
+ * DIAGNOSTIC UTILITY — Run from the Apps Script editor to inspect all sheet headers.
+ * Logs the actual column names in each sheet vs what the code expects.
+ * Useful for debugging "Unknown column" errors or verifying a migration ran correctly.
+ */
 function diagnoseSheetHeaders() {
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
   const log = [];
@@ -1581,6 +1952,14 @@ function diagnoseSheetHeaders() {
 // ============================================================
 //  BOAR/SOW → DB_ID MIGRATION
 // ============================================================
+/**
+ * ONE-TIME UTILITY — Migrates PigLog Boar and SOW columns from PIG ID strings to DB_IDs.
+ * This enables stable pig cross-references that survive ear-tag changes or re-numbering.
+ * Safe to run multiple times — skips rows that already contain numeric DB_IDs.
+ * Run once after initial setup if Boar/SOW columns contain text PIG IDs.
+ * @returns {{ success: boolean, updated: number, skipped: number }}
+ *   updated — rows converted; skipped — rows already using numeric IDs.
+ */
 function migrateBoarSowToDbId() {
   const sheet   = getSheet();
   const lastRow = sheet.getLastRow();
@@ -1659,6 +2038,13 @@ function migrateBoarSowToDbId() {
 //  a PIG ID string, finds the matching DB_ID from PigLog
 //  and replaces it in-place. Already-numeric values are skipped.
 // ============================================================
+/**
+ * ONE-TIME UTILITY — Migrates SowLitter.SowId column from PIG ID strings to DB_IDs.
+ * Looks up each SowId string in the PigLog sheet and replaces it with the DB_ID.
+ * Safe to run multiple times — skips rows that already contain numeric IDs.
+ * @returns {{ success: boolean, updated: number, skipped: number, notFound: string[] }}
+ *   notFound — PIG ID strings that had no matching record in PigLog.
+ */
 function migrateSowLitterSowId() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -1763,6 +2149,12 @@ function migrateSowLitterSowId() {
 
 // ── Trigger Setup ───────────────────────────────────────────
 
+/**
+ * ONE-TIME SETUP — Run once from the Apps Script editor after first deployment.
+ * Creates a daily time-based trigger that fires runNightlyCloseout() at midnight
+ * in the script timezone (Africa/Lusaka). Deletes any existing nightly trigger first
+ * to prevent duplicates. Check Apps Script > Triggers to confirm it was created.
+ */
 function createMidnightTrigger() {
   // Delete any existing nightly triggers to avoid duplicates
   ScriptApp.getProjectTriggers().forEach(t => {
@@ -1785,6 +2177,21 @@ function createMidnightTrigger() {
 // Marks In Progress records from yesterday as Incomplete
 // Then runs AI analysis if API key is configured
 
+/**
+ * Main nightly job — normally called at midnight via the time-based trigger.
+ * Can also be triggered manually from the admin panel in the app (forceAI=true).
+ *
+ * Step 1 — Mark Incomplete: scans all checklist records dated before today and
+ *   marks any with missing section times (Sec1/2/3Time blank) as "Incomplete".
+ *
+ * Step 2 — AI Analysis: runs if ANTHROPIC_API_KEY is set in Script Properties AND
+ *   either AI_ANALYSIS_ENABLED setting is "true" (auto nightly) OR forceAI is true.
+ *
+ * @param {string} [targetDate] - YYYY-MM-DD date to process. Defaults to yesterday.
+ * @param {boolean} [forceAI=false] - If true, runs AI analysis regardless of the setting.
+ * @returns {{ success: boolean, message: string, marked: number, processed?: number }}
+ *   marked — number of records marked Incomplete; processed — records sent to AI.
+ */
 function runNightlyCloseout(targetDate, forceAI) {
   const tz = Session.getScriptTimeZone();
   let processDate;
@@ -1834,12 +2241,32 @@ function runNightlyCloseout(targetDate, forceAI) {
 }
 
 // ── Main Batch Function (kept for backward compatibility) ───
+/**
+ * Backward-compatible alias for runNightlyCloseout().
+ * Called by the "runAIAnalysis" action from the frontend admin panel.
+ * @param {string} [targetDate] - YYYY-MM-DD to process (defaults to yesterday).
+ * @param {boolean} [forceAI=false] - If true, forces AI even if setting is disabled.
+ * @returns {{ success: boolean, message: string }}
+ */
 function runNightlyAIAnalysis(targetDate, forceAI) {
   return runNightlyCloseout(targetDate, forceAI);
 }
 
   // Default: process yesterday's records (today's are still in progress)
 // ── Analyse a single record by CL_ID ─────────────────────────
+/**
+ * Analyses a single Daily Checklist record using the Anthropic Claude API.
+ * Fetches the record from the sheet, retrieves photos from Google Drive via
+ * DriveApp (NOT the thumbnail API which returns 403 for private files), then
+ * calls analyseChecklistRecord() to build the prompt and get the AI response.
+ * Writes the formatted analysis back to the AIAnalysis column.
+ * Called one record at a time from the frontend to avoid the 6-minute Apps Script limit.
+ * @param {number} clId - The CL_ID of the checklist record to analyse.
+ * @param {boolean} [force=false] - If true, re-analyses records that already have a summary.
+ * @returns {{ success: boolean, processed?: boolean, skipped?: boolean, error?: string }}
+ *   processed — true if AI ran and wrote a result.
+ *   skipped — true if the record already had analysis and force was false.
+ */
 function runAISingleRecord(clId, force) {
   if (!clId) return { success: false, error: 'No CL_ID provided' };
   const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
@@ -1875,6 +2302,15 @@ function runAISingleRecord(clId, force) {
 }
 
 // ── Get list of records needing AI analysis for a date ────────
+/**
+ * Returns a list of CL_IDs for checklist records on a given date that have
+ * not yet received an AI analysis (AIAnalysis column is blank or empty).
+ * Used by the frontend to determine how many records to process and to iterate
+ * through them one at a time via runAISingleRecord().
+ * @param {string} targetDate - YYYY-MM-DD date to check.
+ * @returns {{ success: boolean, pending: number[] }}
+ *   pending — array of CL_ID numbers needing analysis.
+ */
 function getAIPendingRecords(targetDate) {
   const sheet   = getClSheet();
   const lastRow = sheet.getLastRow();
@@ -1902,6 +2338,17 @@ function getAIPendingRecords(targetDate) {
 }
 
 // ── AI Analysis for a specific date ─────────────────────────
+/**
+ * Batch-analyses all checklist records for a specific date in a single execution.
+ * Called by runNightlyCloseout() for the midnight batch job.
+ * Processes records sequentially — stops early if approaching the 6-min time limit.
+ * @param {string} processDate - YYYY-MM-DD date to analyse.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The DailyChecklist sheet.
+ * @param {Object} hdrMap - Header name → 0-based column index map.
+ * @param {any[][]} data - All sheet data rows (excluding header row).
+ * @param {string} apiKey - Anthropic API key from Script Properties.
+ * @returns {{ processed: number, skipped: number, errors: number }}
+ */
 function _runAIForDate(processDate, sheet, hdrMap, data, apiKey) {
   const tz = Session.getScriptTimeZone();
   const hdrRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -1938,6 +2385,15 @@ function _runAIForDate(processDate, sheet, hdrMap, data, apiKey) {
 }
 
 // ── Closeout only — mark all stale In Progress records as Incomplete ──
+/**
+ * Marks stale checklist records as Incomplete without running AI analysis.
+ * A record is marked Incomplete when: date is before today AND one or more
+ * section times (Sec1Time, Sec2Time, Sec3Time) are blank AND status is not
+ * already "Complete" or "ALL OK".
+ * Safe to run manually at any time from the editor or admin panel.
+ * @returns {{ success: boolean, message: string, marked: number }}
+ *   marked — number of records updated to "Incomplete".
+ */
 function runCloseoutOnly() {
   const sheet = getClSheet();
   const lastRow = sheet.getLastRow();
@@ -1954,6 +2410,18 @@ function runCloseoutOnly() {
 }
 
 // ── Mark Incomplete — closes all records older than today with missing sections ───
+/**
+ * Internal utility called by runNightlyCloseout() and runCloseoutOnly().
+ * Scans ALL checklist records (not just one date) and marks as "Incomplete" any where:
+ *   - The record date is strictly before today (past records only), AND
+ *   - At least one of Sec1Time, Sec2Time, Sec3Time is blank (section not completed), AND
+ *   - Current status is not already "Complete", "ALL OK", or "Incomplete".
+ * @param {string|null} processDate - Unused parameter kept for signature compatibility.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The DailyChecklist sheet.
+ * @param {Object} hdrMap - Header name → 0-based column index map.
+ * @param {any[][]} data - All sheet data rows (excluding header row).
+ * @returns {number} Count of records updated to "Incomplete".
+ */
 function _markIncompleteRecords(processDate, sheet, hdrMap, data) {
   const tz        = Session.getScriptTimeZone();
   const today     = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
@@ -1994,6 +2462,19 @@ function _markIncompleteRecords(processDate, sheet, hdrMap, data) {
 
 // ── Per-Record Analysis ─────────────────────────────────────
 
+/**
+ * Calls the Anthropic Claude API to analyse one Daily Checklist record.
+ * Builds a detailed veterinary prompt including all 15+ health indicators,
+ * section completion status, pen and date context, and up to 3 section photos.
+ * Photos are fetched via DriveApp.getFileById() (thumbnail API returns 403).
+ * Uses model claude-opus-4-5 with max_tokens: 1500.
+ * @param {Object} rec - Full checklist record object with all CL_HEADERS fields.
+ *   Key fields used: Date, Pen, CheckedBy, Status, all health indicator fields,
+ *   Sec1/2/3Time, PhotoUrl1/2/3.
+ * @param {string} apiKey - Anthropic API key (ANTHROPIC_API_KEY Script Property).
+ * @returns {string} Formatted AI analysis text with a timestamp header line.
+ * @throws {Error} If the Anthropic API returns a non-200 HTTP status code.
+ */
 function analyseChecklistRecord(rec, apiKey) {
   // Build the check context text
   const CL_FIELD_LABELS = {
@@ -2153,6 +2634,15 @@ Write clearly for a farm worker. Be specific about what you actually see in the 
 
 // ── Helper: extract Drive fileId from any URL format ────────
 
+/**
+ * Extracts a Google Drive file ID from any of the URL formats the app may store.
+ * Handles three formats:
+ *   1. "drive:{fileId}" — internal format used by clSavePhoto/slSavePhoto
+ *   2. "https://drive.google.com/file/d/{fileId}/view" — standard Drive share link
+ *   3. "https://drive.google.com/open?id={fileId}" — legacy Drive open link
+ * @param {string} url - URL or drive: reference string to parse.
+ * @returns {string|null} The extracted file ID string, or null if no ID found.
+ */
 function _extractFileId(url) {
   if (!url) return null;
   if (url.startsWith('drive:')) return url.slice(6);
@@ -2169,6 +2659,12 @@ function _extractFileId(url) {
 const WA_SHEET = 'WorkerActions';
 const WA_HEADERS = ['ACTION_ID','Date','Worker','Category','Action','Priority','Status','DueDate','Notes','CompletedAt'];
 
+/**
+ * Gets or creates the WorkerActions sheet with all required WA_HEADERS columns.
+ * On first creation: sets column widths, applies teal header formatting, freezes row 1.
+ * Existing sheets: adds any missing columns to the right without touching data.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WorkerActions sheet.
+ */
 function getWaSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(WA_SHEET);
@@ -2185,6 +2681,11 @@ function getWaSheet() {
   return sheet;
 }
 
+/**
+ * Builds a column-name → 1-based column-number map for the WorkerActions sheet.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The WorkerActions sheet.
+ * @returns {Object} Map of { headerName: columnIndex } (1-based).
+ */
 function _waColMap(sheet) {
   const hdrs = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
   const map = {};
@@ -2192,6 +2693,12 @@ function _waColMap(sheet) {
   return map;
 }
 
+/**
+ * Returns all Worker Action task records from the WorkerActions sheet.
+ * Formats Date objects in the Date and DueDate columns as YYYY-MM-DD strings.
+ * @returns {{ success: boolean, records: Object[] }}
+ *   records — array of task objects with all WA_HEADERS fields as keys.
+ */
 function waGetAll() {
   const sheet = getWaSheet();
   const lastRow = sheet.getLastRow();
@@ -2211,6 +2718,13 @@ function waGetAll() {
   return { success: true, records };
 }
 
+/**
+ * Appends a new Worker Action task to the WorkerActions sheet.
+ * Assigns the next ACTION_ID automatically. Sets Date to today if not provided.
+ * Defaults Status to "Pending" if not specified in data.
+ * @param {Object} data - Task fields: Worker, Category, Action, Priority, DueDate, Notes, Status.
+ * @returns {{ success: boolean, action_id: number }}
+ */
 function waAdd(data) {
   const sheet = getWaSheet();
   const id    = _waNextId(sheet);
@@ -2226,6 +2740,13 @@ function waAdd(data) {
   return { success: true, action_id: id };
 }
 
+/**
+ * Updates specific fields on an existing Worker Action record by ACTION_ID.
+ * Skips the ACTION_ID column itself (immutable primary key).
+ * @param {number} id - The ACTION_ID of the task to update.
+ * @param {Object} data - Field name → value pairs to write (any WA_HEADERS field).
+ * @returns {{ success: boolean, error?: string }}
+ */
 function waUpdate(id, data) {
   const sheet  = getWaSheet();
   const colMap = _waColMap(sheet);
@@ -2243,6 +2764,11 @@ function waUpdate(id, data) {
   return { success: true };
 }
 
+/**
+ * Permanently deletes a Worker Action record row by ACTION_ID.
+ * @param {number} id - The ACTION_ID of the task to delete.
+ * @returns {{ success: boolean, error?: string }}
+ */
 function waDelete(id) {
   const sheet = getWaSheet();
   const lastRow = sheet.getLastRow();
@@ -2254,6 +2780,11 @@ function waDelete(id) {
   return { success: true };
 }
 
+/**
+ * Returns the next available ACTION_ID for a new worker action task.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The WorkerActions sheet.
+ * @returns {number} Next ACTION_ID integer (starts at 1 if sheet is empty).
+ */
 function _waNextId(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return 1;
@@ -2264,6 +2795,14 @@ function _waNextId(sheet) {
 // ── Fix PhotoTime timezone — run once to correct existing records ────
 // Run this in the Apps Script editor to re-format all PhotoTime columns
 // as plain text strings in Lusaka time
+/**
+ * ONE-TIME UTILITY — Run manually from the Apps Script editor.
+ * Re-formats all PhotoTime1/2/3 columns in the DailyChecklist sheet as plain text
+ * in "yyyy-MM-dd HH:mm" format using the script timezone (Africa/Lusaka).
+ * Fixes records corrupted by Google Sheets auto-converting datetime strings
+ * to Date objects which display incorrectly or shift by timezone offset.
+ * Sets @-format on each column first to prevent future auto-conversion.
+ */
 function fixPhotoTimestamps() {
   const sheet  = getClSheet();
   const lastRow = sheet.getLastRow();
@@ -2298,6 +2837,15 @@ function fixPhotoTimestamps() {
 // ── Fix ALL timestamps — run once in editor to correct existing records ──
 // Fixes both PhotoTime (full datetime) and Sec1/2/3Time (HH:mm)
 // by forcing plain text format so Google Sheets stops auto-converting them
+/**
+ * ONE-TIME UTILITY — Run manually from the Apps Script editor.
+ * Fixes ALL time-related columns in the DailyChecklist sheet:
+ *   - Sec1Time, Sec2Time, Sec3Time: forces to "HH:mm" 24-hour plain text.
+ *     Strips AM/PM suffixes that Sheets may have appended.
+ *   - PhotoTime1, PhotoTime2, PhotoTime3: forces to "yyyy-MM-dd HH:mm" plain text
+ *     in Africa/Lusaka timezone, correcting any UTC-offset corruption.
+ * Also sets @-format on each column to prevent future auto-conversion by Sheets.
+ */
 function fixAllTimestamps() {
   const sheet   = getClSheet();
   const lastRow = sheet.getLastRow();
@@ -2369,18 +2917,38 @@ function fixAllTimestamps() {
 // Run this directly in the Apps Script editor.
 // It processes records one at a time and stops before hitting the 6-min limit.
 // Run it again to continue where it left off (already-analysed records are skipped).
+/**
+ * EDITOR UTILITY — Run from the Apps Script editor to process today's records.
+ * Time-safe wrapper: processes records one at a time and stops after 4.5 minutes
+ * to stay within the 6-minute Apps Script execution limit.
+ * Run it again to resume from where it left off (completed records are skipped).
+ * Requires ANTHROPIC_API_KEY to be set in Script Properties.
+ */
 function runAIForToday() {
   const tz      = Session.getScriptTimeZone();
   const today   = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
   _runAISafe(today);
 }
 
+/**
+ * EDITOR UTILITY — Edit the targetDate constant below then run from the editor
+ * to process AI analysis for a specific historical date.
+ * Change the date string and run this function directly.
+ */
 function runAIForDate_() {
   // Change the date below and run this function
   const targetDate = '2026-03-26'; // ← change this date
   _runAISafe(targetDate);
 }
 
+/**
+ * Internal time-safe AI runner used by runAIForToday() and runAIForDate_().
+ * Fetches the list of pending CL_IDs for the target date, then processes
+ * each one sequentially via runAISingleRecord(), pausing 1.5s between records.
+ * Stops automatically if approaching the 4.5-minute safety threshold.
+ * Logs progress to the Apps Script execution log.
+ * @param {string} targetDate - YYYY-MM-DD date whose records to analyse.
+ */
 function _runAISafe(targetDate) {
   const startTime = new Date().getTime();
   const MAX_MS    = 4.5 * 60 * 1000; // stop after 4.5 minutes (safe margin)
