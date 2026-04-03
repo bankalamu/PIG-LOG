@@ -1014,6 +1014,7 @@ const SL_HEADERS_GS = ["SL_ID","SowId","LitterBoar","FarrowDate","EstFarrowDate"
   "sl_foster","sl_fsow","sl_total_piglets","sl_mortality",
   "ByLitter","ByNursing","BySowTreat","ByMilestones",
   "ByD01","ByD23","ByD57","ByD710","ByD14","ByD2128",
+  "SlTime_farrow",
   "SlTime_shdr_litter","SlTime_shdr_sowtreat",
   "SlTime_mhdr_d01","SlTime_mhdr_d23","SlTime_mhdr_d57",
   "SlTime_mhdr_d710","SlTime_mhdr_d14","SlTime_mhdr_d2128",
@@ -1034,6 +1035,7 @@ const SL_HEADERS_GS = ["SL_ID","SowId","LitterBoar","FarrowDate","EstFarrowDate"
   ...SL_TASK_COLS];
 
 const SL_TIME_COLS = [
+  "SlTime_farrow",
   "SlTime_shdr_litter","SlTime_shdr_sowtreat",
   "SlTime_mhdr_d01","SlTime_mhdr_d23","SlTime_mhdr_d57",
   "SlTime_mhdr_d710","SlTime_mhdr_d14","SlTime_mhdr_d2128"

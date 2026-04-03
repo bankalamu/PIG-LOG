@@ -1350,13 +1350,13 @@
 
       <!-- ── FARROW PHOTOS & SUMMARY NOTES ── -->
       <div class="sl-section">
-        <div class="sl-section-title pink">📷 Farrow Photos &amp; Summary Notes</div>
+        <div class="sl-section-title pink" id="farrow">📷 Farrow Photos &amp; Summary Notes <span id="slts_farrow" style="display:none;margin-left:8px;font-size:11px;font-weight:700;color:#880e4f;background:#fce4ec;border:1px solid #f8bbd0;border-radius:12px;padding:2px 8px;vertical-align:middle"></span></div>
         <div style="padding:10px 14px">
 
           <!-- Summary Notes -->
           <div style="margin-bottom:10px">
             <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Summary notes:</label>
-            <textarea id="slNotes_farrow" placeholder="General observations at farrowing — sow condition, birth notes, concerns…" rows="3" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
+            <textarea id="slNotes_farrow" oninput="_slStampSection('farrow')" placeholder="General observations at farrowing — sow condition, birth notes, concerns…" rows="3" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
           </div>
 
           <!-- Farrow Photo -->
@@ -6922,6 +6922,8 @@ function slUpdateDayInfo() {
 // shdr_litter uses numeric fields; others use task keys from slTaskState
 
 const SL_HEADER_RANGES = {
+  farrow:        { min:0,  max:0,  defBg:'#fce4ec', defColor:'#880e4f', defBorder:'#f8bbd0',
+                   photoKey:'farrow', notesKey:'farrow' },
   shdr_litter:   { min:0,  max:0,  defBg:'#fce4ec', defColor:'#880e4f', defBorder:'#f8bbd0',
                    numFields:['sl_born_alive','sl_stillborn','sl_mummified'],
                    photoKey:'shdr_litter', notesKey:'shdr_litter' },
