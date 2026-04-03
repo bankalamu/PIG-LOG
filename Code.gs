@@ -1067,6 +1067,18 @@ function getSlSheet() {
       }
     });
   }
+  // Force plain-text format on all SlTime_* columns to prevent Sheets
+  // auto-converting "25 Mar 2026 09:15" strings into Date objects
+  const lastCol = sheet.getLastColumn();
+  if (lastCol > 0) {
+    const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    SL_TIME_COLS.forEach(colName => {
+      const colIdx = hdrs.findIndex(h => String(h).trim() === colName);
+      if (colIdx >= 0) {
+        sheet.getRange(2, colIdx + 1, Math.max(sheet.getLastRow() - 1, 1), 1).setNumberFormat('@');
+      }
+    });
+  }
   return sheet;
 }
 
@@ -1084,7 +1096,11 @@ function slGetAll() {
   const lastCol    = sheet.getLastColumn();
   const sheetHdrs  = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(v => String(v).trim());
   const data       = sheet.getRange(2, 1, lastRow-1, lastCol).getValues();
-  const validTime  = t => /^\d{1,2}:\d{2}$/.test(String(t).trim());
+  const validSlTime = t => {
+    const s = String(t||'').trim();
+    // Accept full datetime "DD Mon YYYY HH:MM", legacy "HH:MM", or any non-empty string
+    return s.length > 0;
+  };
   const records = data.filter(r => r[0] !== '').map(row => {
     const byName = {};
     sheetHdrs.forEach((h, i) => { if (h) byName[h] = row[i]; });
@@ -1092,10 +1108,14 @@ function slGetAll() {
     SL_HEADERS_GS.forEach(h => {
       const v = byName.hasOwnProperty(h) ? byName[h] : '';
       if (SL_TIME_COLS.indexOf(h) >= 0) {
+        // SlTime_* columns store full datetime strings like "25 Mar 2026 09:15"
+        // Never convert via Date methods — always return as plain string
         if (v instanceof Date) {
-          rec[h] = String(v.getHours()).padStart(2,'0') + ':' + String(v.getMinutes()).padStart(2,'0');
+          // Sheets auto-converted it — recover as formatted string
+          rec[h] = Utilities.formatDate(v, tz, 'dd MMM yyyy HH:mm');
         } else {
-          rec[h] = validTime(v) ? String(v).trim() : '';
+          const s = String(v||'').trim();
+          rec[h] = s; // return as-is — empty string is fine
         }
       } else {
         rec[h] = v instanceof Date
@@ -1175,6 +1195,12 @@ function slAdd(data) {
   });
   if (colMap["SL_ID"]) row[colMap["SL_ID"]-1] = newId;
   sheet.appendRow(row);
+  // Force plain-text format on all SlTime_* columns in the new row
+  const newRow = sheet.getLastRow();
+  SL_TIME_COLS.forEach(colName => {
+    const col = colMap[colName];
+    if (col) sheet.getRange(newRow, col).setNumberFormat('@');
+  });
   return { success: true, sl_id: newId };
 }
 
@@ -1197,8 +1223,13 @@ function slUpdate(slId, data) {
   Object.keys(data).forEach(h => {
     const col = colMap[h];
     if (!col || h === "SL_ID") return;
-    const v = SL_TIME_COLS.includes(h) ? String(data[h]) : data[h];
-    sheet.getRange(sheetRow, col).setValue(v);
+    if (SL_TIME_COLS.includes(h)) {
+      const cell = sheet.getRange(sheetRow, col);
+      cell.setNumberFormat('@');       // force plain text — prevents Sheets converting to Date
+      cell.setValue(String(data[h] || ''));
+    } else {
+      sheet.getRange(sheetRow, col).setValue(data[h]);
+    }
   });
   return { success: true };
 }
