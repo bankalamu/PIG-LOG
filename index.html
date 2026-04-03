@@ -7631,8 +7631,8 @@ async function saveSowLitter() {
     allSlRecords = [];
     const banner = document.getElementById('slExistingBanner');
     if(banner) { banner.textContent='✅ Saved — updating this record is fine.'; banner.style.display='block'; }
-    // Upload any pending photos non-blocking
-    if (slEditId && [1,2,3].some(s => slPhotos[s]?.data)) {
+    // Upload any pending section photos non-blocking
+    if (slEditId && SL_PHOTO_KEYS.some(k => slPhotos[k]?.data)) {
       slUploadPhotos(slEditId);
     }
   } else {

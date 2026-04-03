@@ -1053,6 +1053,19 @@ function getSlSheet() {
     sheet.appendRow(SL_HEADERS_GS);
     sheet.getRange(1,1,1,SL_HEADERS_GS.length).setFontWeight("bold").setBackground("#880e4f").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
+  } else {
+    // Ensure all expected columns exist — add any missing ones to the right
+    const lastCol  = sheet.getLastColumn();
+    const existing = lastCol > 0
+      ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim())
+      : [];
+    SL_HEADERS_GS.forEach(h => {
+      if (h && !existing.includes(h)) {
+        const newCol = sheet.getLastColumn() + 1;
+        sheet.getRange(1, newCol).setValue(h)
+             .setFontWeight("bold").setBackground("#880e4f").setFontColor("#ffffff");
+      }
+    });
   }
   return sheet;
 }
@@ -1207,15 +1220,6 @@ function slDelete(slId) {
 }
 
 /**
- * Saves a section photo for a Sow & Litter record to Google Drive.
- * Each section banner gets its own photo slot identified by sectionKey.
- * @param {number} slId - The SL_ID of the litter record.
- * @param {string} photoBase64 - Base64-encoded image data.
- * @param {string} mimeType - MIME type (e.g. "image/jpeg").
- * @param {string} photoTime - Timestamp string "YYYY-MM-DD HH:mm".
- * @param {string} sectionKey - Section identifier e.g. "shdr_litter", "mhdr_d01" etc.
- * @returns {{ success: boolean, viewUrl?: string, fileId?: string, error?: string }}
- /**
  * Saves a litter section photo to Google Drive and records its URL in the SowLitter sheet.
  * Stores photos in "PigLog Photos/Litter" subfolder (created if missing).
  * Each section banner gets its own named photo slot identified by sectionKey.
