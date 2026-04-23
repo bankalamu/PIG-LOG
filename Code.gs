@@ -207,6 +207,7 @@ function handlePostPayload(payload) {
     if (action === "moDelete") return respond(moDelete(payload.id));
     if (action === "saveSetting") return respond(saveSetting(payload.key, payload.value));
     if (action === "waAdd")       return respond(waAdd(payload.data));
+    if (action === "addHealthIssue") return respond(addHealthIssue(payload.data));
     if (action === "waUpdate")    return respond(waUpdate(payload.id, payload.data));
     if (action === "waDelete")    return respond(waDelete(payload.id));
     if (action === "migrateBoarSow")   return respond(migrateBoarSowToDbId());
@@ -2827,6 +2828,46 @@ function _waNextId(sheet) {
   if (lastRow <= 1) return 1;
   const ids = sheet.getRange(2,1,lastRow-1,1).getValues().flat().filter(v => v !== '');
   return ids.length === 0 ? 1 : Math.max(...ids.map(Number)) + 1;
+}
+
+/**
+ * Records a pig health issue as a Worker Action task.
+ * Creates a Priority=High pending action in the WorkerActions sheet.
+ * @param {Object} data - Fields: pigId, diagnosis, symptoms, treatment, notes, dueDate (optional).
+ *   pigId      — PIG ID / ear tag or pen identifier.
+ *   diagnosis  — Primary diagnosis string e.g. "Umbilical Hernia".
+ *   symptoms   — Short description of observed symptoms.
+ *   treatment  — Recommended treatment / action.
+ *   notes      — Additional notes or watch-for items.
+ *   dueDate    — YYYY-MM-DD follow-up date (defaults to today + 1 day).
+ * @returns {{ success: boolean, action_id?: number, error?: string }}
+ */
+function addHealthIssue(data) {
+  try {
+    const tz      = Session.getScriptTimeZone();
+    const today   = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+    const due     = data.dueDate || Utilities.formatDate(new Date(new Date().getTime() + 86400000), tz, 'yyyy-MM-dd');
+    const pigLabel = data.pigId ? 'Pig: ' + String(data.pigId) : '';
+    const actionText = [
+      pigLabel,
+      'Diagnosis: ' + (data.diagnosis || 'Health Issue'),
+      'Symptoms: '  + (data.symptoms  || '—'),
+      'Treatment: ' + (data.treatment || '—')
+    ].filter(Boolean).join(' | ');
+    const notes = [data.notes || '', data.breedingNote || ''].filter(Boolean).join(' | ');
+    return waAdd({
+      Date:     today,
+      Worker:   data.loggedBy || 'System',
+      Category: 'Health',
+      Action:   actionText,
+      Priority: 'High',
+      Status:   'Pending',
+      DueDate:  due,
+      Notes:    notes
+    });
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
 }
 
 // ── Fix PhotoTime timezone — run once to correct existing records ────

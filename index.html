@@ -3726,9 +3726,9 @@ function renderList() {
   }
 
 
-  const filtered = allRecords.filter(r =>
-    Object.values(r).some(v => String(v).toLowerCase().includes(filter))
-  );
+  const filtered = allRecords
+    .filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(filter)))
+    .sort((a, b) => Number(a.DB_ID) - Number(b.DB_ID));
 
   // Update issues banner and build lookup for card rendering
   updateRecordIssuesBanner();
@@ -7760,7 +7760,8 @@ function renderSlActive() {
     expiredBanner.innerHTML = html || '';
   }
   if (!active.length) { container.innerHTML = '<div class="empty-state">No active litters.</div>'; return; }
-  container.innerHTML = _sortByPen(active, 'Pen').map(rec => {
+  const activeSorted = active.slice().sort((a, b) => Number(a.SL_ID) - Number(b.SL_ID));
+  container.innerHTML = activeSorted.map(rec => {
     const farrow = new Date(rec.FarrowDate||'');
     const days   = isNaN(farrow) ? '?' : Math.floor((today - farrow)/86400000);
     const daysLeft = typeof days === 'number' ? (35 - days) : '?';
@@ -7798,9 +7799,13 @@ function renderSlHistory() {
   const history = allSlRecords.filter(rec => slIsClosed(rec));
   if (!history.length) { container.innerHTML = '<div class="empty-state">No closed litters yet.</div>'; return; }
   const today = new Date(); today.setHours(0,0,0,0);
-  container.innerHTML = _sortByPen(history, 'Pen').map(rec => {
-    const adminAct = isAdminEnabled()
-      ? '<button class="btn-edit" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">Edit</button> <button class="btn-delete" onclick="slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
+  const historySorted = history.slice().sort((a, b) => Number(a.SL_ID) - Number(b.SL_ID));
+  container.innerHTML = historySorted.map(rec => {
+    const isClosed  = slIsClosed(rec);
+    const canEdit   = !isClosed || isAdminEnabled();
+    const adminAct  = canEdit
+      ? '<button class="btn-edit" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">' + (isAdminEnabled() ? 'Edit' : 'View/Edit') + '</button>'
+        + (isAdminEnabled() ? ' <button class="btn-delete" onclick="slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>' : '')
       : '';
     // Determine close reason for badge
     let closeBadge = '<span class="cl-ok-badge">✅ Weaned</span>';
