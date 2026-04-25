@@ -2194,7 +2194,7 @@
           <select id="inputSow" onchange="calcToNotches()" style="padding:8px 6px;border:1.5px solid var(--brand);border-radius:8px;font-size:13px;font-weight:700;background:#fff;color:#000;width:100%">
             <option value="">— Select —</option>
           </select>
-          <div class="notch-max">DB_ID range: 9–161</div>
+          <div class="notch-max">DB_ID range: 9–242</div>
           <div class="notch-error" id="errSow"></div>
         </div>
       </div>
@@ -2268,7 +2268,7 @@
       <!-- RIGHT EAR — horizontal, tip points RIGHT, head attachment on LEFT -->
       <div class="ear-panel" style="max-width:100%;margin-top:12px">
         <div class="ear-panel-title">Right Ear <span style="font-weight:400;font-size:10px">(facing pig)</span></div>
-        <div class="ear-panel-sub">Lower zone: 1, 3 · Upper zone: 9, 27 · Tip: 81</div>
+        <div class="ear-panel-sub">Lower zone: 1, 3 · Upper zone: 9, 27 · Tip: 81, 81 (max 242)</div>
         <div class="ear-svg-wrap">
           <!--
             Horizontal ear tip points RIGHT
@@ -2276,21 +2276,21 @@
             Upper half (above centre) = positions 9, 27
             Tip = 81
           -->
-          <svg id="svgRight" viewBox="0 0 280 160" width="100%" style="max-width:340px">
-            <!-- Ear shape: tip on RIGHT, base on LEFT -->
-            <path d="M 20,80 C 20,30 80,15 150,15 C 210,15 262,35 270,80 C 262,125 210,145 150,145 C 80,145 20,130 20,80 Z"
+          <svg id="svgRight" viewBox="0 0 320 160" width="100%" style="max-width:380px">
+            <!-- Ear shape: tip on RIGHT, base on LEFT — wider to fit 2×81 at tip -->
+            <path d="M 20,80 C 20,30 80,15 165,15 C 240,15 305,35 310,80 C 305,125 240,145 165,145 C 80,145 20,130 20,80 Z"
                   fill="#f5deb3" stroke="#8B6914" stroke-width="2.5"/>
-            <path d="M 40,80 C 40,42 92,28 150,28 C 200,28 250,46 256,80 C 250,114 200,132 150,132 C 92,132 40,118 40,80 Z"
+            <path d="M 40,80 C 40,42 92,28 165,28 C 225,28 290,46 296,80 C 290,114 225,132 165,132 C 92,132 40,118 40,80 Z"
                   fill="#e8c99a" stroke="none" opacity="0.4"/>
 
             <!-- Centre divider -->
-            <line x1="22" y1="80" x2="268" y2="80" stroke="#8B6914" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
+            <line x1="22" y1="80" x2="308" y2="80" stroke="#8B6914" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.7"/>
 
             <!-- Labels -->
-            <text x="135" y="24" text-anchor="middle" font-size="10" fill="#4a1a9a" font-weight="bold" font-family="serif">UPPER</text>
-            <text x="135" y="152" text-anchor="middle" font-size="10" fill="#4a1a9a" font-weight="bold" font-family="serif">LOWER</text>
+            <text x="150" y="24" text-anchor="middle" font-size="10" fill="#4a1a9a" font-weight="bold" font-family="serif">UPPER</text>
+            <text x="150" y="152" text-anchor="middle" font-size="10" fill="#4a1a9a" font-weight="bold" font-family="serif">LOWER</text>
             <text x="12" y="76" text-anchor="middle" font-size="9" fill="#333" font-weight="bold" font-family="serif">head</text>
-            <text x="269" y="76" text-anchor="middle" font-size="9" fill="#333" font-weight="bold" font-family="serif">tip</text>
+            <text x="310" y="76" text-anchor="middle" font-size="9" fill="#333" font-weight="bold" font-family="serif">tip</text>
 
             <!-- ── UPPER ZONE: 27,27 pair then 9,9 pair ── -->
             <!-- 27,27 pair — near head -->
@@ -2299,22 +2299,24 @@
             <circle id="R_S27b" class="notch-circle" cx="81" cy="40" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
             <text x="81" y="44" text-anchor="middle" font-size="8" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">27</text>
 
-            <!-- 9,9 pair — towards tip -->
-            <circle id="R_S9a" class="notch-circle" cx="148" cy="37" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
-            <text x="148" y="41" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">9</text>
-            <circle id="R_S9b" class="notch-circle" cx="174" cy="39" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
-            <text x="174" y="43" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">9</text>
+            <!-- 9,9 pair — mid upper -->
+            <circle id="R_S9a" class="notch-circle" cx="155" cy="37" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="155" y="41" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">9</text>
+            <circle id="R_S9b" class="notch-circle" cx="181" cy="39" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="181" y="43" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">9</text>
 
-            <!-- ── TIP: 81 single notch ── -->
-            <circle id="R_S81" class="notch-circle" cx="258" cy="80" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
-            <text x="258" y="84" text-anchor="middle" font-size="8" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">81</text>
+            <!-- ── TIP: 81, 81 — two circles at ear tip ── -->
+            <circle id="R_S81a" class="notch-circle" cx="274" cy="68" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="274" y="72" text-anchor="middle" font-size="8" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">81</text>
+            <circle id="R_S81b" class="notch-circle" cx="274" cy="93" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="274" y="97" text-anchor="middle" font-size="8" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">81</text>
 
             <!-- ── LOWER ZONE: 3,3 pair then 1,1 pair ── -->
-            <!-- 3,3 pair — towards tip -->
-            <circle id="R_S3a" class="notch-circle" cx="148" cy="121" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
-            <text x="148" y="125" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">3</text>
-            <circle id="R_S3b" class="notch-circle" cx="174" cy="119" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
-            <text x="174" y="123" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">3</text>
+            <!-- 3,3 pair — mid lower -->
+            <circle id="R_S3a" class="notch-circle" cx="155" cy="121" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="155" y="125" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">3</text>
+            <circle id="R_S3b" class="notch-circle" cx="181" cy="119" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
+            <text x="181" y="123" text-anchor="middle" font-size="9" fill="#2a0a6a" font-weight="bold" style="pointer-events:none">3</text>
 
             <!-- 1,1 pair — near head -->
             <circle id="R_S1a" class="notch-circle" cx="55" cy="116" r="12" fill="#f0f0ff" stroke="#4a1a9a" stroke-width="2"/>
@@ -2339,7 +2341,7 @@
         <div class="notch-result-val" id="resultLitter">—</div>
       </div>
       <div class="notch-result-row">
-        <div><div class="notch-result-label">🐷 Sow</div><div class="notch-result-desc">Right ear · max 161</div><div id="resultSowPigId" style="font-size:11px;color:#888;margin-top:2px"></div></div>
+        <div><div class="notch-result-label">🐷 Sow</div><div class="notch-result-desc">Right ear · max 242</div><div id="resultSowPigId" style="font-size:11px;color:#888;margin-top:2px"></div></div>
         <div class="notch-result-val" id="resultSow">—</div>
       </div>
       <div class="notch-result-row">
@@ -3726,9 +3728,9 @@ function renderList() {
   }
 
 
-  const filtered = allRecords
-    .filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(filter)))
-    .sort((a, b) => Number(a.DB_ID) - Number(b.DB_ID));
+  const filtered = allRecords.filter(r =>
+    Object.values(r).some(v => String(v).toLowerCase().includes(filter))
+  );
 
   // Update issues banner and build lookup for card rendering
   updateRecordIssuesBanner();
@@ -7760,8 +7762,7 @@ function renderSlActive() {
     expiredBanner.innerHTML = html || '';
   }
   if (!active.length) { container.innerHTML = '<div class="empty-state">No active litters.</div>'; return; }
-  const activeSorted = active.slice().sort((a, b) => Number(a.SL_ID) - Number(b.SL_ID));
-  container.innerHTML = activeSorted.map(rec => {
+  container.innerHTML = _sortByPen(active, 'Pen').map(rec => {
     const farrow = new Date(rec.FarrowDate||'');
     const days   = isNaN(farrow) ? '?' : Math.floor((today - farrow)/86400000);
     const daysLeft = typeof days === 'number' ? (35 - days) : '?';
@@ -7799,13 +7800,9 @@ function renderSlHistory() {
   const history = allSlRecords.filter(rec => slIsClosed(rec));
   if (!history.length) { container.innerHTML = '<div class="empty-state">No closed litters yet.</div>'; return; }
   const today = new Date(); today.setHours(0,0,0,0);
-  const historySorted = history.slice().sort((a, b) => Number(a.SL_ID) - Number(b.SL_ID));
-  container.innerHTML = historySorted.map(rec => {
-    const isClosed  = slIsClosed(rec);
-    const canEdit   = !isClosed || isAdminEnabled();
-    const adminAct  = canEdit
-      ? '<button class="btn-edit" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">' + (isAdminEnabled() ? 'Edit' : 'View/Edit') + '</button>'
-        + (isAdminEnabled() ? ' <button class="btn-delete" onclick="slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>' : '')
+  container.innerHTML = _sortByPen(history, 'Pen').map(rec => {
+    const adminAct = isAdminEnabled()
+      ? '<button class="btn-edit" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">Edit</button> <button class="btn-delete" onclick="slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
       : '';
     // Determine close reason for badge
     let closeBadge = '<span class="cl-ok-badge">✅ Weaned</span>';
@@ -7925,7 +7922,8 @@ const NOTCH_MAP = {
   L_B3b: { type:'boar',   value:3  },
   L_B1a: { type:'boar',   value:1  },
   L_B1b: { type:'boar',   value:1  },
-  R_S81: { type:'sow',    value:81 },
+  R_S81a:{ type:'sow',    value:81 },
+  R_S81b:{ type:'sow',    value:81 },
   R_S27a:{ type:'sow',    value:27 },
   R_S27b:{ type:'sow',    value:27 },
   R_S9a: { type:'sow',    value:9  },
@@ -8017,7 +8015,7 @@ async function populateNotchDropdowns() {
       opt.textContent = 'No boars in PigLog yet'; boarSel.appendChild(opt);
     }
   }
-  // Sow dropdown — Type=Sow, DB_ID as value, valid range 9–161
+  // Sow dropdown — Type=Sow, DB_ID as value, valid range 9–242
   const sows = await loadSowRecords();
   const sowSel = document.getElementById('inputSow');
   if (sowSel) {
@@ -8027,8 +8025,8 @@ async function populateNotchDropdowns() {
       const id  = parseInt(dbId, 10);
       const opt = document.createElement('option');
       opt.value = dbId;
-      if (id < 9 || id > 161) {
-        opt.textContent = '⚠ ' + pigId + '  (DB_ID: ' + dbId + ' — out of range 9–161)';
+      if (id < 9 || id > 242) {
+        opt.textContent = '⚠ ' + pigId + '  (DB_ID: ' + dbId + ' — out of range 9–242)';
         opt.style.color = '#c0392b';
       } else {
         opt.textContent = pigId + '  (DB_ID: ' + dbId + ')';
@@ -8482,16 +8480,16 @@ function calcToNotches() {
   const errSow    = document.getElementById('errSow');
   if (errBoar)   errBoar.textContent   = (boarVal > 8   || boarVal < 0)   ? 'DB_ID exceeds max notch value 8'   : '';
   if (errLitter) errLitter.textContent = (litterVal > 17 || litterVal < 0) ? 'Max 17'                              : '';
-  if (errSow)    errSow.textContent    = (sowVal > 161 || (sowVal > 0 && sowVal < 9)) ? 'DB_ID must be 9–161 (right ear minimum is 9)' : '';
+  if (errSow)    errSow.textContent    = (sowVal > 242 || (sowVal > 0 && sowVal < 9)) ? 'DB_ID must be 9–242 (right ear minimum is 9)' : '';
 
   const boarNotches   = _decomposeValue(boarVal,   [3,3,1,1]);
   const litterNotches = _decomposeValue(litterVal, [9,3,3,1,1]);
-  const sowNotches    = _decomposeValue(sowVal,    [81,27,27,9,9,3,3,1,1]);
+  const sowNotches    = _decomposeValue(sowVal,    [81,81,27,27,9,9,3,3,1,1]);
 
   const assignments = {
-    boar:   { ids: ['L_B3a','L_B3b','L_B1a','L_B1b'],                             active: boarNotches   },
-    litter: { ids: ['L_L9','L_L3a','L_L3b','L_L1a','L_L1b'],                      active: litterNotches },
-    sow:    { ids: ['R_S81','R_S27a','R_S27b','R_S9a','R_S9b','R_S3a','R_S3b','R_S1a','R_S1b'], active: sowNotches }
+    boar:   { ids: ['L_B3a','L_B3b','L_B1a','L_B1b'],                                                          active: boarNotches   },
+    litter: { ids: ['L_L9','L_L3a','L_L3b','L_L1a','L_L1b'],                                                   active: litterNotches },
+    sow:    { ids: ['R_S81a','R_S81b','R_S27a','R_S27b','R_S9a','R_S9b','R_S3a','R_S3b','R_S1a','R_S1b'],     active: sowNotches    }
   };
 
   Object.values(assignments).forEach(({ ids, active }) => {
