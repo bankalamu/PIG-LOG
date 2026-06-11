@@ -7822,12 +7822,14 @@ function renderSlHistory() {
 async function slOpenRecord(slId) {
   const rec = allSlRecords.find(r => String(r.SL_ID) === String(slId));
   if (!rec) return;
+
+  // Reset form first (resetSowLitter inside sets slEditId = null — intentional)
+  setSlView('form', true);
+
+  // Set slEditId AFTER reset so it is never wiped by resetSowLitter
   slEditId = rec.SL_ID;
 
-  // Reset form first, then show it
-  setSlView('form', true); // true = resetForm
-
-  // Refresh both dropdowns then set values by DB_ID
+  // Refresh dropdowns then restore all field values
   await populateSlSowDropdown();
   await populateSlBoarDropdown();
   await populateSlFSowDropdown();
