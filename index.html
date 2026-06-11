@@ -1354,24 +1354,78 @@
         <div style="padding:10px 14px">
 
           <!-- Summary Notes -->
-          <div style="margin-bottom:10px">
+          <div style="margin-bottom:12px">
             <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Summary notes:</label>
             <textarea id="slNotes_farrow" oninput="_slStampSection('farrow')" placeholder="General observations at farrowing — sow condition, birth notes, concerns…" rows="3" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
           </div>
 
-          <!-- Farrow Photo -->
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
-            <span style="font-size:11px;font-weight:700;color:#555">📷 Farrow photo:</span>
-            <label for="slPhotoInput_farrow" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
-            <input type="file" id="slPhotoInput_farrow" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'farrow')">
-            <button id="slPhotoClear_farrow" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="slPhotoClear('farrow')">✕</button>
-            <span id="slPhotoStatus_farrow" style="font-size:11px;color:#666"></span>
-          </div>
-          <div id="slPhotoPreview_farrow" style="display:none;margin-top:8px;position:relative">
-            <img id="slPhotoImg_farrow" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Farrow photo">
-            <div id="slPhotoTs_farrow" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
-          </div>
+          <!-- Photo gallery — 3 slots -->
+          <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:8px">📷 Farrow photos (up to 3):</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+
+            <!-- Slot 1 -->
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div id="slPhotoPreview_farrow_1" style="display:none;position:relative;cursor:pointer" onclick="slViewPhoto('farrow_1')">
+                <img id="slPhotoImg_farrow_1" style="width:100%;height:90px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Farrow photo 1">
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15);border-radius:7px;opacity:0;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"><span style="font-size:20px">🔍</span></div>
+                <div id="slPhotoTs_farrow_1" style="display:none;position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.65);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px"></div>
+              </div>
+              <div id="slPhotoEmpty_farrow_1" style="width:100%;height:90px;border:2px dashed #e0c0cc;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fdf5f8">
+                <span style="font-size:22px;opacity:0.4">📷</span>
+              </div>
+              <div style="display:flex;gap:4px">
+                <label for="slPhotoInput_farrow_1" style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:#880e4f;color:#fff;padding:4px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">➕ Add</label>
+                <input type="file" id="slPhotoInput_farrow_1" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'farrow_1')">
+                <button id="slPhotoClear_farrow_1" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer" onclick="slPhotoClear('farrow_1')">✕</button>
+              </div>
+              <span id="slPhotoStatus_farrow_1" style="font-size:9px;color:#666;text-align:center"></span>
+            </div>
+
+            <!-- Slot 2 -->
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div id="slPhotoPreview_farrow_2" style="display:none;position:relative;cursor:pointer" onclick="slViewPhoto('farrow_2')">
+                <img id="slPhotoImg_farrow_2" style="width:100%;height:90px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Farrow photo 2">
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15);border-radius:7px;opacity:0;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"><span style="font-size:20px">🔍</span></div>
+                <div id="slPhotoTs_farrow_2" style="display:none;position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.65);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px"></div>
+              </div>
+              <div id="slPhotoEmpty_farrow_2" style="width:100%;height:90px;border:2px dashed #e0c0cc;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fdf5f8">
+                <span style="font-size:22px;opacity:0.4">📷</span>
+              </div>
+              <div style="display:flex;gap:4px">
+                <label for="slPhotoInput_farrow_2" style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:#880e4f;color:#fff;padding:4px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">➕ Add</label>
+                <input type="file" id="slPhotoInput_farrow_2" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'farrow_2')">
+                <button id="slPhotoClear_farrow_2" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer" onclick="slPhotoClear('farrow_2')">✕</button>
+              </div>
+              <span id="slPhotoStatus_farrow_2" style="font-size:9px;color:#666;text-align:center"></span>
+            </div>
+
+            <!-- Slot 3 -->
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div id="slPhotoPreview_farrow_3" style="display:none;position:relative;cursor:pointer" onclick="slViewPhoto('farrow_3')">
+                <img id="slPhotoImg_farrow_3" style="width:100%;height:90px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Farrow photo 3">
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15);border-radius:7px;opacity:0;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"><span style="font-size:20px">🔍</span></div>
+                <div id="slPhotoTs_farrow_3" style="display:none;position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.65);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px"></div>
+              </div>
+              <div id="slPhotoEmpty_farrow_3" style="width:100%;height:90px;border:2px dashed #e0c0cc;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fdf5f8">
+                <span style="font-size:22px;opacity:0.4">📷</span>
+              </div>
+              <div style="display:flex;gap:4px">
+                <label for="slPhotoInput_farrow_3" style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:#880e4f;color:#fff;padding:4px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">➕ Add</label>
+                <input type="file" id="slPhotoInput_farrow_3" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'farrow_3')">
+                <button id="slPhotoClear_farrow_3" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer" onclick="slPhotoClear('farrow_3')">✕</button>
+              </div>
+              <span id="slPhotoStatus_farrow_3" style="font-size:9px;color:#666;text-align:center"></span>
+            </div>
+
+          </div><!-- end grid -->
         </div>
+      </div>
+
+      <!-- Photo lightbox overlay -->
+      <div id="slLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;flex-direction:column;align-items:center;justify-content:center" onclick="slCloseLightbox()">
+        <button onclick="event.stopPropagation();slCloseLightbox()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+        <img id="slLightboxImg" style="max-width:95vw;max-height:85vh;border-radius:10px;object-fit:contain" src="" alt="Photo">
+        <div id="slLightboxCaption" style="color:#ccc;font-size:12px;margin-top:10px;text-align:center"></div>
       </div>
 
       <!-- ── SOW WELFARE — numeric fields ── -->
@@ -6924,8 +6978,9 @@ function slUpdateDayInfo() {
 // shdr_litter uses numeric fields; others use task keys from slTaskState
 
 const SL_HEADER_RANGES = {
+  // farrow section is filled when notes + at least one photo slot is done
   farrow:        { min:0,  max:0,  defBg:'#fce4ec', defColor:'#880e4f', defBorder:'#f8bbd0',
-                   photoKey:'farrow', notesKey:'farrow' },
+                   farrowMulti: true, notesKey:'farrow' },
   shdr_litter:   { min:0,  max:0,  defBg:'#fce4ec', defColor:'#880e4f', defBorder:'#f8bbd0',
                    numFields:['sl_born_alive','sl_stillborn','sl_mummified'],
                    photoKey:'shdr_litter', notesKey:'shdr_litter' },
@@ -7001,7 +7056,18 @@ function _slSectionFilled(cfg) {
     return notesAndPhoto();
   }
 
-  // Notes + photo only sections (e.g. farrow) — filled when both are present
+  // Multi-photo farrow section — notes + at least one photo
+  if (cfg.farrowMulti) {
+    const notesEl = document.getElementById('slNotes_farrow');
+    const notesOk = notesEl && notesEl.value.trim() !== '';
+    const photoOk = ['farrow_1','farrow_2','farrow_3'].some(k => {
+      const prev = document.getElementById('slPhotoPreview_' + k);
+      return (prev && prev.style.display !== 'none') || (slPhotos[k] && slPhotos[k].data);
+    });
+    return notesOk && photoOk;
+  }
+
+  // Notes + photo only sections
   if (cfg.photoKey || cfg.notesKey) {
     return notesAndPhoto();
   }
@@ -7109,7 +7175,7 @@ function _clearSlSecTimestamps() {
 
 // ── SL Litter Photos ─────────────────────────────────────────
 
-const SL_PHOTO_KEYS = ['farrow','shdr_litter','shdr_sowtreat','mhdr_d01','mhdr_d23','mhdr_d57','mhdr_d710','mhdr_d14','mhdr_d2128'];
+const SL_PHOTO_KEYS = ['farrow_1','farrow_2','farrow_3','shdr_litter','shdr_sowtreat','mhdr_d01','mhdr_d23','mhdr_d57','mhdr_d710','mhdr_d14','mhdr_d2128'];
 let slPhotos = {}; // key -> { data, mime, time }
 
 function _slNowDateTime() {
@@ -7134,17 +7200,18 @@ function slPhotoSelected(input, sectionKey) {
     const k = sectionKey;
     const img    = document.getElementById('slPhotoImg_'     + k);
     const prev   = document.getElementById('slPhotoPreview_' + k);
+    const empty  = document.getElementById('slPhotoEmpty_'   + k);
     const stat   = document.getElementById('slPhotoStatus_'  + k);
     const clrBtn = document.getElementById('slPhotoClear_'   + k);
     const tsEl   = document.getElementById('slPhotoTs_'      + k);
     if (img)    img.src = dataUrl;
     if (prev)   prev.style.display   = 'block';
-    if (stat)   stat.textContent     = '📷 ' + nowFull;
+    if (empty)  empty.style.display  = 'none';
+    if (stat)   stat.textContent     = nowFull;
     if (clrBtn) clrBtn.style.display = 'inline-flex';
-    if (tsEl)   { tsEl.textContent   = '📷 ' + nowFull; tsEl.style.display = 'block'; }
+    if (tsEl)   { tsEl.textContent   = nowFull; tsEl.style.display = 'block'; }
     showToast('Photo selected — will upload on Save');
-    // Stamp the section now that a photo has been selected
-    _slStampSection(sectionKey);
+    _slStampSection(sectionKey.replace(/_\d$/, '') || sectionKey);
   };
   reader.readAsDataURL(file);
 }
@@ -7154,18 +7221,20 @@ function slPhotoClear(sectionKey) {
   const k = sectionKey;
   const img    = document.getElementById('slPhotoImg_'     + k);
   const prev   = document.getElementById('slPhotoPreview_' + k);
+  const empty  = document.getElementById('slPhotoEmpty_'   + k);
   const stat   = document.getElementById('slPhotoStatus_'  + k);
   const clrBtn = document.getElementById('slPhotoClear_'   + k);
   const tsEl   = document.getElementById('slPhotoTs_'      + k);
-  const input  = document.getElementById('slPhotoInput_'   + k);
+  const inputEl= document.getElementById('slPhotoInput_'   + k);
   if (img)    img.src = '';
   if (prev)   prev.style.display   = 'none';
+  if (empty)  empty.style.display  = 'flex';
   if (stat)   stat.textContent     = '';
   if (clrBtn) clrBtn.style.display = 'none';
   if (tsEl)   { tsEl.textContent = ''; tsEl.style.display = 'none'; }
-  if (input)  input.value = '';
-  // Section no longer complete — clear its timestamp
-  _slStampSection(sectionKey);
+  if (inputEl) inputEl.value = '';
+  // Re-evaluate section stamp
+  _slStampSection(sectionKey.replace(/_\d$/, '') || sectionKey);
 }
 
 function slClearAllPhotos() {
@@ -7203,15 +7272,19 @@ async function slUploadPhotos(slId) {
 
 function slRestorePhotos(rec) {
   SL_PHOTO_KEYS.forEach(key => {
-    // Restore notes
-    const notesEl = document.getElementById('slNotes_' + key);
-    if (notesEl) notesEl.value = rec['SlNotes_' + key] || '';
+    // Restore notes — only for the base key (farrow_1/2/3 all share slNotes_farrow)
+    const baseKey = key.replace(/_\d$/, '');
+    const notesEl = document.getElementById('slNotes_' + baseKey);
+    if (notesEl && !notesEl._restored) {
+      notesEl.value = rec['SlNotes_' + baseKey] || '';
+      notesEl._restored = true; // prevent overwrite by farrow_2, farrow_3
+    }
 
-    // Restore photo
     const url  = rec['SlPhoto_'     + key];
     const time = rec['SlPhotoTime_' + key];
     const img    = document.getElementById('slPhotoImg_'     + key);
     const prev   = document.getElementById('slPhotoPreview_' + key);
+    const empty  = document.getElementById('slPhotoEmpty_'   + key);
     const stat   = document.getElementById('slPhotoStatus_'  + key);
     const clrBtn = document.getElementById('slPhotoClear_'   + key);
     const tsEl   = document.getElementById('slPhotoTs_'      + key);
@@ -7222,13 +7295,38 @@ function slRestorePhotos(rec) {
         : url;
       if (img)    { img.src = displayUrl; img.onerror = () => { img.src = url; }; }
       if (prev)   prev.style.display   = 'block';
+      if (empty)  empty.style.display  = 'none';
       if (clrBtn) clrBtn.style.display = 'inline-flex';
       if (stat)   stat.textContent     = time ? '📷 ' + time : '📷 Saved';
-      if (tsEl)   { tsEl.textContent   = time ? '📷 ' + time : ''; tsEl.style.display = time ? 'block' : 'none'; }
+      if (tsEl)   { tsEl.textContent   = time ? time : ''; tsEl.style.display = time ? 'block' : 'none'; }
     } else {
       slPhotoClear(key);
     }
   });
+  // Reset the _restored flag after processing
+  SL_PHOTO_KEYS.forEach(key => {
+    const baseKey = key.replace(/_\d$/, '');
+    const el = document.getElementById('slNotes_' + baseKey);
+    if (el) el._restored = false;
+  });
+}
+
+function slViewPhoto(key) {
+  const img = document.getElementById('slPhotoImg_' + key);
+  if (!img || !img.src) return;
+  const lb   = document.getElementById('slLightbox');
+  const lbImg = document.getElementById('slLightboxImg');
+  const lbCap = document.getElementById('slLightboxCaption');
+  if (!lb || !lbImg) return;
+  lbImg.src = img.src;
+  const tsEl = document.getElementById('slPhotoTs_' + key);
+  if (lbCap) lbCap.textContent = tsEl ? tsEl.textContent : '';
+  lb.style.display = 'flex';
+}
+
+function slCloseLightbox() {
+  const lb = document.getElementById('slLightbox');
+  if (lb) lb.style.display = 'none';
 }
 
 // Total = Foster + cl_nursing (Actively Nursing) from today's DailyChecklist for this pen
