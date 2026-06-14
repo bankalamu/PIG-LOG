@@ -1304,7 +1304,7 @@
         <!-- Row 1: Sow ID · Litter Boar -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Sow ID</label>
-          <select id="slSowId" class="form-input" onchange="slLookupExisting();slUpdateEstFarrowDate();slAutoPopulateBoar()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
+          <select id="slSowId" class="form-input" onchange="slLookupExisting();slUpdateEstFarrowDate();slAutoPopulateBoar();slAutoPopulatePen()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
             <option value="">— Select —</option>
           </select>
           <datalist id="slSowOptions"></datalist>
@@ -1323,7 +1323,7 @@
         </div>
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Pen No.</label>
-          <input type="number" id="slPen" min="1" max="999" placeholder="1" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700" oninput="slLookupExisting();slCalcTotalPiglets()">
+          <input type="number" id="slPen" min="1" max="999" placeholder="1" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700" oninput="slLookupExisting();slCalcTotalPiglets();(document.getElementById('slPenNote')&&(document.getElementById('slPenNote').textContent=''))">
         </div>
 
         <!-- Row 3: Est. Farrow Date (auto) — full width -->
@@ -6710,7 +6710,11 @@ async function loadSowRecords() {
   })();
   sowRecordCache = source
     .filter(r => String(r['Type'] || '').trim().toLowerCase() === 'sow')
-    .map(r => ({ dbId: String(r['DB_ID']), pigId: String(r['PIG ID'] || '').trim() }))
+    .map(r => ({
+      dbId:  String(r['DB_ID']),
+      pigId: String(r['PIG ID'] || '').trim(),
+      pen:   String(r['Pen']    || '').trim()
+    }))
     .filter(r => r.dbId && r.pigId)
     .sort((a, b) => a.pigId.localeCompare(b.pigId));
   return sowRecordCache;
@@ -6787,7 +6791,30 @@ function slAutoPopulateBoar() {
     if (note) note.textContent = 'ℹ️ No service record found — please select manually';
   }
 }
-// Auto-populate Est. Farrow Date = Sow's ServiceDate + 115 days
+
+function slAutoPopulatePen() {
+  const sowId  = (document.getElementById('slSowId')?.value || '').trim();
+  const penEl  = document.getElementById('slPen');
+  if (!penEl || !sowId) return;
+
+  // Only auto-fill if the pen field is currently empty (don't override manual entry)
+  if (penEl.value.trim()) return;
+
+  // Look up pen from sowRecordCache (already loaded with pen field)
+  const sowCached = sowRecordCache.find(r => r.dbId === sowId);
+  if (sowCached?.pen) {
+    penEl.value = sowCached.pen;
+    // Show a brief note
+    let note = document.getElementById('slPenNote');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'slPenNote';
+      note.style.cssText = 'font-size:11px;color:#1a3a8a;margin-top:3px;font-weight:600';
+      penEl.parentElement.appendChild(note);
+    }
+    note.textContent = '🔗 Auto-filled from sow record';
+  }
+}
 function slUpdateEstFarrowDate() {
   const sowId = (document.getElementById('slSowId')?.value || '').trim();
   const el    = document.getElementById('slEstFarrowDate');
@@ -7774,7 +7801,8 @@ function slIsClosed(rec) {
   if (rec.FarrowDate) {
     const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
     const today  = new Date(); today.setHours(0,0,0,0);
-    if ((today - farrow) / 86400000 > 35) return true;
+    // Auto-close after 60 days (2 months) if not weaned
+    if ((today - farrow) / 86400000 > 60) return true;
   }
   return false;
 }
@@ -7907,7 +7935,7 @@ function renderSlHistory() {
     if (!rec['sl_date_weaned'] && rec['weaned'] !== 'done' && rec.FarrowDate) {
       const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
       const days = Math.floor((today - farrow) / 86400000);
-      if (days > 35) closeBadge = '<span style="background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">🔒 Day ' + days + ' — Auto-closed</span>';
+      if (days > 60) closeBadge = '<span style="background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">🔒 Day ' + days + ' — Auto-closed</span>';
     }
     return '<div class="cl-record-card">'
       + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + getSowPigIdFromDbId(rec.SowId) + '</div>' + closeBadge + '</div>'
@@ -7946,14 +7974,39 @@ async function slOpenRecord(slId) {
   const btn      = document.getElementById('btnSaveSl');
   const slError  = document.getElementById('slValidationError');
 
+  // Always ensure all form fields are enabled — admin must be able to edit everything
+  if (isAdminEnabled() || !isClosed) {
+    document.querySelectorAll('#slFormView input, #slFormView select, #slFormView textarea').forEach(el => {
+      el.disabled = false;
+      el.style.background = '';
+      el.style.color = '';
+      el.style.cursor = '';
+    });
+    // Re-enable task checkboxes (class-based, not disabled)
+    document.querySelectorAll('.sl-task-check').forEach(el => {
+      el.classList.remove('locked');
+      el.style.pointerEvents = '';
+      el.style.cursor = '';
+    });
+    document.querySelectorAll('.sl-task-label').forEach(el => el.classList.remove('locked-text'));
+  }
+
   if (isClosed && !isAdminEnabled()) {
+    // Lock all form fields for non-admin
+    document.querySelectorAll('#slFormView input, #slFormView select, #slFormView textarea').forEach(el => {
+      el.disabled = true;
+    });
+    document.querySelectorAll('.sl-task-check').forEach(el => {
+      el.classList.add('locked');
+      el.style.pointerEvents = 'none';
+    });
     if (slError) {
       const farrow = new Date(rec.FarrowDate||''); farrow.setHours(0,0,0,0);
       const today  = new Date(); today.setHours(0,0,0,0);
       const days   = Math.floor((today - farrow) / 86400000);
       const reason = rec['sl_date_weaned'] ? 'weaned on ' + rec['sl_date_weaned']
                    : rec['weaned'] === 'done' ? 'weaning task completed'
-                   : 'Day ' + days + ' — exceeded 35-day limit';
+                   : 'Day ' + days + ' — exceeded 60-day (2-month) limit';
       slError.textContent = '🔒 This record is closed (' + reason + '). Admin access required to edit.';
       slError.style.display = 'block';
       slError.style.background = '#fff8e1';
@@ -7961,6 +8014,23 @@ async function slOpenRecord(slId) {
       slError.style.color = '#78350f';
     }
     if (btn) { btn.disabled = true; btn.textContent = '🔒 Record Closed'; }
+    if (banner) banner.style.display = 'none';
+  } else if (isClosed && isAdminEnabled()) {
+    // Admin editing a closed record — show override notice but allow saving
+    if (slError) {
+      const farrow = new Date(rec.FarrowDate||''); farrow.setHours(0,0,0,0);
+      const today  = new Date(); today.setHours(0,0,0,0);
+      const days   = Math.floor((today - farrow) / 86400000);
+      const reason = rec['sl_date_weaned'] ? 'weaned on ' + rec['sl_date_weaned']
+                   : rec['weaned'] === 'done' ? 'weaning task completed'
+                   : 'Day ' + days + ' — exceeded 60-day (2-month) limit';
+      slError.textContent = '🔓 Admin override — this record is closed (' + reason + ') but you can still update and save it.';
+      slError.style.display = 'block';
+      slError.style.background = '#e8f0ff';
+      slError.style.borderColor = '#1a3a8a';
+      slError.style.color = '#1a3a8a';
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'UPDATE RECORD (Admin)'; }
     if (banner) banner.style.display = 'none';
   } else {
     if (slError) slError.style.display = 'none';
