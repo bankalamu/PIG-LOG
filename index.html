@@ -1323,7 +1323,7 @@
         </div>
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Pen No.</label>
-          <input type="number" id="slPen" min="1" max="999" placeholder="1" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700" oninput="slLookupExisting();slCalcTotalPiglets();(document.getElementById('slPenNote')&&(document.getElementById('slPenNote').textContent=''))">
+          <input type="text" id="slPen" readonly placeholder="— auto from SOW record —" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700;background:#f0f4ff;color:#1a3a8a;cursor:not-allowed;border-color:#c5d3f0">
         </div>
 
         <!-- Row 3: Est. Farrow Date (auto) — full width -->
@@ -6793,27 +6793,34 @@ function slAutoPopulateBoar() {
 }
 
 function slAutoPopulatePen() {
-  const sowId  = (document.getElementById('slSowId')?.value || '').trim();
-  const penEl  = document.getElementById('slPen');
-  if (!penEl || !sowId) return;
+  const sowId = (document.getElementById('slSowId')?.value || '').trim();
+  const penEl = document.getElementById('slPen');
+  if (!penEl) return;
 
-  // Only auto-fill if the pen field is currently empty (don't override manual entry)
-  if (penEl.value.trim()) return;
-
-  // Look up pen from sowRecordCache (already loaded with pen field)
-  const sowCached = sowRecordCache.find(r => r.dbId === sowId);
-  if (sowCached?.pen) {
-    penEl.value = sowCached.pen;
-    // Show a brief note
-    let note = document.getElementById('slPenNote');
-    if (!note) {
-      note = document.createElement('div');
-      note.id = 'slPenNote';
-      note.style.cssText = 'font-size:11px;color:#1a3a8a;margin-top:3px;font-weight:600';
-      penEl.parentElement.appendChild(note);
-    }
-    note.textContent = '🔗 Auto-filled from sow record';
+  if (!sowId) {
+    penEl.value = '';
+    const note = document.getElementById('slPenNote');
+    if (note) note.textContent = '';
+    return;
   }
+
+  // Look up pen from sowRecordCache (loaded with pen field)
+  const sowCached = sowRecordCache.find(r => r.dbId === sowId);
+  // Fall back to allRecords if cache not yet populated
+  const pen = sowCached?.pen
+    || String(allRecords.find(r => String(r.DB_ID) === sowId)?.Pen || '').trim();
+
+  penEl.value = pen || '';
+
+  let note = document.getElementById('slPenNote');
+  if (!note) {
+    note = document.createElement('div');
+    note.id = 'slPenNote';
+    note.style.cssText = 'font-size:11px;color:#1a3a8a;margin-top:3px;font-weight:600';
+    penEl.parentElement.appendChild(note);
+  }
+  note.textContent = pen ? '🔗 From sow record (read-only)' : '⚠ No pen on sow record';
+  note.style.color = pen ? '#1a3a8a' : '#c0392b';
 }
 function slUpdateEstFarrowDate() {
   const sowId = (document.getElementById('slSowId')?.value || '').trim();
@@ -7477,6 +7484,8 @@ async function slLookupExisting() {
 
 function _populateSlForm(rec) {
   if(document.getElementById('slPen'))   document.getElementById('slPen').value   = rec.Pen   || '';
+  // Pen is read-only — always sourced from sow record; refresh to sync
+  slAutoPopulatePen();
   if(document.getElementById('slNotes')) document.getElementById('slNotes').value = rec.Notes || '';
   const fSowEl = document.getElementById('slFSow');
   if (fSowEl) fSowEl.value = rec.sl_fsow || '';
@@ -7619,7 +7628,9 @@ function resetSowLitter() {
   // Clear section notes
   SL_PHOTO_KEYS.forEach(key => { const el = document.getElementById('slNotes_' + key); if (el) el.value = ''; });
   const today = new Date().toISOString().split('T')[0];
-  ['slSowId','slLitterBoar','slPen','slNotes','slFSow'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
+  ['slSowId','slLitterBoar','slNotes','slFSow'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
+  const penEl = document.getElementById('slPen'); if (penEl) penEl.value = '';
+  const penNote = document.getElementById('slPenNote'); if (penNote) penNote.textContent = '';
   const noteEl = document.getElementById('slLitterBoarNote'); if (noteEl) noteEl.textContent = '';
   const slErr = document.getElementById('slValidationError');
   if (slErr) slErr.style.display = 'none';
@@ -7975,8 +7986,10 @@ async function slOpenRecord(slId) {
   const slError  = document.getElementById('slValidationError');
 
   // Always ensure all form fields are enabled — admin must be able to edit everything
+  // slPen is always read-only (derived from sow record) — excluded from unlock
   if (isAdminEnabled() || !isClosed) {
     document.querySelectorAll('#slFormView input, #slFormView select, #slFormView textarea').forEach(el => {
+      if (el.id === 'slPen') return; // always read-only
       el.disabled = false;
       el.style.background = '';
       el.style.color = '';
@@ -7994,6 +8007,7 @@ async function slOpenRecord(slId) {
   if (isClosed && !isAdminEnabled()) {
     // Lock all form fields for non-admin
     document.querySelectorAll('#slFormView input, #slFormView select, #slFormView textarea').forEach(el => {
+      if (el.id === 'slPen') return; // already read-only
       el.disabled = true;
     });
     document.querySelectorAll('.sl-task-check').forEach(el => {
