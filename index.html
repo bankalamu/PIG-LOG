@@ -6687,9 +6687,13 @@ async function moDeleteRecord(moId) {
 // ══════════════════════════════════════════════════
 
 const SL_TASKS = [
-  'sl_colostrum','sl_iron','sl_teeth','sl_tail','sl_ear_notch',
-  'sl_d3_check','sl_d7_check','sl_d14_check','sl_d21_check',
-  'sl_creep_start','sl_castrate','sl_weaned'
+  'sow_antiinflam','sow_mma_ab','sow_oxytocin',
+  'iodine','colostrum','teat_order','heat_lamp','litter_weigh',
+  'iron','tail_dock','teeth','navel_check',
+  'multivit','creep','navel_healed',
+  'castration','ear_notch','coccidiostat',
+  'indiv_weigh','health_d14','mma_d14',
+  'vax','weaner_feed','weaner_pen','prev_meds','weaned'
 ];
 
 let slTaskState  = {};
@@ -7805,10 +7809,11 @@ async function loadSlActive() {
   }
 }
 
-// A record is "closed" if: weaned date set, OR weaned task done, OR today > farrowDate + 35 days
+// A record is "closed" if: weaned date set, OR weaned task done, OR today > farrowDate + 60 days
 function slIsClosed(rec) {
   if (rec['sl_date_weaned'] && rec['sl_date_weaned'] !== '') return true;
-  if (rec['weaned'] === 'done') return true;
+  // Check both 'weaned' (current key) and 'sl_weaned' (legacy key from old SL_TASKS)
+  if (rec['weaned'] === 'done' || rec['sl_weaned'] === 'done') return true;
   if (rec.FarrowDate) {
     const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
     const today  = new Date(); today.setHours(0,0,0,0);
@@ -7837,7 +7842,8 @@ function _slBuildExpiredBanner(records) {
 
     // Skip records that are properly closed — weaned or auto-closed
     const isWeaned    = (rec.sl_date_weaned && String(rec.sl_date_weaned).trim() !== '')
-                      || rec.weaned === 'done';
+                      || rec.weaned === 'done'
+                      || rec.sl_weaned === 'done'; // legacy key
     const hasFarrow   = rec.FarrowDate && String(rec.FarrowDate).trim() !== '';
     const farrow      = hasFarrow ? new Date(rec.FarrowDate) : null;
     if (farrow) farrow?.setHours(0,0,0,0);
@@ -7904,16 +7910,16 @@ function renderSlActive() {
   container.innerHTML = _sortByPen(active, 'Pen').map(rec => {
     const farrow = new Date(rec.FarrowDate||'');
     const days   = isNaN(farrow) ? '?' : Math.floor((today - farrow)/86400000);
-    const daysLeft = typeof days === 'number' ? (35 - days) : '?';
-    const urgentBadge = typeof days === 'number' && daysLeft <= 5 && daysLeft >= 0
-      ? `<span style="background:#ff9800;color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:2px 7px;margin-left:6px">⏰ ${daysLeft}d left</span>`
+    const daysLeft = typeof days === 'number' ? (60 - days) : '?';
+    const urgentBadge = typeof days === 'number' && daysLeft <= 7 && daysLeft >= 0
+      ? `<span style="background:#ff9800;color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:2px 7px;margin-left:6px">⏰ ${daysLeft}d to wean</span>`
       : '';
     const deleteBtn = isAdminEnabled()
       ? ' <button class="btn-delete" onclick="event.stopPropagation();slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
       : '';
     return '<div class="cl-record-card" style="cursor:pointer" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">'
       + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + getSowPigIdFromDbId(rec.SowId) + ' · Day ' + days + urgentBadge + '</div></div>'
-      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + (rec.LitterBoar ? ' · Boar: ' + getBoarPigIdFromDbId(rec.LitterBoar) : '') + ' · Wean by Day 35</div>'
+      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + (rec.LitterBoar ? ' · Boar: ' + getBoarPigIdFromDbId(rec.LitterBoar) : '') + ' · Wean by Day 60</div>'
       + (deleteBtn ? '<div class="cl-record-actions">' + deleteBtn + '</div>' : '')
       + '</div>';
   }).join('');
