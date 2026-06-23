@@ -211,9 +211,14 @@ function handlePostPayload(payload) {
     if (action === "addHealthIssue") return respond(addHealthIssue(payload.data));
     if (action === "waUpdate")    return respond(waUpdate(payload.id, payload.data));
     if (action === "waDelete")    return respond(waDelete(payload.id));
-    if (action === "grainAdd")        return respond(grainAdd(payload.data));
-    if (action === "grainCloseBatch") return respond(grainCloseBatch(payload.batchId));
-    if (action === "grainDelete")     return respond(grainDelete(payload.id));
+    if (action === "maizeAdd")        return respond(maizeAdd(payload.data));
+    if (action === "maizeCloseBatch") return respond(maizeCloseBatch(payload.batchId));
+    if (action === "maizeDelete")     return respond(maizeDelete(payload.id));
+    if (action === "soyAdd")          return respond(soyAdd(payload.data));
+    if (action === "soyCloseBatch")   return respond(soyCloseBatch(payload.batchId));
+    if (action === "soyDelete")       return respond(soyDelete(payload.id));
+    
+    
     if (action === "migrateBoarSow")   return respond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return respond(migrateSowLitterSowId());
     if (action === "runAIAnalysis")    return respond(runNightlyAIAnalysis(payload.targetDate || null, true));
@@ -3070,19 +3075,20 @@ function _runAISafe(targetDate) {
 //  GRAIN LOG — Sheet: GrainLog
 // ═══════════════════════════════════════════════════════════════
 
-const GR_SHEET = 'GrainLog';
-const GR_HEADERS = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
+const MAIZE_SHEET = 'MaizeLog';
+const SOY_SHEET   = 'SoyBeanLog';
+const MAIZE_HEADERS = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
                     'BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
 
 /**
  * Gets or creates the GrainLog sheet.
  * @returns {GoogleAppsScript.Spreadsheet.Sheet}
  */
-function getGrainSheet() {
+function getMaizeSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(GR_SHEET);
+  let sheet = ss.getSheetByName(MAIZE_SHEET);
   if (!sheet) {
-    sheet = ss.insertSheet(GR_SHEET);
+    sheet = ss.insertSheet(MAIZE_SHEET);
     sheet.appendRow(GR_HEADERS);
     sheet.getRange(1,1,1,GR_HEADERS.length).setFontWeight('bold').setBackground('#78350f').setFontColor('#ffffff');
     sheet.setFrozenRows(1);
@@ -3094,8 +3100,8 @@ function getGrainSheet() {
  * Returns all GrainLog records.
  * @returns {{ success: boolean, records: Object[] }}
  */
-function grainGetAll() {
-  const sheet = getGrainSheet();
+function maizeGetAll() {
+  const sheet = getMaizeSheet();
   const data  = sheet.getDataRange().getValues();
   if (data.length < 2) return { success: true, records: [] };
   const hdrs = data[0].map(h => String(h).trim());
@@ -3117,8 +3123,8 @@ function grainGetAll() {
  * @param {Object} data - Entry fields.
  * @returns {{ success: boolean, gr_id: number }}
  */
-function grainAdd(data) {
-  const sheet = getGrainSheet();
+function maizeAdd(data) {
+  const sheet = getMaizeSheet();
   const lastCol = sheet.getLastColumn();
   const hdrs = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
   const lastRow = sheet.getLastRow();
@@ -3137,8 +3143,8 @@ function grainAdd(data) {
  * @param {string} batchId - The batch identifier to close.
  * @returns {{ success: boolean }}
  */
-function grainCloseBatch(batchId) {
-  const sheet = getGrainSheet();
+function maizeCloseBatch(batchId) {
+  const sheet = getMaizeSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { success: true };
   const lastCol = sheet.getLastColumn();
@@ -3165,8 +3171,117 @@ function grainCloseBatch(batchId) {
  * @param {number} id - The GR_ID to delete.
  * @returns {{ success: boolean, error?: string }}
  */
-function grainDelete(id) {
-  const sheet = getGrainSheet();
+function maizeDelete(id) {
+  const sheet = getMaizeSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { success: false, error: 'No records' };
+  const data = sheet.getRange(2,1,lastRow-1,1).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim() === String(id).trim()) {
+      sheet.deleteRow(i + 2);
+      return { success: true };
+    }
+  }
+  return { success: false, error: 'Record not found' };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  SOY BEAN LOG — Sheet: SoyBeanLog
+// ═══════════════════════════════════════════════════════════════
+
+const SOY_HEADERS = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
+                     'BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
+
+/**
+ * Gets or creates the SoyBeanLog sheet.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet}
+ */
+function getSoySheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SOY_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(SOY_SHEET);
+    sheet.appendRow(SOY_HEADERS);
+    sheet.getRange(1,1,1,SOY_HEADERS.length).setFontWeight('bold').setBackground('#4d7c0f').setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Returns all SoyBeanLog records.
+ * @returns {{ success: boolean, records: Object[] }}
+ */
+function soyGetAll() {
+  const sheet = getSoySheet();
+  const data  = sheet.getDataRange().getValues();
+  if (data.length < 2) return { success: true, records: [] };
+  const hdrs = data[0].map(h => String(h).trim());
+  const records = data.slice(1).filter(r => r[0] !== '').map(row => {
+    const rec = {};
+    hdrs.forEach((h, i) => {
+      const v = row[i];
+      rec[h] = v instanceof Date
+        ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+        : String(v === null || v === undefined ? '' : v);
+    });
+    return rec;
+  });
+  return { success: true, records };
+}
+
+/**
+ * Adds a new SoyBeanLog entry.
+ * @param {Object} data - Entry fields.
+ * @returns {{ success: boolean, gr_id: number }}
+ */
+function soyAdd(data) {
+  const sheet = getSoySheet();
+  const lastCol = sheet.getLastColumn();
+  const hdrs = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
+  const lastRow = sheet.getLastRow();
+  const allData = lastRow > 1 ? sheet.getRange(2,1,lastRow-1,lastCol).getValues() : [];
+  const grIdIdx = hdrs.indexOf('GR_ID');
+  const maxId = allData.reduce((m, r) => Math.max(m, parseInt(r[grIdIdx]||0,10)||0), 0);
+  const newId = maxId + 1;
+  const row = SOY_HEADERS.map(h => h === 'GR_ID' ? newId : (data[h] !== undefined ? data[h] : ''));
+  sheet.appendRow(row);
+  return { success: true, gr_id: newId };
+}
+
+/**
+ * Closes a soy batch — sets BatchDone='yes' and bolds last row.
+ * @param {string} batchId - The batch ID to close.
+ * @returns {{ success: boolean }}
+ */
+function soyCloseBatch(batchId) {
+  const sheet = getSoySheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { success: true };
+  const lastCol = sheet.getLastColumn();
+  const hdrs = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
+  const data = sheet.getRange(2,1,lastRow-1,lastCol).getValues();
+  const batchIdIdx   = hdrs.indexOf('BatchId');
+  const batchDoneIdx = hdrs.indexOf('BatchDone');
+  let lastMatchRow   = -1;
+  data.forEach((row, i) => {
+    if (String(row[batchIdIdx]).trim() === String(batchId).trim()) {
+      sheet.getRange(i+2, batchDoneIdx+1).setValue('yes');
+      lastMatchRow = i + 2;
+    }
+  });
+  if (lastMatchRow > 0) sheet.getRange(lastMatchRow, 1, 1, lastCol).setFontWeight('bold');
+  return { success: true };
+}
+
+/**
+ * Deletes a SoyBeanLog entry by GR_ID.
+ * @param {number} id - The GR_ID to delete.
+ * @returns {{ success: boolean, error?: string }}
+ */
+function soyDelete(id) {
+  const sheet = getSoySheet();
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { success: false, error: 'No records' };
   const data = sheet.getRange(2,1,lastRow-1,1).getValues();

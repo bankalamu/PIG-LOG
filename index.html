@@ -679,11 +679,19 @@
       </div>
     </button>
 
-    <button class="action-card" style="border-color:#78350f;background:#fff" onclick="showPage('pageGrain')">
-      <div class="card-icon" style="background:#fef3c7">🌾</div>
+    <button class="action-card" style="border-color:#78350f;background:#fff" onclick="showPage('pageMaize')">
+      <div class="card-icon" style="background:#fef3c7">🌽</div>
       <div>
-        <div class="card-title" style="color:#78350f">Grain Log</div>
-        <div class="card-desc">Record grain purchases &amp; batch tracking</div>
+        <div class="card-title" style="color:#78350f">Maize Log</div>
+        <div class="card-desc">Record maize purchases &amp; batch tracking</div>
+      </div>
+    </button>
+
+    <button class="action-card" style="border-color:#4d7c0f;background:#fff" onclick="showPage('pageSoy')">
+      <div class="card-icon" style="background:#f7fee7">🫘</div>
+      <div>
+        <div class="card-title" style="color:#4d7c0f">Soy Bean Log</div>
+        <div class="card-desc">Record soy bean purchases &amp; batch tracking</div>
       </div>
     </button>
 
@@ -2521,76 +2529,76 @@
   </div><!-- end pageWorkers -->
 
   <!-- ═══════════════════════════════════════════════════════ -->
-  <!--  GRAIN LOG                                              -->
+  <!--  MAIZE LOG                                              -->
   <!-- ═══════════════════════════════════════════════════════ -->
-  <div id="pageGrain" style="display:none">
+  <div id="pageMaize" style="display:none">
     <div class="page-header">
-      <h2 class="page-title" style="color:#78350f">🌾 Grain Log</h2>
-      <p class="page-subtitle">Track grain purchases by batch</p>
+      <h2 class="page-title" style="color:#78350f">🌽 Maize Log</h2>
+      <p class="page-subtitle">Track maize purchases by batch</p>
     </div>
 
     <!-- Batch toggle banner -->
     <div style="display:flex;align-items:center;justify-content:space-between;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:12px 16px;margin-bottom:14px">
       <div>
-        <div id="grainBatchLabel" style="font-size:13px;font-weight:800;color:#78350f">🟡 No active batch</div>
-        <div id="grainBatchSub" style="font-size:11px;color:#92400e;margin-top:2px"></div>
+        <div id="maizeBatchLabel" style="font-size:13px;font-weight:800;color:#78350f">🟡 No active batch</div>
+        <div id="maizeBatchSub" style="font-size:11px;color:#92400e;margin-top:2px"></div>
       </div>
-      <button id="grainBatchBtn" onclick="grainToggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">
+      <button id="maizeBatchBtn" onclick="maizeToggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">
         🚀 New Batch
       </button>
     </div>
 
     <!-- Entry form — only visible during active batch -->
-    <div id="grainEntryForm" style="display:none;background:#fff;border:1.5px solid #f59e0b;border-radius:12px;padding:14px;margin-bottom:14px">
+    <div id="maizeEntryForm" style="display:none;background:#fff;border:1.5px solid #f59e0b;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:12px">➕ Add Purchase Entry</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div>
           <label class="form-label">Date</label>
-          <input type="date" id="grainDate" class="form-input" style="font-weight:700">
+          <input type="date" id="maizeDate" class="form-input" style="font-weight:700">
         </div>
         <div>
           <label class="form-label">Buyer Name</label>
-          <select id="grainBuyer" class="form-input" style="font-weight:700;font-size:12px">
+          <select id="maizeBuyer" class="form-input" style="font-weight:700;font-size:12px">
             <option value="">— Select —</option>
           </select>
         </div>
         <div>
           <label class="form-label">Quantity (kg)</label>
-          <input type="number" id="grainQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="grainCalcCost()">
+          <input type="number" id="maizeQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="maizeCalcCost()">
         </div>
         <div>
           <label class="form-label">Price per kg (K)</label>
-          <input type="number" id="grainPrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="grainCalcCost()">
+          <input type="number" id="maizePrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="maizeCalcCost()">
         </div>
         <div>
           <label class="form-label">Cost (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
-          <div id="grainCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div>
+          <div id="maizeCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div>
         </div>
         <div>
           <label class="form-label">Batch Weight (kg) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
-          <div id="grainBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div>
+          <div id="maizeBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div>
         </div>
         <div>
           <label class="form-label">Batch Total (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
-          <div id="grainBatchTotalDisplay" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#78350f;min-height:38px">—</div>
+          <div id="maizeBatchTotalDisplay" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#78350f;min-height:38px">—</div>
         </div>
         <div>
           <label class="form-label">Running Total (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
-          <div id="grainRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div>
+          <div id="maizeRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div>
         </div>
       </div>
 
-      <button onclick="grainAddEntry()" style="margin-top:14px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">
+      <button onclick="maizeAddEntry()" style="margin-top:14px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">
         💾 Save Entry
       </button>
-      <div id="grainEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
+      <div id="maizeEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
 
     <!-- Records table -->
-    <div id="grainTableWrap" style="overflow-x:auto">
-      <div id="grainEmpty" style="text-align:center;color:#aaa;font-size:13px;padding:30px 0">No grain purchases recorded yet.</div>
-      <table id="grainTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
+    <div id="maizeTableWrap" style="overflow-x:auto">
+      <div id="maizeEmpty" style="text-align:center;color:#aaa;font-size:13px;padding:30px 0">No maize purchases recorded yet.</div>
+      <table id="maizeTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
         <thead>
           <tr style="background:#78350f;color:#fff;font-weight:800;font-size:11px">
             <th style="padding:8px 10px;text-align:left;white-space:nowrap">Date</th>
@@ -2604,10 +2612,71 @@
             <th style="padding:8px 4px;text-align:center;white-space:nowrap"></th>
           </tr>
         </thead>
-        <tbody id="grainTableBody"></tbody>
+        <tbody id="maizeTableBody"></tbody>
       </table>
     </div>
   </div><!-- end pageGrain -->
+
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!--  SOY BEAN LOG                                           -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="pageSoy" style="display:none">
+    <div class="page-header">
+      <h2 class="page-title" style="color:#4d7c0f">🫘 Soy Bean Log</h2>
+      <p class="page-subtitle">Track soy bean purchases by batch</p>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#f7fee7;border:2px solid #86efac;border-radius:12px;padding:12px 16px;margin-bottom:14px">
+      <div>
+        <div id="soyBatchLabel" style="font-size:13px;font-weight:800;color:#4d7c0f">🟡 No active batch</div>
+        <div id="soyBatchSub" style="font-size:11px;color:#3f6212;margin-top:2px"></div>
+      </div>
+      <button id="soyBatchBtn" onclick="soyToggleBatch()" style="background:#4d7c0f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">
+        🚀 New Batch
+      </button>
+    </div>
+
+    <div id="soyEntryForm" style="display:none;background:#fff;border:1.5px solid #86efac;border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:800;color:#4d7c0f;margin-bottom:12px">➕ Add Purchase Entry</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label class="form-label">Date</label><input type="date" id="soyDate" class="form-input" style="font-weight:700"></div>
+        <div><label class="form-label">Buyer Name</label><select id="soyBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
+        <div><label class="form-label">Quantity (kg)</label><input type="number" id="soyQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="soyCalcCost()"></div>
+        <div><label class="form-label">Price per kg (K)</label><input type="number" id="soyPrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="soyCalcCost()"></div>
+        <div><label class="form-label">Cost (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
+          <div id="soyCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
+        <div><label class="form-label">Batch Weight (kg) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
+          <div id="soyBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
+        <div><label class="form-label">Batch Total (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
+          <div id="soyBatchTotalDisplay" style="background:#f7fee7;border:1.5px solid #86efac;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#4d7c0f;min-height:38px">—</div></div>
+        <div><label class="form-label">Running Total (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
+          <div id="soyRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
+      </div>
+      <button onclick="soyAddEntry()" style="margin-top:14px;width:100%;background:#4d7c0f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
+      <div id="soyEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
+    </div>
+
+    <div id="soyTableWrap" style="overflow-x:auto">
+      <div id="soyEmpty" style="text-align:center;color:#aaa;font-size:13px;padding:30px 0">No soy bean purchases recorded yet.</div>
+      <table id="soyTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:#4d7c0f;color:#fff;font-weight:800;font-size:11px">
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap">Date</th>
+            <th style="padding:8px 10px;text-align:left;white-space:nowrap">Buyer</th>
+            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Qty (kg)</th>
+            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Price/kg</th>
+            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Cost (K)</th>
+            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Batch Wt</th>
+            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Batch Total</th>
+            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Running Total</th>
+            <th style="padding:8px 4px;text-align:center;white-space:nowrap"></th>
+          </tr>
+        </thead>
+        <tbody id="soyTableBody"></tbody>
+      </table>
+    </div>
+  </div><!-- end pageSoy -->
 
 </div><!-- end #app -->
 
@@ -3037,7 +3106,8 @@ function showPage(id) {
   if (id === "pageMonthly")  { _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
   if (id === "pageNotch")    { boarRecordCache = []; sowRecordCache = []; populateNotchDropdowns(); }
   if (id === "pageWorkers")  { initWorkerActions(); }
-  if (id === "pageGrain")    { initGrainPage(); }
+  if (id === "pageMaize")    { initMaizePage(); }
+  if (id === "pageSoy")      { initSoyPage(); }
 }
 
 function goHome() { showPage("pageHome"); }
@@ -8835,30 +8905,30 @@ function _updateDecodeResults() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  GRAIN LOG
+//  MAIZE LOG
 // ═══════════════════════════════════════════════════════════════
 
-let grainRecords   = [];   // all GR records loaded from backend
-let grainBatchActive = false; // is a batch currently open?
-let grainBatchId   = null; // current batch identifier (timestamp string)
-const GRAIN_PREF_KEY = 'piglog_grain_buyer'; // localStorage key for default buyer
+let maizeRecords   = [];   // all GR records loaded from backend
+let maizeBatchActive = false; // is a batch currently open?
+let maizeBatchId   = null; // current batch identifier (timestamp string)
+const MAIZE_PREF_KEY = 'piglog_maize_buyer'; // localStorage key for default buyer
 
 // ── Page init ────────────────────────────────────────────────
-async function initGrainPage() {
+async function initMaizePage() {
   // Set today's date
-  const dateEl = document.getElementById('grainDate');
+  const dateEl = document.getElementById('maizeDate');
   if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
 
   // Load buyer names from PigLog records + settings
-  await grainPopulateBuyers();
+  await maizePopulateBuyers();
 
   // Load records from backend
-  await grainLoadRecords();
+  await maizeLoadRecords();
 }
 
 // ── Buyer dropdown ────────────────────────────────────────────
-async function grainPopulateBuyers() {
-  const sel = document.getElementById('grainBuyer');
+async function maizePopulateBuyers() {
+  const sel = document.getElementById('maizeBuyer');
   if (!sel) return;
 
   // Get all people from allRecords (First + Last name fields) — use pig owners/staff
@@ -8866,7 +8936,7 @@ async function grainPopulateBuyers() {
   let names = [];
 
   // Pull unique buyer names from existing grain records
-  grainRecords.forEach(r => { if (r.Buyer && !names.includes(r.Buyer)) names.push(r.Buyer); });
+  maizeRecords.forEach(r => { if (r.Buyer && !names.includes(r.Buyer)) names.push(r.Buyer); });
 
   // Pull worker names from settings
   try {
@@ -8885,7 +8955,7 @@ async function grainPopulateBuyers() {
     });
   }
 
-  const preferred = localStorage.getItem(GRAIN_PREF_KEY) || '';
+  const preferred = localStorage.getItem(MAIZE_PREF_KEY) || '';
   const current   = sel.value;
 
   sel.innerHTML = '<option value="">— Select buyer —</option>';
@@ -8907,41 +8977,41 @@ async function grainPopulateBuyers() {
 }
 
 // ── Load records ──────────────────────────────────────────────
-async function grainLoadRecords() {
-  const result = await apiGet({ action: 'grainGetAll' });
+async function maizeLoadRecords() {
+  const result = await apiGet({ action: 'maizeGetAll' });
   if (result?.success) {
-    grainRecords = result.records || [];
+    maizeRecords = result.records || [];
     // Detect if a batch is still open (last record has BatchDone !== 'yes')
-    const last = grainRecords[grainRecords.length - 1];
+    const last = maizeRecords[maizeRecords.length - 1];
     if (last && last.BatchDone !== 'yes') {
-      grainBatchActive = true;
-      grainBatchId     = last.BatchId || '';
+      maizeBatchActive = true;
+      maizeBatchId     = last.BatchId || '';
     } else {
-      grainBatchActive = false;
-      grainBatchId     = null;
+      maizeBatchActive = false;
+      maizeBatchId     = null;
     }
-    grainRenderTable();
-    grainUpdateBatchUI();
-    grainUpdateAutoFields();
+    maizeRenderTable();
+    maizeUpdateBatchUI();
+    maizeUpdateAutoFields();
   }
 }
 
 // ── Batch toggle ──────────────────────────────────────────────
-async function grainToggleBatch() {
-  if (!grainBatchActive) {
+async function maizeToggleBatch() {
+  if (!maizeBatchActive) {
     // Start new batch
-    grainBatchActive = true;
-    grainBatchId     = new Date().toISOString(); // unique batch identifier
-    grainUpdateBatchUI();
+    maizeBatchActive = true;
+    maizeBatchId     = new Date().toISOString(); // unique batch identifier
+    maizeUpdateBatchUI();
     showToast('New batch started');
   } else {
     // Close current batch — mark last entry as batch done
     if (!confirm('Mark this batch as done?')) return;
-    const result = await apiPost({ action: 'grainCloseBatch', batchId: grainBatchId });
+    const result = await apiPost({ action: 'maizeCloseBatch', batchId: maizeBatchId });
     if (result?.success) {
-      grainBatchActive = false;
-      grainBatchId     = null;
-      await grainLoadRecords();
+      maizeBatchActive = false;
+      maizeBatchId     = null;
+      await maizeLoadRecords();
       showToast('Batch closed ✅');
     } else {
       showToast('Error closing batch: ' + (result?.error || 'unknown'), true);
@@ -8949,18 +9019,18 @@ async function grainToggleBatch() {
   }
 }
 
-function grainUpdateBatchUI() {
-  const label  = document.getElementById('grainBatchLabel');
-  const sub    = document.getElementById('grainBatchSub');
-  const btn    = document.getElementById('grainBatchBtn');
-  const form   = document.getElementById('grainEntryForm');
-  if (grainBatchActive) {
+function maizeUpdateBatchUI() {
+  const label  = document.getElementById('maizeBatchLabel');
+  const sub    = document.getElementById('maizeBatchSub');
+  const btn    = document.getElementById('maizeBatchBtn');
+  const form   = document.getElementById('maizeEntryForm');
+  if (maizeBatchActive) {
     if (label) label.textContent = '🟢 Batch in progress';
     if (sub)   sub.textContent   = 'Enter purchases below — toggle "Done?" when batch is complete';
     if (btn)   { btn.textContent = '✅ Done?'; btn.style.background = '#16a34a'; }
     if (form)  form.style.display = 'block';
     // Reset date to today
-    const dateEl = document.getElementById('grainDate');
+    const dateEl = document.getElementById('maizeDate');
     if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
   } else {
     if (label) label.textContent = '🟡 No active batch';
@@ -8971,31 +9041,31 @@ function grainUpdateBatchUI() {
 }
 
 // ── Cost auto-calc ────────────────────────────────────────────
-function grainCalcCost() {
-  const qty   = parseFloat(document.getElementById('grainQty')?.value   || '0') || 0;
-  const price = parseFloat(document.getElementById('grainPrice')?.value || '0') || 0;
+function maizeCalcCost() {
+  const qty   = parseFloat(document.getElementById('maizeQty')?.value   || '0') || 0;
+  const price = parseFloat(document.getElementById('maizePrice')?.value || '0') || 0;
   const cost  = qty * price;
-  const costEl = document.getElementById('grainCostDisplay');
+  const costEl = document.getElementById('maizeCostDisplay');
   if (costEl) costEl.textContent = cost > 0 ? 'K ' + cost.toFixed(2) : '—';
-  grainUpdateAutoFields();
+  maizeUpdateAutoFields();
 }
 
 // ── Auto-populate batch weight, batch total, running total ────
-function grainUpdateAutoFields() {
-  const batchRecs   = grainRecords.filter(r => r.BatchId === grainBatchId);
-  const currentQty  = parseFloat(document.getElementById('grainQty')?.value   || '0') || 0;
-  const currentCost = parseFloat(document.getElementById('grainCostDisplay')?.textContent?.replace('K ','') || '0') || 0;
+function maizeUpdateAutoFields() {
+  const batchRecs   = maizeRecords.filter(r => r.BatchId === maizeBatchId);
+  const currentQty  = parseFloat(document.getElementById('maizeQty')?.value   || '0') || 0;
+  const currentCost = parseFloat(document.getElementById('maizeCostDisplay')?.textContent?.replace('K ','') || '0') || 0;
 
   // Batch weight = sum of qty in current batch + current entry
   const batchWt    = batchRecs.reduce((s, r) => s + (parseFloat(r.Qty) || 0), 0) + currentQty;
   // Batch total cost = sum of cost in current batch + current entry
   const batchTotal = batchRecs.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + currentCost;
   // Running total = ALL records ever
-  const runTotal   = grainRecords.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + currentCost;
+  const runTotal   = maizeRecords.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + currentCost;
 
-  const bwEl = document.getElementById('grainBatchWeightDisplay');
-  const btEl = document.getElementById('grainBatchTotalDisplay');
-  const rtEl = document.getElementById('grainRunningDisplay');
+  const bwEl = document.getElementById('maizeBatchWeightDisplay');
+  const btEl = document.getElementById('maizeBatchTotalDisplay');
+  const rtEl = document.getElementById('maizeRunningDisplay');
 
   if (bwEl) bwEl.textContent = batchWt > 0 ? batchWt.toFixed(1) + ' kg' : '—';
   if (btEl) btEl.textContent = batchTotal > 0 ? 'K ' + batchTotal.toFixed(2) : '—';
@@ -9003,29 +9073,29 @@ function grainUpdateAutoFields() {
 }
 
 // ── Add entry ─────────────────────────────────────────────────
-async function grainAddEntry() {
-  const errEl   = document.getElementById('grainEntryError');
-  const date    = document.getElementById('grainDate')?.value  || '';
-  const buyer   = document.getElementById('grainBuyer')?.value || '';
-  const qty     = parseFloat(document.getElementById('grainQty')?.value   || '0') || 0;
-  const price   = parseFloat(document.getElementById('grainPrice')?.value || '0') || 0;
+async function maizeAddEntry() {
+  const errEl   = document.getElementById('maizeEntryError');
+  const date    = document.getElementById('maizeDate')?.value  || '';
+  const buyer   = document.getElementById('maizeBuyer')?.value || '';
+  const qty     = parseFloat(document.getElementById('maizeQty')?.value   || '0') || 0;
+  const price   = parseFloat(document.getElementById('maizePrice')?.value || '0') || 0;
   const cost    = qty * price;
 
   // Validation
-  if (!date)   { showGrainErr('Please select a date.'); return; }
-  if (!buyer)  { showGrainErr('Please select a buyer.'); return; }
-  if (qty <= 0) { showGrainErr('Please enter a quantity greater than 0.'); return; }
-  if (price <= 0) { showGrainErr('Please enter a price per kg.'); return; }
-  if (!grainBatchActive) { showGrainErr('Start a new batch first.'); return; }
+  if (!date)   { showMaizeErr('Please select a date.'); return; }
+  if (!buyer)  { showMaizeErr('Please select a buyer.'); return; }
+  if (qty <= 0) { showMaizeErr('Please enter a quantity greater than 0.'); return; }
+  if (price <= 0) { showMaizeErr('Please enter a price per kg.'); return; }
+  if (!maizeBatchActive) { showMaizeErr('Start a new batch first.'); return; }
   if (errEl) errEl.style.display = 'none';
 
   // Save preferred buyer
-  localStorage.setItem(GRAIN_PREF_KEY, buyer);
+  localStorage.setItem(MAIZE_PREF_KEY, buyer);
 
-  const batchRecs  = grainRecords.filter(r => r.BatchId === grainBatchId);
+  const batchRecs  = maizeRecords.filter(r => r.BatchId === maizeBatchId);
   const batchWt    = batchRecs.reduce((s, r) => s + (parseFloat(r.Qty)  || 0), 0) + qty;
   const batchTotal = batchRecs.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + cost;
-  const runTotal   = grainRecords.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + cost;
+  const runTotal   = maizeRecords.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + cost;
 
   const data = {
     Date:         date,
@@ -9036,36 +9106,36 @@ async function grainAddEntry() {
     BatchWeight:  batchWt,
     BatchTotal:   batchTotal,
     RunningTotal: runTotal,
-    BatchId:      grainBatchId,
+    BatchId:      maizeBatchId,
     BatchDone:    ''
   };
 
-  const result = await apiPost({ action: 'grainAdd', data });
+  const result = await apiPost({ action: 'maizeAdd', data });
   if (result?.success) {
     showToast('Entry saved ✅');
     // Reset qty and price, keep date and buyer
-    document.getElementById('grainQty').value   = '';
-    document.getElementById('grainPrice').value = '';
-    document.getElementById('grainCostDisplay').textContent = '—';
-    await grainLoadRecords();
+    document.getElementById('maizeQty').value   = '';
+    document.getElementById('maizePrice').value = '';
+    document.getElementById('maizeCostDisplay').textContent = '—';
+    await maizeLoadRecords();
   } else {
-    showGrainErr('Save failed: ' + (result?.error || 'unknown'));
+    showMaizeErr('Save failed: ' + (result?.error || 'unknown'));
   }
 }
 
-function showGrainErr(msg) {
-  const el = document.getElementById('grainEntryError');
+function showMaizeErr(msg) {
+  const el = document.getElementById('maizeEntryError');
   if (el) { el.textContent = msg; el.style.display = 'block'; }
 }
 
 // ── Render table ──────────────────────────────────────────────
-function grainRenderTable() {
-  const tbody   = document.getElementById('grainTableBody');
-  const table   = document.getElementById('grainTable');
-  const empty   = document.getElementById('grainEmpty');
+function maizeRenderTable() {
+  const tbody   = document.getElementById('maizeTableBody');
+  const table   = document.getElementById('maizeTable');
+  const empty   = document.getElementById('maizeEmpty');
   if (!tbody) return;
 
-  if (!grainRecords.length) {
+  if (!maizeRecords.length) {
     if (table) table.style.display = 'none';
     if (empty) empty.style.display = 'block';
     return;
@@ -9074,17 +9144,17 @@ function grainRenderTable() {
   if (empty) empty.style.display = 'none';
 
   // Group by batch — shade alternately
-  const batches = [...new Set(grainRecords.map(r => r.BatchId))];
-  tbody.innerHTML = grainRecords.map((rec, i) => {
+  const batches = [...new Set(maizeRecords.map(r => r.BatchId))];
+  tbody.innerHTML = maizeRecords.map((rec, i) => {
     const batchIdx  = batches.indexOf(rec.BatchId);
     const isClosed  = rec.BatchDone === 'yes';
-    const isLastInBatch = grainRecords[i+1]?.BatchId !== rec.BatchId;
+    const isLastInBatch = maizeRecords[i+1]?.BatchId !== rec.BatchId;
     const rowBg     = batchIdx % 2 === 0 ? '#fffbeb' : '#f0fdf4';
     const boldStyle = (isClosed && isLastInBatch) ? 'font-weight:900;border-top:2px solid #78350f;' : '';
     const closedBadge = (isClosed && isLastInBatch)
       ? '<span style="font-size:9px;background:#78350f;color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>' : '';
     const delBtn = isAdminEnabled()
-      ? `<button onclick="grainDeleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>`
+      ? `<button onclick="maizeDeleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>`
       : '';
     return `<tr style="background:${rowBg};${boldStyle}border-bottom:1px solid #e5e7eb">
       <td style="padding:7px 10px;white-space:nowrap">${rec.Date || ''}${closedBadge}</td>
@@ -9100,10 +9170,202 @@ function grainRenderTable() {
   }).join('');
 }
 
-async function grainDeleteEntry(grId) {
+async function maizeDeleteEntry(grId) {
   if (!confirm('Delete this entry?')) return;
-  const result = await apiPost({ action: 'grainDelete', id: grId });
-  if (result?.success) { await grainLoadRecords(); showToast('Entry deleted'); }
+  const result = await apiPost({ action: 'maizeDelete', id: grId });
+  if (result?.success) { await maizeLoadRecords(); showToast('Entry deleted'); }
+  else showToast('Delete failed: ' + (result?.error || 'unknown'), true);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SOY BEAN LOG
+// ═══════════════════════════════════════════════════════════════
+
+let soyRecords     = [];
+let soyBatchActive = false;
+let soyBatchId     = null;
+const SOY_PREF_KEY = 'piglog_soy_buyer';
+
+async function initSoyPage() {
+  const dateEl = document.getElementById('soyDate');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  await soyPopulateBuyers();
+  await soyLoadRecords();
+}
+
+async function soyPopulateBuyers() {
+  const sel = document.getElementById('soyBuyer');
+  if (!sel) return;
+  let names = [];
+  soyRecords.forEach(r => { if (r.Buyer && !names.includes(r.Buyer)) names.push(r.Buyer); });
+  try {
+    const r = await apiGet({ action: 'getSetting', key: 'WORKER_NAMES' });
+    if (r?.success && r.value) r.value.split('|').forEach(n => { const t=n.trim(); if(t&&!names.includes(t)) names.push(t); });
+  } catch(e) {}
+  const preferred = localStorage.getItem(SOY_PREF_KEY) || '';
+  const current   = sel.value;
+  sel.innerHTML = '<option value="">— Select buyer —</option>';
+  names.sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    if (name === (current || preferred)) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (preferred && !names.includes(preferred)) {
+    const opt = document.createElement('option');
+    opt.value = preferred; opt.textContent = preferred; opt.selected = true;
+    sel.insertBefore(opt, sel.children[1]);
+  }
+}
+
+async function soyLoadRecords() {
+  const result = await apiGet({ action: 'soyGetAll' });
+  if (result?.success) {
+    soyRecords = result.records || [];
+    const last = soyRecords[soyRecords.length - 1];
+    if (last && last.BatchDone !== 'yes') {
+      soyBatchActive = true; soyBatchId = last.BatchId || '';
+    } else {
+      soyBatchActive = false; soyBatchId = null;
+    }
+    soyRenderTable();
+    soyUpdateBatchUI();
+    soyUpdateAutoFields();
+  }
+}
+
+async function soyToggleBatch() {
+  if (!soyBatchActive) {
+    soyBatchActive = true; soyBatchId = new Date().toISOString();
+    soyUpdateBatchUI(); showToast('New soy batch started');
+  } else {
+    if (!confirm('Mark this batch as done?')) return;
+    const result = await apiPost({ action: 'soyCloseBatch', batchId: soyBatchId });
+    if (result?.success) {
+      soyBatchActive = false; soyBatchId = null;
+      await soyLoadRecords(); showToast('Soy batch closed ✅');
+    } else showToast('Error: ' + (result?.error || 'unknown'), true);
+  }
+}
+
+function soyUpdateBatchUI() {
+  const label = document.getElementById('soyBatchLabel');
+  const sub   = document.getElementById('soyBatchSub');
+  const btn   = document.getElementById('soyBatchBtn');
+  const form  = document.getElementById('soyEntryForm');
+  if (soyBatchActive) {
+    if (label) label.textContent = '🟢 Batch in progress';
+    if (sub)   sub.textContent   = 'Enter purchases below — toggle "Done?" when batch is complete';
+    if (btn)   { btn.textContent = '✅ Done?'; btn.style.background = '#16a34a'; }
+    if (form)  form.style.display = 'block';
+    const dateEl = document.getElementById('soyDate');
+    if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  } else {
+    if (label) label.textContent = '🟡 No active batch';
+    if (sub)   sub.textContent   = 'Start a new batch to record purchases';
+    if (btn)   { btn.textContent = '🚀 New Batch'; btn.style.background = '#4d7c0f'; }
+    if (form)  form.style.display = 'none';
+  }
+}
+
+function soyCalcCost() {
+  const qty   = parseFloat(document.getElementById('soyQty')?.value   || '0') || 0;
+  const price = parseFloat(document.getElementById('soyPrice')?.value || '0') || 0;
+  const cost  = qty * price;
+  const costEl = document.getElementById('soyCostDisplay');
+  if (costEl) costEl.textContent = cost > 0 ? 'K ' + cost.toFixed(2) : '—';
+  soyUpdateAutoFields();
+}
+
+function soyUpdateAutoFields() {
+  const batchRecs   = soyRecords.filter(r => r.BatchId === soyBatchId);
+  const currentQty  = parseFloat(document.getElementById('soyQty')?.value || '0') || 0;
+  const currentCost = parseFloat(document.getElementById('soyCostDisplay')?.textContent?.replace('K ','') || '0') || 0;
+  const batchWt    = batchRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0), 0) + currentQty;
+  const batchTotal = batchRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + currentCost;
+  const runTotal   = soyRecords.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + currentCost;
+  const bwEl = document.getElementById('soyBatchWeightDisplay');
+  const btEl = document.getElementById('soyBatchTotalDisplay');
+  const rtEl = document.getElementById('soyRunningDisplay');
+  if (bwEl) bwEl.textContent = batchWt > 0 ? batchWt.toFixed(1) + ' kg' : '—';
+  if (btEl) btEl.textContent = batchTotal > 0 ? 'K ' + batchTotal.toFixed(2) : '—';
+  if (rtEl) rtEl.textContent = runTotal  > 0 ? 'K ' + runTotal.toFixed(2)  : '—';
+}
+
+async function soyAddEntry() {
+  const errEl = document.getElementById('soyEntryError');
+  const date  = document.getElementById('soyDate')?.value  || '';
+  const buyer = document.getElementById('soyBuyer')?.value || '';
+  const qty   = parseFloat(document.getElementById('soyQty')?.value   || '0') || 0;
+  const price = parseFloat(document.getElementById('soyPrice')?.value || '0') || 0;
+  const cost  = qty * price;
+  if (!date)    { showSoyErr('Please select a date.'); return; }
+  if (!buyer)   { showSoyErr('Please select a buyer.'); return; }
+  if (qty <= 0) { showSoyErr('Please enter a quantity greater than 0.'); return; }
+  if (price <=0){ showSoyErr('Please enter a price per kg.'); return; }
+  if (!soyBatchActive) { showSoyErr('Start a new batch first.'); return; }
+  if (errEl) errEl.style.display = 'none';
+  localStorage.setItem(SOY_PREF_KEY, buyer);
+  const batchRecs  = soyRecords.filter(r => r.BatchId === soyBatchId);
+  const batchWt    = batchRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0),  0) + qty;
+  const batchTotal = batchRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
+  const runTotal   = soyRecords.reduce((s,r)  => s+(parseFloat(r.Cost)||0), 0) + cost;
+  const data = { Date:date, Buyer:buyer, Qty:qty, PricePerKg:price, Cost:cost,
+                 BatchWeight:batchWt, BatchTotal:batchTotal, RunningTotal:runTotal,
+                 BatchId:soyBatchId, BatchDone:'' };
+  const result = await apiPost({ action: 'soyAdd', data });
+  if (result?.success) {
+    showToast('Soy entry saved ✅');
+    document.getElementById('soyQty').value = '';
+    document.getElementById('soyPrice').value = '';
+    document.getElementById('soyCostDisplay').textContent = '—';
+    await soyLoadRecords();
+  } else showSoyErr('Save failed: ' + (result?.error || 'unknown'));
+}
+
+function showSoyErr(msg) {
+  const el = document.getElementById('soyEntryError');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function soyRenderTable() {
+  const tbody = document.getElementById('soyTableBody');
+  const table = document.getElementById('soyTable');
+  const empty = document.getElementById('soyEmpty');
+  if (!tbody) return;
+  if (!soyRecords.length) { if(table) table.style.display='none'; if(empty) empty.style.display='block'; return; }
+  if (table) table.style.display = 'table';
+  if (empty) empty.style.display = 'none';
+  const batches = [...new Set(soyRecords.map(r => r.BatchId))];
+  tbody.innerHTML = soyRecords.map((rec, i) => {
+    const batchIdx     = batches.indexOf(rec.BatchId);
+    const isClosed     = rec.BatchDone === 'yes';
+    const isLastInBatch= soyRecords[i+1]?.BatchId !== rec.BatchId;
+    const rowBg        = batchIdx % 2 === 0 ? '#f7fee7' : '#f0fdf4';
+    const boldStyle    = (isClosed && isLastInBatch) ? 'font-weight:900;border-top:2px solid #4d7c0f;' : '';
+    const closedBadge  = (isClosed && isLastInBatch)
+      ? '<span style="font-size:9px;background:#4d7c0f;color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>' : '';
+    const delBtn = isAdminEnabled()
+      ? `<button onclick="soyDeleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>`
+      : '';
+    return `<tr style="background:${rowBg};${boldStyle}border-bottom:1px solid #e5e7eb">
+      <td style="padding:7px 10px;white-space:nowrap">${rec.Date||''}${closedBadge}</td>
+      <td style="padding:7px 10px">${rec.Buyer||''}</td>
+      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.Qty||0).toFixed(1)}</td>
+      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.PricePerKg||0).toFixed(2)}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.Cost||0).toFixed(2)}</td>
+      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.BatchWeight||0).toFixed(1)}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.BatchTotal||0).toFixed(2)}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:800;color:#c0392b">K ${parseFloat(rec.RunningTotal||0).toFixed(2)}</td>
+      <td style="padding:7px 4px;text-align:center">${delBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function soyDeleteEntry(grId) {
+  if (!confirm('Delete this entry?')) return;
+  const result = await apiPost({ action: 'soyDelete', id: grId });
+  if (result?.success) { await soyLoadRecords(); showToast('Entry deleted'); }
   else showToast('Delete failed: ' + (result?.error || 'unknown'), true);
 }
 
