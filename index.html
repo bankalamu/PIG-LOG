@@ -2981,7 +2981,6 @@ async function submitAdminPw() {
 // ── Init ──────────────────────────────────────────
 
 window.addEventListener("DOMContentLoaded", () => {
-  // Set version badge
   const vn = document.getElementById("versionNum");
   if (vn) vn.textContent = APP_VERSION;
 
@@ -2992,12 +2991,16 @@ window.addEventListener("DOMContentLoaded", () => {
   buildForm("newFormGrid", "new");
   buildForm("editFormGrid", "edit");
   updateAdminBadge();
-  loadRecords();
   initNotchClickHandlers();
   initChecklist();
   initSowLitter();
   initWeekly();
   initMonthly();
+
+  // Defer API-dependent startup to after first paint
+  requestAnimationFrame(() => {
+    setTimeout(loadRecords, 50);
+  });
 });
 
 function adminSaveScriptUrl() {
@@ -3102,7 +3105,13 @@ function showPage(id) {
       });
     }
   }
-  if (id === "pageWeekly")   { wkDateChanged(); }
+  if (id === "pageWeekly")   {
+    wkDateChanged();
+    apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
+      wkMaxPen = (r?.success && r.value) ? (parseInt(r.value,10)||50) : 50;
+      _wkApplyMaxPen();
+    });
+  }
   if (id === "pageMonthly")  { _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
   if (id === "pageNotch")    { boarRecordCache = []; sowRecordCache = []; populateNotchDropdowns(); }
   if (id === "pageWorkers")  { initWorkerActions(); }
@@ -3165,9 +3174,20 @@ const apiPostDirect = apiPost;
 
 async function loadRecords() {
   try {
-    const data = await apiGet({ action: "getAll" });
+    const data = await apiGet({ action: "getAllInit" });
     if (data && data.success) {
       allRecords = data.records || [];
+      // Apply settings returned in same call — no extra round trips
+      if (data.settings) {
+        const maxPen = parseInt(data.settings.maxPen, 10) || 50;
+        clMaxPen = maxPen;
+        _clApplyMaxPen();
+        wkMaxPen = maxPen;
+        _wkApplyMaxPen();
+        _aiAutoEnabled = data.settings.AI_ANALYSIS_ENABLED === 'true';
+        const aiBtn = document.getElementById('aiAutoToggleBtn');
+        if (aiBtn) aiBtn.textContent = _aiAutoEnabled ? 'ON' : 'OFF';
+      }
       updateCounts();
       prepSearchPage();
       populatePigDropdowns();
@@ -5983,11 +6003,7 @@ function initWeekly() {
   const el = document.getElementById('wkDate');
   if (el) el.value = today;
   _wkUpdateBadge(today);
-  // Load max pen from Settings (shared with daily checklist key "maxPen")
-  apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
-    wkMaxPen = (r && r.success && r.value) ? (parseInt(r.value, 10) || 50) : 50;
-    _wkApplyMaxPen();
-  });
+  // maxPen loaded when Weekly page is first navigated to (see showPage)
 }
 
 function _wkApplyMaxPen() {
