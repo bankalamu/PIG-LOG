@@ -6992,11 +6992,14 @@ function slAutoPopulatePen() {
     return;
   }
 
-  // Look up pen from sowRecordCache (loaded with pen field)
-  const sowCached = sowRecordCache.find(r => r.dbId === sowId);
-  // Fall back to allRecords if cache not yet populated
-  const pen = sowCached?.pen
-    || String(allRecords.find(r => String(r.DB_ID) === sowId)?.Pen || '').trim();
+  // Look up pen from sowRecordCache first (already loaded), then allRecords
+  // Never trigger any API calls from here
+  const sowCached = sowRecordCache.find(r => String(r.dbId) === String(sowId));
+  let pen = sowCached?.pen || '';
+  if (!pen) {
+    const rec = allRecords.find(r => String(r.DB_ID) === String(sowId));
+    pen = String(rec?.Pen || '').trim();
+  }
 
   penEl.value = pen || '';
 
@@ -7005,7 +7008,7 @@ function slAutoPopulatePen() {
     note = document.createElement('div');
     note.id = 'slPenNote';
     note.style.cssText = 'font-size:11px;color:#1a3a8a;margin-top:3px;font-weight:600';
-    penEl.parentElement.appendChild(note);
+    penEl.parentElement?.appendChild(note);
   }
   note.textContent = pen ? '🔗 From sow record (read-only)' : '⚠ No pen on sow record';
   note.style.color = pen ? '#1a3a8a' : '#c0392b';
@@ -7464,6 +7467,7 @@ function slClearAllPhotos() {
 }
 
 async function slUploadPhotos(slId) {
+  // Upload pending section photos one at a time (sequential to avoid overwhelming Apps Script)
   for (const key of SL_PHOTO_KEYS) {
     const p = slPhotos[key];
     if (!p?.data) continue;
@@ -7488,7 +7492,10 @@ async function slUploadPhotos(slId) {
       }
     } catch(e) {
       if (stat) stat.textContent = '⚠️ Error';
+      console.error('Photo upload error for', key, e);
     }
+    // Small pause between uploads to avoid Apps Script rate limits
+    await new Promise(r => setTimeout(r, 300));
   }
 }
 
