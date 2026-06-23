@@ -146,6 +146,7 @@ function doGet(e) {
     if (action === "getAIPending") return respond(getAIPendingRecords(e.parameter.date));
     if (action === "getPhoto")   return respond(getPhotoAsBase64(e.parameter.fileId));
     if (action === "waGetAll")   return respond(waGetAll());
+    if (action === "grainGetAll") return respond(grainGetAll());
     return respond({ error: "Unknown action" });
   } catch (err) {
     return respond({ error: err.message });
@@ -210,6 +211,9 @@ function handlePostPayload(payload) {
     if (action === "addHealthIssue") return respond(addHealthIssue(payload.data));
     if (action === "waUpdate")    return respond(waUpdate(payload.id, payload.data));
     if (action === "waDelete")    return respond(waDelete(payload.id));
+    if (action === "grainAdd")        return respond(grainAdd(payload.data));
+    if (action === "grainCloseBatch") return respond(grainCloseBatch(payload.batchId));
+    if (action === "grainDelete")     return respond(grainDelete(payload.id));
     if (action === "migrateBoarSow")   return respond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return respond(migrateSowLitterSowId());
     if (action === "runAIAnalysis")    return respond(runNightlyAIAnalysis(payload.targetDate || null, true));
@@ -3060,4 +3064,117 @@ function _runAISafe(targetDate) {
     Utilities.sleep(1500); // pause between records
   }
   Logger.log('✅ Complete — ' + processed + ' analysed, ' + skipped + ' skipped, ' + errors + ' errors');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GRAIN LOG — Sheet: GrainLog
+// ═══════════════════════════════════════════════════════════════
+
+const GR_SHEET = 'GrainLog';
+const GR_HEADERS = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
+                    'BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
+
+/**
+ * Gets or creates the GrainLog sheet.
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet}
+ */
+function getGrainSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(GR_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(GR_SHEET);
+    sheet.appendRow(GR_HEADERS);
+    sheet.getRange(1,1,1,GR_HEADERS.length).setFontWeight('bold').setBackground('#78350f').setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/**
+ * Returns all GrainLog records.
+ * @returns {{ success: boolean, records: Object[] }}
+ */
+function grainGetAll() {
+  const sheet = getGrainSheet();
+  const data  = sheet.getDataRange().getValues();
+  if (data.length < 2) return { success: true, records: [] };
+  const hdrs = data[0].map(h => String(h).trim());
+  const records = data.slice(1).filter(r => r[0] !== '').map(row => {
+    const rec = {};
+    hdrs.forEach((h, i) => {
+      const v = row[i];
+      rec[h] = v instanceof Date
+        ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd')
+        : String(v === null || v === undefined ? '' : v);
+    });
+    return rec;
+  });
+  return { success: true, records };
+}
+
+/**
+ * Adds a new GrainLog entry.
+ * @param {Object} data - Entry fields.
+ * @returns {{ success: boolean, gr_id: number }}
+ */
+function grainAdd(data) {
+  const sheet = getGrainSheet();
+  const lastCol = sheet.getLastColumn();
+  const hdrs = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
+  const lastRow = sheet.getLastRow();
+  const allData = lastRow > 1 ? sheet.getRange(2,1,lastRow-1,lastCol).getValues() : [];
+  const grIdIdx = hdrs.indexOf('GR_ID');
+  const maxId = allData.reduce((m, r) => Math.max(m, parseInt(r[grIdIdx]||0,10)||0), 0);
+  const newId = maxId + 1;
+  const row = GR_HEADERS.map(h => h === 'GR_ID' ? newId : (data[h] !== undefined ? data[h] : ''));
+  sheet.appendRow(row);
+  return { success: true, gr_id: newId };
+}
+
+/**
+ * Closes a batch — sets BatchDone='yes' on all rows matching batchId.
+ * The last row of the batch is also bolded.
+ * @param {string} batchId - The batch identifier to close.
+ * @returns {{ success: boolean }}
+ */
+function grainCloseBatch(batchId) {
+  const sheet = getGrainSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { success: true };
+  const lastCol = sheet.getLastColumn();
+  const hdrs  = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
+  const data  = sheet.getRange(2,1,lastRow-1,lastCol).getValues();
+  const batchIdIdx  = hdrs.indexOf('BatchId');
+  const batchDoneIdx= hdrs.indexOf('BatchDone');
+  let lastMatchRow  = -1;
+  data.forEach((row, i) => {
+    if (String(row[batchIdIdx]).trim() === String(batchId).trim()) {
+      sheet.getRange(i+2, batchDoneIdx+1).setValue('yes');
+      lastMatchRow = i + 2;
+    }
+  });
+  // Bold the last row of the batch
+  if (lastMatchRow > 0) {
+    sheet.getRange(lastMatchRow, 1, 1, lastCol).setFontWeight('bold');
+  }
+  return { success: true };
+}
+
+/**
+ * Deletes a GrainLog entry by GR_ID.
+ * @param {number} id - The GR_ID to delete.
+ * @returns {{ success: boolean, error?: string }}
+ */
+function grainDelete(id) {
+  const sheet = getGrainSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { success: false, error: 'No records' };
+  const data = sheet.getRange(2,1,lastRow-1,1).getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim() === String(id).trim()) {
+      sheet.deleteRow(i + 2);
+      return { success: true };
+    }
+  }
+  return { success: false, error: 'Record not found' };
 }
