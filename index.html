@@ -1320,7 +1320,7 @@
         <!-- Row 1: Sow ID · Litter Boar -->
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Sow ID</label>
-          <select id="slSowId" class="form-input" onchange="slLookupExisting();slUpdateEstFarrowDate();slAutoPopulateBoar();slAutoPopulatePen()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
+          <select id="slSowId" class="form-input" onchange="slLookupExisting();slUpdateEstFarrowDate();slAutoPopulateBoar()" style="font-weight:700;color:#000;font-size:13px;padding:6px 8px">
             <option value="">— Select —</option>
           </select>
           <datalist id="slSowOptions"></datalist>
@@ -1339,7 +1339,7 @@
         </div>
         <div style="display:flex;flex-direction:column">
           <label class="form-label">Pen No.</label>
-          <input type="text" id="slPen" readonly placeholder="— auto from SOW record —" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700;background:#f0f4ff;color:#1a3a8a;cursor:not-allowed;border-color:#c5d3f0">
+          <input type="number" id="slPen" min="1" max="999" placeholder="1" class="form-input" style="font-size:13px;padding:6px 8px;font-weight:700" oninput="slLookupExisting();slCalcTotalPiglets()">
         </div>
 
         <!-- Row 3: Est. Farrow Date (auto) — full width -->
@@ -1370,78 +1370,24 @@
         <div style="padding:10px 14px">
 
           <!-- Summary Notes -->
-          <div style="margin-bottom:12px">
+          <div style="margin-bottom:10px">
             <label style="font-size:11px;font-weight:700;color:#555;display:block;margin-bottom:4px">📝 Summary notes:</label>
             <textarea id="slNotes_farrow" oninput="_slStampSection('farrow')" placeholder="General observations at farrowing — sow condition, birth notes, concerns…" rows="3" style="width:100%;box-sizing:border-box;border:1.5px solid #e0c0cc;border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;color:#333;resize:vertical;background:#fff"></textarea>
           </div>
 
-          <!-- Photo gallery — 3 slots -->
-          <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:8px">📷 Farrow photos (up to 3):</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-
-            <!-- Slot 1 -->
-            <div style="display:flex;flex-direction:column;gap:4px">
-              <div id="slPhotoPreview_farrow_1" style="display:none;position:relative;cursor:pointer" onclick="slViewPhoto('farrow_1')">
-                <img id="slPhotoImg_farrow_1" style="width:100%;height:90px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Farrow photo 1">
-                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15);border-radius:7px;opacity:0;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"><span style="font-size:20px">🔍</span></div>
-                <div id="slPhotoTs_farrow_1" style="display:none;position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.65);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px"></div>
-              </div>
-              <div id="slPhotoEmpty_farrow_1" style="width:100%;height:90px;border:2px dashed #e0c0cc;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fdf5f8">
-                <span style="font-size:22px;opacity:0.4">📷</span>
-              </div>
-              <div style="display:flex;gap:4px">
-                <label for="slPhotoInput_farrow_1" style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:#880e4f;color:#fff;padding:4px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">➕ Add</label>
-                <input type="file" id="slPhotoInput_farrow_1" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'farrow_1')">
-                <button id="slPhotoClear_farrow_1" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer" onclick="slPhotoClear('farrow_1')">✕</button>
-              </div>
-              <span id="slPhotoStatus_farrow_1" style="font-size:9px;color:#666;text-align:center"></span>
-            </div>
-
-            <!-- Slot 2 -->
-            <div style="display:flex;flex-direction:column;gap:4px">
-              <div id="slPhotoPreview_farrow_2" style="display:none;position:relative;cursor:pointer" onclick="slViewPhoto('farrow_2')">
-                <img id="slPhotoImg_farrow_2" style="width:100%;height:90px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Farrow photo 2">
-                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15);border-radius:7px;opacity:0;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"><span style="font-size:20px">🔍</span></div>
-                <div id="slPhotoTs_farrow_2" style="display:none;position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.65);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px"></div>
-              </div>
-              <div id="slPhotoEmpty_farrow_2" style="width:100%;height:90px;border:2px dashed #e0c0cc;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fdf5f8">
-                <span style="font-size:22px;opacity:0.4">📷</span>
-              </div>
-              <div style="display:flex;gap:4px">
-                <label for="slPhotoInput_farrow_2" style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:#880e4f;color:#fff;padding:4px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">➕ Add</label>
-                <input type="file" id="slPhotoInput_farrow_2" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'farrow_2')">
-                <button id="slPhotoClear_farrow_2" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer" onclick="slPhotoClear('farrow_2')">✕</button>
-              </div>
-              <span id="slPhotoStatus_farrow_2" style="font-size:9px;color:#666;text-align:center"></span>
-            </div>
-
-            <!-- Slot 3 -->
-            <div style="display:flex;flex-direction:column;gap:4px">
-              <div id="slPhotoPreview_farrow_3" style="display:none;position:relative;cursor:pointer" onclick="slViewPhoto('farrow_3')">
-                <img id="slPhotoImg_farrow_3" style="width:100%;height:90px;border-radius:7px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Farrow photo 3">
-                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.15);border-radius:7px;opacity:0;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"><span style="font-size:20px">🔍</span></div>
-                <div id="slPhotoTs_farrow_3" style="display:none;position:absolute;bottom:3px;left:3px;background:rgba(0,0,0,0.65);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px"></div>
-              </div>
-              <div id="slPhotoEmpty_farrow_3" style="width:100%;height:90px;border:2px dashed #e0c0cc;border-radius:7px;display:flex;align-items:center;justify-content:center;background:#fdf5f8">
-                <span style="font-size:22px;opacity:0.4">📷</span>
-              </div>
-              <div style="display:flex;gap:4px">
-                <label for="slPhotoInput_farrow_3" style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;background:#880e4f;color:#fff;padding:4px 0;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">➕ Add</label>
-                <input type="file" id="slPhotoInput_farrow_3" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'farrow_3')">
-                <button id="slPhotoClear_farrow_3" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer" onclick="slPhotoClear('farrow_3')">✕</button>
-              </div>
-              <span id="slPhotoStatus_farrow_3" style="font-size:9px;color:#666;text-align:center"></span>
-            </div>
-
-          </div><!-- end grid -->
+          <!-- Farrow Photo -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative">
+            <span style="font-size:11px;font-weight:700;color:#555">📷 Farrow photo:</span>
+            <label for="slPhotoInput_farrow" style="display:inline-flex;align-items:center;gap:4px;background:#880e4f;color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none">📷 Take / Choose</label>
+            <input type="file" id="slPhotoInput_farrow" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1" onchange="slPhotoSelected(this,'farrow')">
+            <button id="slPhotoClear_farrow" style="display:none;background:#c0392b;color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="slPhotoClear('farrow')">✕</button>
+            <span id="slPhotoStatus_farrow" style="font-size:11px;color:#666"></span>
+          </div>
+          <div id="slPhotoPreview_farrow" style="display:none;margin-top:8px;position:relative">
+            <img id="slPhotoImg_farrow" style="max-width:100%;max-height:160px;border-radius:8px;border:1.5px solid #880e4f;object-fit:cover;display:block" src="" alt="Farrow photo">
+            <div id="slPhotoTs_farrow" style="display:none;position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px"></div>
+          </div>
         </div>
-      </div>
-
-      <!-- Photo lightbox overlay -->
-      <div id="slLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;flex-direction:column;align-items:center;justify-content:center" onclick="slCloseLightbox()">
-        <button onclick="event.stopPropagation();slCloseLightbox()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
-        <img id="slLightboxImg" style="max-width:95vw;max-height:85vh;border-radius:10px;object-fit:contain" src="" alt="Photo">
-        <div id="slLightboxCaption" style="color:#ccc;font-size:12px;margin-top:10px;text-align:center"></div>
       </div>
 
       <!-- ── SOW WELFARE — numeric fields ── -->
@@ -2528,115 +2474,67 @@
 
   </div><!-- end pageWorkers -->
 
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!--  MAIZE LOG                                              -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- ═══════════ MAIZE LOG ═══════════ -->
   <div id="pageMaize" style="display:none">
     <div class="page-header">
       <h2 class="page-title" style="color:#78350f">🌽 Maize Log</h2>
       <p class="page-subtitle">Track maize purchases by batch</p>
     </div>
-
-    <!-- Batch toggle banner -->
     <div style="display:flex;align-items:center;justify-content:space-between;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:12px 16px;margin-bottom:14px">
       <div>
         <div id="maizeBatchLabel" style="font-size:13px;font-weight:800;color:#78350f">🟡 No active batch</div>
         <div id="maizeBatchSub" style="font-size:11px;color:#92400e;margin-top:2px"></div>
       </div>
-      <button id="maizeBatchBtn" onclick="maizeToggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">
-        🚀 New Batch
-      </button>
+      <button id="maizeBatchBtn" onclick="maizeToggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
-
-    <!-- Entry form — only visible during active batch -->
     <div id="maizeEntryForm" style="display:none;background:#fff;border:1.5px solid #f59e0b;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:12px">➕ Add Purchase Entry</div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div>
-          <label class="form-label">Date</label>
-          <input type="date" id="maizeDate" class="form-input" style="font-weight:700">
-        </div>
-        <div>
-          <label class="form-label">Buyer Name</label>
-          <select id="maizeBuyer" class="form-input" style="font-weight:700;font-size:12px">
-            <option value="">— Select —</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">Quantity (kg)</label>
-          <input type="number" id="maizeQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="maizeCalcCost()">
-        </div>
-        <div>
-          <label class="form-label">Price per kg (K)</label>
-          <input type="number" id="maizePrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="maizeCalcCost()">
-        </div>
-        <div>
-          <label class="form-label">Cost (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
-          <div id="maizeCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div>
-        </div>
-        <div>
-          <label class="form-label">Batch Weight (kg) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
-          <div id="maizeBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div>
-        </div>
-        <div>
-          <label class="form-label">Batch Total (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
-          <div id="maizeBatchTotalDisplay" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#78350f;min-height:38px">—</div>
-        </div>
-        <div>
-          <label class="form-label">Running Total (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
-          <div id="maizeRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div>
-        </div>
+        <div><label class="form-label">Date</label><input type="date" id="maizeDate" class="form-input" style="font-weight:700"></div>
+        <div><label class="form-label">Buyer Name</label><select id="maizeBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
+        <div><label class="form-label">Quantity (kg)</label><input type="number" id="maizeQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="maizeCalcCost()"></div>
+        <div><label class="form-label">Price per kg (K)</label><input type="number" id="maizePrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="maizeCalcCost()"></div>
+        <div><label class="form-label">Cost (K) <span style="font-size:10px;color:#888">auto</span></label>
+          <div id="maizeCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
+        <div><label class="form-label">Batch Weight (kg) <span style="font-size:10px;color:#888">auto</span></label>
+          <div id="maizeBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
+        <div><label class="form-label">Batch Total (K) <span style="font-size:10px;color:#888">auto</span></label>
+          <div id="maizeBatchTotalDisplay" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#78350f;min-height:38px">—</div></div>
+        <div><label class="form-label">Running Total (K) <span style="font-size:10px;color:#888">auto</span></label>
+          <div id="maizeRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
       </div>
-
-      <button onclick="maizeAddEntry()" style="margin-top:14px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">
-        💾 Save Entry
-      </button>
+      <button onclick="maizeAddEntry()" style="margin-top:14px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="maizeEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
-
-    <!-- Records table -->
-    <div id="maizeTableWrap" style="overflow-x:auto">
+    <div style="overflow-x:auto">
       <div id="maizeEmpty" style="text-align:center;color:#aaa;font-size:13px;padding:30px 0">No maize purchases recorded yet.</div>
       <table id="maizeTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
-        <thead>
-          <tr style="background:#78350f;color:#fff;font-weight:800;font-size:11px">
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap">Date</th>
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap">Buyer</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Qty (kg)</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Price/kg</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Cost (K)</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Batch Wt</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Batch Total</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Running Total</th>
-            <th style="padding:8px 4px;text-align:center;white-space:nowrap"></th>
-          </tr>
-        </thead>
+        <thead><tr style="background:#78350f;color:#fff;font-weight:800;font-size:11px">
+          <th style="padding:8px 10px;text-align:left">Date</th><th style="padding:8px 10px;text-align:left">Buyer</th>
+          <th style="padding:8px 10px;text-align:right">Qty</th><th style="padding:8px 10px;text-align:right">Price</th>
+          <th style="padding:8px 10px;text-align:right">Cost</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
+          <th style="padding:8px 10px;text-align:right">Batch Total</th><th style="padding:8px 10px;text-align:right">Running Total</th>
+          <th style="padding:8px 4px"></th>
+        </tr></thead>
         <tbody id="maizeTableBody"></tbody>
       </table>
     </div>
-  </div><!-- end pageGrain -->
+  </div><!-- end pageMaize -->
 
-
-  <!-- ═══════════════════════════════════════════════════════ -->
-  <!--  SOY BEAN LOG                                           -->
-  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ═══════════ SOY BEAN LOG ═══════════ -->
   <div id="pageSoy" style="display:none">
     <div class="page-header">
       <h2 class="page-title" style="color:#4d7c0f">🫘 Soy Bean Log</h2>
       <p class="page-subtitle">Track soy bean purchases by batch</p>
     </div>
-
     <div style="display:flex;align-items:center;justify-content:space-between;background:#f7fee7;border:2px solid #86efac;border-radius:12px;padding:12px 16px;margin-bottom:14px">
       <div>
         <div id="soyBatchLabel" style="font-size:13px;font-weight:800;color:#4d7c0f">🟡 No active batch</div>
         <div id="soyBatchSub" style="font-size:11px;color:#3f6212;margin-top:2px"></div>
       </div>
-      <button id="soyBatchBtn" onclick="soyToggleBatch()" style="background:#4d7c0f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">
-        🚀 New Batch
-      </button>
+      <button id="soyBatchBtn" onclick="soyToggleBatch()" style="background:#4d7c0f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
-
     <div id="soyEntryForm" style="display:none;background:#fff;border:1.5px solid #86efac;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#4d7c0f;margin-bottom:12px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -2644,35 +2542,28 @@
         <div><label class="form-label">Buyer Name</label><select id="soyBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
         <div><label class="form-label">Quantity (kg)</label><input type="number" id="soyQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="soyCalcCost()"></div>
         <div><label class="form-label">Price per kg (K)</label><input type="number" id="soyPrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="soyCalcCost()"></div>
-        <div><label class="form-label">Cost (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
+        <div><label class="form-label">Cost (K) <span style="font-size:10px;color:#888">auto</span></label>
           <div id="soyCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Weight (kg) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
+        <div><label class="form-label">Batch Weight (kg) <span style="font-size:10px;color:#888">auto</span></label>
           <div id="soyBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Total (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
+        <div><label class="form-label">Batch Total (K) <span style="font-size:10px;color:#888">auto</span></label>
           <div id="soyBatchTotalDisplay" style="background:#f7fee7;border:1.5px solid #86efac;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#4d7c0f;min-height:38px">—</div></div>
-        <div><label class="form-label">Running Total (K) <span style="font-size:10px;font-weight:400;color:#888">auto</span></label>
+        <div><label class="form-label">Running Total (K) <span style="font-size:10px;color:#888">auto</span></label>
           <div id="soyRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
       </div>
       <button onclick="soyAddEntry()" style="margin-top:14px;width:100%;background:#4d7c0f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="soyEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
-
-    <div id="soyTableWrap" style="overflow-x:auto">
+    <div style="overflow-x:auto">
       <div id="soyEmpty" style="text-align:center;color:#aaa;font-size:13px;padding:30px 0">No soy bean purchases recorded yet.</div>
       <table id="soyTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
-        <thead>
-          <tr style="background:#4d7c0f;color:#fff;font-weight:800;font-size:11px">
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap">Date</th>
-            <th style="padding:8px 10px;text-align:left;white-space:nowrap">Buyer</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Qty (kg)</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Price/kg</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Cost (K)</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Batch Wt</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Batch Total</th>
-            <th style="padding:8px 10px;text-align:right;white-space:nowrap">Running Total</th>
-            <th style="padding:8px 4px;text-align:center;white-space:nowrap"></th>
-          </tr>
-        </thead>
+        <thead><tr style="background:#4d7c0f;color:#fff;font-weight:800;font-size:11px">
+          <th style="padding:8px 10px;text-align:left">Date</th><th style="padding:8px 10px;text-align:left">Buyer</th>
+          <th style="padding:8px 10px;text-align:right">Qty</th><th style="padding:8px 10px;text-align:right">Price</th>
+          <th style="padding:8px 10px;text-align:right">Cost</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
+          <th style="padding:8px 10px;text-align:right">Batch Total</th><th style="padding:8px 10px;text-align:right">Running Total</th>
+          <th style="padding:8px 4px"></th>
+        </tr></thead>
         <tbody id="soyTableBody"></tbody>
       </table>
     </div>
@@ -2981,6 +2872,7 @@ async function submitAdminPw() {
 // ── Init ──────────────────────────────────────────
 
 window.addEventListener("DOMContentLoaded", () => {
+  // Set version badge
   const vn = document.getElementById("versionNum");
   if (vn) vn.textContent = APP_VERSION;
 
@@ -2991,16 +2883,12 @@ window.addEventListener("DOMContentLoaded", () => {
   buildForm("newFormGrid", "new");
   buildForm("editFormGrid", "edit");
   updateAdminBadge();
+  loadRecords();
   initNotchClickHandlers();
   initChecklist();
   initSowLitter();
   initWeekly();
   initMonthly();
-
-  // Defer API-dependent startup to after first paint
-  requestAnimationFrame(() => {
-    setTimeout(loadRecords, 50);
-  });
 });
 
 function adminSaveScriptUrl() {
@@ -3105,13 +2993,7 @@ function showPage(id) {
       });
     }
   }
-  if (id === "pageWeekly")   {
-    wkDateChanged();
-    apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
-      wkMaxPen = (r?.success && r.value) ? (parseInt(r.value,10)||50) : 50;
-      _wkApplyMaxPen();
-    });
-  }
+  if (id === "pageWeekly")   { wkDateChanged(); }
   if (id === "pageMonthly")  { _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
   if (id === "pageNotch")    { boarRecordCache = []; sowRecordCache = []; populateNotchDropdowns(); }
   if (id === "pageWorkers")  { initWorkerActions(); }
@@ -3174,20 +3056,9 @@ const apiPostDirect = apiPost;
 
 async function loadRecords() {
   try {
-    const data = await apiGet({ action: "getAllInit" });
+    const data = await apiGet({ action: "getAll" });
     if (data && data.success) {
       allRecords = data.records || [];
-      // Apply settings returned in same call — no extra round trips
-      if (data.settings) {
-        const maxPen = parseInt(data.settings.maxPen, 10) || 50;
-        clMaxPen = maxPen;
-        _clApplyMaxPen();
-        wkMaxPen = maxPen;
-        _wkApplyMaxPen();
-        _aiAutoEnabled = data.settings.AI_ANALYSIS_ENABLED === 'true';
-        const aiBtn = document.getElementById('aiAutoToggleBtn');
-        if (aiBtn) aiBtn.textContent = _aiAutoEnabled ? 'ON' : 'OFF';
-      }
       updateCounts();
       prepSearchPage();
       populatePigDropdowns();
@@ -6003,7 +5874,11 @@ function initWeekly() {
   const el = document.getElementById('wkDate');
   if (el) el.value = today;
   _wkUpdateBadge(today);
-  // maxPen loaded when Weekly page is first navigated to (see showPage)
+  // Load max pen from Settings (shared with daily checklist key "maxPen")
+  apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
+    wkMaxPen = (r && r.success && r.value) ? (parseInt(r.value, 10) || 50) : 50;
+    _wkApplyMaxPen();
+  });
 }
 
 function _wkApplyMaxPen() {
@@ -6871,13 +6746,9 @@ async function moDeleteRecord(moId) {
 // ══════════════════════════════════════════════════
 
 const SL_TASKS = [
-  'sow_antiinflam','sow_mma_ab','sow_oxytocin',
-  'iodine','colostrum','teat_order','heat_lamp','litter_weigh',
-  'iron','tail_dock','teeth','navel_check',
-  'multivit','creep','navel_healed',
-  'castration','ear_notch','coccidiostat',
-  'indiv_weigh','health_d14','mma_d14',
-  'vax','weaner_feed','weaner_pen','prev_meds','weaned'
+  'sl_colostrum','sl_iron','sl_teeth','sl_tail','sl_ear_notch',
+  'sl_d3_check','sl_d7_check','sl_d14_check','sl_d21_check',
+  'sl_creep_start','sl_castrate','sl_weaned'
 ];
 
 let slTaskState  = {};
@@ -6898,11 +6769,7 @@ async function loadSowRecords() {
   })();
   sowRecordCache = source
     .filter(r => String(r['Type'] || '').trim().toLowerCase() === 'sow')
-    .map(r => ({
-      dbId:  String(r['DB_ID']),
-      pigId: String(r['PIG ID'] || '').trim(),
-      pen:   String(r['Pen']    || '').trim()
-    }))
+    .map(r => ({ dbId: String(r['DB_ID']), pigId: String(r['PIG ID'] || '').trim() }))
     .filter(r => r.dbId && r.pigId)
     .sort((a, b) => a.pigId.localeCompare(b.pigId));
   return sowRecordCache;
@@ -6979,40 +6846,7 @@ function slAutoPopulateBoar() {
     if (note) note.textContent = 'ℹ️ No service record found — please select manually';
   }
 }
-
-function slAutoPopulatePen() {
-  const sowId = (document.getElementById('slSowId')?.value || '').trim();
-  const penEl = document.getElementById('slPen');
-  if (!penEl) return;
-
-  if (!sowId) {
-    penEl.value = '';
-    const note = document.getElementById('slPenNote');
-    if (note) note.textContent = '';
-    return;
-  }
-
-  // Look up pen from sowRecordCache first (already loaded), then allRecords
-  // Never trigger any API calls from here
-  const sowCached = sowRecordCache.find(r => String(r.dbId) === String(sowId));
-  let pen = sowCached?.pen || '';
-  if (!pen) {
-    const rec = allRecords.find(r => String(r.DB_ID) === String(sowId));
-    pen = String(rec?.Pen || '').trim();
-  }
-
-  penEl.value = pen || '';
-
-  let note = document.getElementById('slPenNote');
-  if (!note) {
-    note = document.createElement('div');
-    note.id = 'slPenNote';
-    note.style.cssText = 'font-size:11px;color:#1a3a8a;margin-top:3px;font-weight:600';
-    penEl.parentElement?.appendChild(note);
-  }
-  note.textContent = pen ? '🔗 From sow record (read-only)' : '⚠ No pen on sow record';
-  note.style.color = pen ? '#1a3a8a' : '#c0392b';
-}
+// Auto-populate Est. Farrow Date = Sow's ServiceDate + 115 days
 function slUpdateEstFarrowDate() {
   const sowId = (document.getElementById('slSowId')?.value || '').trim();
   const el    = document.getElementById('slEstFarrowDate');
@@ -7203,9 +7037,8 @@ function slUpdateDayInfo() {
 // shdr_litter uses numeric fields; others use task keys from slTaskState
 
 const SL_HEADER_RANGES = {
-  // farrow section is filled when notes + at least one photo slot is done
   farrow:        { min:0,  max:0,  defBg:'#fce4ec', defColor:'#880e4f', defBorder:'#f8bbd0',
-                   farrowMulti: true, notesKey:'farrow' },
+                   photoKey:'farrow', notesKey:'farrow' },
   shdr_litter:   { min:0,  max:0,  defBg:'#fce4ec', defColor:'#880e4f', defBorder:'#f8bbd0',
                    numFields:['sl_born_alive','sl_stillborn','sl_mummified'],
                    photoKey:'shdr_litter', notesKey:'shdr_litter' },
@@ -7281,18 +7114,7 @@ function _slSectionFilled(cfg) {
     return notesAndPhoto();
   }
 
-  // Multi-photo farrow section — notes + at least one photo
-  if (cfg.farrowMulti) {
-    const notesEl = document.getElementById('slNotes_farrow');
-    const notesOk = notesEl && notesEl.value.trim() !== '';
-    const photoOk = ['farrow_1','farrow_2','farrow_3'].some(k => {
-      const prev = document.getElementById('slPhotoPreview_' + k);
-      return (prev && prev.style.display !== 'none') || (slPhotos[k] && slPhotos[k].data);
-    });
-    return notesOk && photoOk;
-  }
-
-  // Notes + photo only sections
+  // Notes + photo only sections (e.g. farrow) — filled when both are present
   if (cfg.photoKey || cfg.notesKey) {
     return notesAndPhoto();
   }
@@ -7400,7 +7222,7 @@ function _clearSlSecTimestamps() {
 
 // ── SL Litter Photos ─────────────────────────────────────────
 
-const SL_PHOTO_KEYS = ['farrow_1','farrow_2','farrow_3','shdr_litter','shdr_sowtreat','mhdr_d01','mhdr_d23','mhdr_d57','mhdr_d710','mhdr_d14','mhdr_d2128'];
+const SL_PHOTO_KEYS = ['farrow','shdr_litter','shdr_sowtreat','mhdr_d01','mhdr_d23','mhdr_d57','mhdr_d710','mhdr_d14','mhdr_d2128'];
 let slPhotos = {}; // key -> { data, mime, time }
 
 function _slNowDateTime() {
@@ -7425,18 +7247,17 @@ function slPhotoSelected(input, sectionKey) {
     const k = sectionKey;
     const img    = document.getElementById('slPhotoImg_'     + k);
     const prev   = document.getElementById('slPhotoPreview_' + k);
-    const empty  = document.getElementById('slPhotoEmpty_'   + k);
     const stat   = document.getElementById('slPhotoStatus_'  + k);
     const clrBtn = document.getElementById('slPhotoClear_'   + k);
     const tsEl   = document.getElementById('slPhotoTs_'      + k);
     if (img)    img.src = dataUrl;
     if (prev)   prev.style.display   = 'block';
-    if (empty)  empty.style.display  = 'none';
-    if (stat)   stat.textContent     = nowFull;
+    if (stat)   stat.textContent     = '📷 ' + nowFull;
     if (clrBtn) clrBtn.style.display = 'inline-flex';
-    if (tsEl)   { tsEl.textContent   = nowFull; tsEl.style.display = 'block'; }
+    if (tsEl)   { tsEl.textContent   = '📷 ' + nowFull; tsEl.style.display = 'block'; }
     showToast('Photo selected — will upload on Save');
-    _slStampSection(sectionKey.replace(/_\d$/, '') || sectionKey);
+    // Stamp the section now that a photo has been selected
+    _slStampSection(sectionKey);
   };
   reader.readAsDataURL(file);
 }
@@ -7446,20 +7267,18 @@ function slPhotoClear(sectionKey) {
   const k = sectionKey;
   const img    = document.getElementById('slPhotoImg_'     + k);
   const prev   = document.getElementById('slPhotoPreview_' + k);
-  const empty  = document.getElementById('slPhotoEmpty_'   + k);
   const stat   = document.getElementById('slPhotoStatus_'  + k);
   const clrBtn = document.getElementById('slPhotoClear_'   + k);
   const tsEl   = document.getElementById('slPhotoTs_'      + k);
-  const inputEl= document.getElementById('slPhotoInput_'   + k);
+  const input  = document.getElementById('slPhotoInput_'   + k);
   if (img)    img.src = '';
   if (prev)   prev.style.display   = 'none';
-  if (empty)  empty.style.display  = 'flex';
   if (stat)   stat.textContent     = '';
   if (clrBtn) clrBtn.style.display = 'none';
   if (tsEl)   { tsEl.textContent = ''; tsEl.style.display = 'none'; }
-  if (inputEl) inputEl.value = '';
-  // Re-evaluate section stamp
-  _slStampSection(sectionKey.replace(/_\d$/, '') || sectionKey);
+  if (input)  input.value = '';
+  // Section no longer complete — clear its timestamp
+  _slStampSection(sectionKey);
 }
 
 function slClearAllPhotos() {
@@ -7467,7 +7286,6 @@ function slClearAllPhotos() {
 }
 
 async function slUploadPhotos(slId) {
-  // Upload pending section photos one at a time (sequential to avoid overwhelming Apps Script)
   for (const key of SL_PHOTO_KEYS) {
     const p = slPhotos[key];
     if (!p?.data) continue;
@@ -7492,28 +7310,21 @@ async function slUploadPhotos(slId) {
       }
     } catch(e) {
       if (stat) stat.textContent = '⚠️ Error';
-      console.error('Photo upload error for', key, e);
     }
-    // Small pause between uploads to avoid Apps Script rate limits
-    await new Promise(r => setTimeout(r, 300));
   }
 }
 
 function slRestorePhotos(rec) {
   SL_PHOTO_KEYS.forEach(key => {
-    // Restore notes — only for the base key (farrow_1/2/3 all share slNotes_farrow)
-    const baseKey = key.replace(/_\d$/, '');
-    const notesEl = document.getElementById('slNotes_' + baseKey);
-    if (notesEl && !notesEl._restored) {
-      notesEl.value = rec['SlNotes_' + baseKey] || '';
-      notesEl._restored = true; // prevent overwrite by farrow_2, farrow_3
-    }
+    // Restore notes
+    const notesEl = document.getElementById('slNotes_' + key);
+    if (notesEl) notesEl.value = rec['SlNotes_' + key] || '';
 
+    // Restore photo
     const url  = rec['SlPhoto_'     + key];
     const time = rec['SlPhotoTime_' + key];
     const img    = document.getElementById('slPhotoImg_'     + key);
     const prev   = document.getElementById('slPhotoPreview_' + key);
-    const empty  = document.getElementById('slPhotoEmpty_'   + key);
     const stat   = document.getElementById('slPhotoStatus_'  + key);
     const clrBtn = document.getElementById('slPhotoClear_'   + key);
     const tsEl   = document.getElementById('slPhotoTs_'      + key);
@@ -7524,38 +7335,13 @@ function slRestorePhotos(rec) {
         : url;
       if (img)    { img.src = displayUrl; img.onerror = () => { img.src = url; }; }
       if (prev)   prev.style.display   = 'block';
-      if (empty)  empty.style.display  = 'none';
       if (clrBtn) clrBtn.style.display = 'inline-flex';
       if (stat)   stat.textContent     = time ? '📷 ' + time : '📷 Saved';
-      if (tsEl)   { tsEl.textContent   = time ? time : ''; tsEl.style.display = time ? 'block' : 'none'; }
+      if (tsEl)   { tsEl.textContent   = time ? '📷 ' + time : ''; tsEl.style.display = time ? 'block' : 'none'; }
     } else {
       slPhotoClear(key);
     }
   });
-  // Reset the _restored flag after processing
-  SL_PHOTO_KEYS.forEach(key => {
-    const baseKey = key.replace(/_\d$/, '');
-    const el = document.getElementById('slNotes_' + baseKey);
-    if (el) el._restored = false;
-  });
-}
-
-function slViewPhoto(key) {
-  const img = document.getElementById('slPhotoImg_' + key);
-  if (!img || !img.src) return;
-  const lb   = document.getElementById('slLightbox');
-  const lbImg = document.getElementById('slLightboxImg');
-  const lbCap = document.getElementById('slLightboxCaption');
-  if (!lb || !lbImg) return;
-  lbImg.src = img.src;
-  const tsEl = document.getElementById('slPhotoTs_' + key);
-  if (lbCap) lbCap.textContent = tsEl ? tsEl.textContent : '';
-  lb.style.display = 'flex';
-}
-
-function slCloseLightbox() {
-  const lb = document.getElementById('slLightbox');
-  if (lb) lb.style.display = 'none';
 }
 
 // Total = Foster + cl_nursing (Actively Nursing) from today's DailyChecklist for this pen
@@ -7679,8 +7465,6 @@ async function slLookupExisting() {
 
 function _populateSlForm(rec) {
   if(document.getElementById('slPen'))   document.getElementById('slPen').value   = rec.Pen   || '';
-  // Pen is read-only — always sourced from sow record; refresh to sync
-  slAutoPopulatePen();
   if(document.getElementById('slNotes')) document.getElementById('slNotes').value = rec.Notes || '';
   const fSowEl = document.getElementById('slFSow');
   if (fSowEl) fSowEl.value = rec.sl_fsow || '';
@@ -7823,9 +7607,7 @@ function resetSowLitter() {
   // Clear section notes
   SL_PHOTO_KEYS.forEach(key => { const el = document.getElementById('slNotes_' + key); if (el) el.value = ''; });
   const today = new Date().toISOString().split('T')[0];
-  ['slSowId','slLitterBoar','slNotes','slFSow'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
-  const penEl = document.getElementById('slPen'); if (penEl) penEl.value = '';
-  const penNote = document.getElementById('slPenNote'); if (penNote) penNote.textContent = '';
+  ['slSowId','slLitterBoar','slPen','slNotes','slFSow'].forEach(id => { const el=document.getElementById(id); if(el) { el.value=''; el.style.border=''; el.style.background=''; } });
   const noteEl = document.getElementById('slLitterBoarNote'); if (noteEl) noteEl.textContent = '';
   const slErr = document.getElementById('slValidationError');
   if (slErr) slErr.style.display = 'none';
@@ -8000,16 +7782,14 @@ async function loadSlActive() {
   }
 }
 
-// A record is "closed" if: weaned date set, OR weaned task done, OR today > farrowDate + 60 days
+// A record is "closed" if: weaned date set, OR weaned task done, OR today > farrowDate + 35 days
 function slIsClosed(rec) {
   if (rec['sl_date_weaned'] && rec['sl_date_weaned'] !== '') return true;
-  // Check both 'weaned' (current key) and 'sl_weaned' (legacy key from old SL_TASKS)
-  if (rec['weaned'] === 'done' || rec['sl_weaned'] === 'done') return true;
+  if (rec['weaned'] === 'done') return true;
   if (rec.FarrowDate) {
     const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
     const today  = new Date(); today.setHours(0,0,0,0);
-    // Auto-close after 60 days (2 months) if not weaned
-    if ((today - farrow) / 86400000 > 60) return true;
+    if ((today - farrow) / 86400000 > 35) return true;
   }
   return false;
 }
@@ -8030,27 +7810,21 @@ function _slBuildExpiredBanner(records) {
   const issues = [];
   records.forEach(rec => {
     const sowId = getSowPigIdFromDbId(rec.SowId) || ('SL_ID:' + rec.SL_ID);
-
-    // Skip records that are properly closed — weaned or auto-closed
-    const isWeaned    = (rec.sl_date_weaned && String(rec.sl_date_weaned).trim() !== '')
-                      || rec.weaned === 'done'
-                      || rec.sl_weaned === 'done'; // legacy key
-    const hasFarrow   = rec.FarrowDate && String(rec.FarrowDate).trim() !== '';
-    const farrow      = hasFarrow ? new Date(rec.FarrowDate) : null;
-    if (farrow) farrow?.setHours(0,0,0,0);
-    const days        = farrow && !isNaN(farrow) ? Math.floor((today - farrow) / 86400000) : null;
-    const isAutoClosed = days !== null && days > 60;
-
-    // Records with a weaned date or auto-closed past 60 days need NO attention
-    if (isWeaned || isAutoClosed) return;
-
-    // No farrow date — needs attention
-    if (!hasFarrow || isNaN(farrow)) {
+    // No farrow date
+    if (!rec.FarrowDate || String(rec.FarrowDate).trim() === '') {
       issues.push({ rec, sowId, type: 'no_farrow', days: null, missing: [] });
       return;
     }
-
-    // Any section past its deadline and not filled
+    const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
+    if (isNaN(farrow)) { issues.push({ rec, sowId, type: 'no_farrow', days: null, missing: [] }); return; }
+    const days = Math.floor((today - farrow) / 86400000);
+    // Overdue — past day 35 without weaning
+    if (days > 35 && !rec.sl_date_weaned && rec.weaned !== 'done') {
+      const missing = SECTIONS.filter(s => days > s.max && !s.check(rec)).map(s => s.label);
+      issues.push({ rec, sowId, type: 'overdue', days, missing });
+      return;
+    }
+    // Any section past deadline and not filled
     const missing = SECTIONS.filter(s => days > s.max && !s.check(rec)).map(s => s.label);
     if (missing.length > 0) {
       issues.push({ rec, sowId, type: 'missing_sections', days, missing });
@@ -8063,9 +7837,12 @@ function _slBuildExpiredBanner(records) {
     let badge = '', detail = '';
     if (type === 'no_farrow') {
       badge = `<span style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800">⚠ No Farrow Date</span>`;
+    } else if (type === 'overdue') {
+      badge = `<span style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800">🔒 Day ${days} — not weaned</span>`;
+      if (missing.length) detail = `<div style="font-size:10px;color:#c0392b;margin-top:2px">Missing: ${missing.join(', ')}</div>`;
     } else {
       badge = `<span style="background:#fff3e0;color:#e65100;border:1px solid #ff9800;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800">⚠ Day ${days}</span>`;
-      if (missing.length) detail = `<div style="font-size:10px;color:#c0392b;margin-top:2px">Overdue sections: ${missing.join(', ')}</div>`;
+      if (missing.length) detail = `<div style="font-size:10px;color:#c0392b;margin-top:2px">Overdue: ${missing.join(', ')}</div>`;
     }
     return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ef9a9a;flex-wrap:wrap;gap:4px">
       <div>
@@ -8101,16 +7878,16 @@ function renderSlActive() {
   container.innerHTML = _sortByPen(active, 'Pen').map(rec => {
     const farrow = new Date(rec.FarrowDate||'');
     const days   = isNaN(farrow) ? '?' : Math.floor((today - farrow)/86400000);
-    const daysLeft = typeof days === 'number' ? (60 - days) : '?';
-    const urgentBadge = typeof days === 'number' && daysLeft <= 7 && daysLeft >= 0
-      ? `<span style="background:#ff9800;color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:2px 7px;margin-left:6px">⏰ ${daysLeft}d to wean</span>`
+    const daysLeft = typeof days === 'number' ? (35 - days) : '?';
+    const urgentBadge = typeof days === 'number' && daysLeft <= 5 && daysLeft >= 0
+      ? `<span style="background:#ff9800;color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:2px 7px;margin-left:6px">⏰ ${daysLeft}d left</span>`
       : '';
     const deleteBtn = isAdminEnabled()
       ? ' <button class="btn-delete" onclick="event.stopPropagation();slDeleteRecord(\'' + rec.SL_ID + '\')">Delete</button>'
       : '';
     return '<div class="cl-record-card" style="cursor:pointer" onclick="slOpenRecord(\'' + rec.SL_ID + '\')">'
       + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + getSowPigIdFromDbId(rec.SowId) + ' · Day ' + days + urgentBadge + '</div></div>'
-      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + (rec.LitterBoar ? ' · Boar: ' + getBoarPigIdFromDbId(rec.LitterBoar) : '') + ' · Wean by Day 60</div>'
+      + '<div class="cl-record-by">Farrow: ' + (rec.FarrowDate||'-') + ' · Pen: ' + (rec.Pen||'-') + (rec.LitterBoar ? ' · Boar: ' + getBoarPigIdFromDbId(rec.LitterBoar) : '') + ' · Wean by Day 35</div>'
       + (deleteBtn ? '<div class="cl-record-actions">' + deleteBtn + '</div>' : '')
       + '</div>';
   }).join('');
@@ -8145,7 +7922,7 @@ function renderSlHistory() {
     if (!rec['sl_date_weaned'] && rec['weaned'] !== 'done' && rec.FarrowDate) {
       const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
       const days = Math.floor((today - farrow) / 86400000);
-      if (days > 60) closeBadge = '<span style="background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">🔒 Day ' + days + ' — Auto-closed</span>';
+      if (days > 35) closeBadge = '<span style="background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:700">🔒 Day ' + days + ' — Auto-closed</span>';
     }
     return '<div class="cl-record-card">'
       + '<div class="cl-record-header"><div class="cl-record-date">Sow: ' + getSowPigIdFromDbId(rec.SowId) + '</div>' + closeBadge + '</div>'
@@ -8158,14 +7935,12 @@ function renderSlHistory() {
 async function slOpenRecord(slId) {
   const rec = allSlRecords.find(r => String(r.SL_ID) === String(slId));
   if (!rec) return;
-
-  // Reset form first (resetSowLitter inside sets slEditId = null — intentional)
-  setSlView('form', true);
-
-  // Set slEditId AFTER reset so it is never wiped by resetSowLitter
   slEditId = rec.SL_ID;
 
-  // Refresh dropdowns then restore all field values
+  // Reset form first, then show it
+  setSlView('form', true); // true = resetForm
+
+  // Refresh both dropdowns then set values by DB_ID
   await populateSlSowDropdown();
   await populateSlBoarDropdown();
   await populateSlFSowDropdown();
@@ -8184,42 +7959,14 @@ async function slOpenRecord(slId) {
   const btn      = document.getElementById('btnSaveSl');
   const slError  = document.getElementById('slValidationError');
 
-  // Always ensure all form fields are enabled — admin must be able to edit everything
-  // slPen is always read-only (derived from sow record) — excluded from unlock
-  if (isAdminEnabled() || !isClosed) {
-    document.querySelectorAll('#slFormView input, #slFormView select, #slFormView textarea').forEach(el => {
-      if (el.id === 'slPen') return; // always read-only
-      el.disabled = false;
-      el.style.background = '';
-      el.style.color = '';
-      el.style.cursor = '';
-    });
-    // Re-enable task checkboxes (class-based, not disabled)
-    document.querySelectorAll('.sl-task-check').forEach(el => {
-      el.classList.remove('locked');
-      el.style.pointerEvents = '';
-      el.style.cursor = '';
-    });
-    document.querySelectorAll('.sl-task-label').forEach(el => el.classList.remove('locked-text'));
-  }
-
   if (isClosed && !isAdminEnabled()) {
-    // Lock all form fields for non-admin
-    document.querySelectorAll('#slFormView input, #slFormView select, #slFormView textarea').forEach(el => {
-      if (el.id === 'slPen') return; // already read-only
-      el.disabled = true;
-    });
-    document.querySelectorAll('.sl-task-check').forEach(el => {
-      el.classList.add('locked');
-      el.style.pointerEvents = 'none';
-    });
     if (slError) {
       const farrow = new Date(rec.FarrowDate||''); farrow.setHours(0,0,0,0);
       const today  = new Date(); today.setHours(0,0,0,0);
       const days   = Math.floor((today - farrow) / 86400000);
       const reason = rec['sl_date_weaned'] ? 'weaned on ' + rec['sl_date_weaned']
                    : rec['weaned'] === 'done' ? 'weaning task completed'
-                   : 'Day ' + days + ' — exceeded 60-day (2-month) limit';
+                   : 'Day ' + days + ' — exceeded 35-day limit';
       slError.textContent = '🔒 This record is closed (' + reason + '). Admin access required to edit.';
       slError.style.display = 'block';
       slError.style.background = '#fff8e1';
@@ -8227,23 +7974,6 @@ async function slOpenRecord(slId) {
       slError.style.color = '#78350f';
     }
     if (btn) { btn.disabled = true; btn.textContent = '🔒 Record Closed'; }
-    if (banner) banner.style.display = 'none';
-  } else if (isClosed && isAdminEnabled()) {
-    // Admin editing a closed record — show override notice but allow saving
-    if (slError) {
-      const farrow = new Date(rec.FarrowDate||''); farrow.setHours(0,0,0,0);
-      const today  = new Date(); today.setHours(0,0,0,0);
-      const days   = Math.floor((today - farrow) / 86400000);
-      const reason = rec['sl_date_weaned'] ? 'weaned on ' + rec['sl_date_weaned']
-                   : rec['weaned'] === 'done' ? 'weaning task completed'
-                   : 'Day ' + days + ' — exceeded 60-day (2-month) limit';
-      slError.textContent = '🔓 Admin override — this record is closed (' + reason + ') but you can still update and save it.';
-      slError.style.display = 'block';
-      slError.style.background = '#e8f0ff';
-      slError.style.borderColor = '#1a3a8a';
-      slError.style.color = '#1a3a8a';
-    }
-    if (btn) { btn.disabled = false; btn.textContent = 'UPDATE RECORD (Admin)'; }
     if (banner) banner.style.display = 'none';
   } else {
     if (slError) slError.style.display = 'none';
@@ -8927,470 +8657,213 @@ function _updateDecodeResults() {
     ? (boar||'?') + '-' + (sow||'?') + '-' + (litter||'?') : '—';
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  MAIZE LOG
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+//  SHARED GRAIN LOG HELPERS
+// ═══════════════════════════════════════════════════════════
 
-let maizeRecords   = [];   // all GR records loaded from backend
-let maizeBatchActive = false; // is a batch currently open?
-let maizeBatchId   = null; // current batch identifier (timestamp string)
-const MAIZE_PREF_KEY = 'piglog_maize_buyer'; // localStorage key for default buyer
+function _grainMakeHandlers(cfg) {
+  // cfg = { prefix, sheet, color, btnColor }
+  const p = cfg.prefix; // 'maize' or 'soy'
+  return {
+    records:     [],
+    batchActive: false,
+    batchId:     null,
+    prefKey:     'piglog_' + p + '_buyer',
 
-// ── Page init ────────────────────────────────────────────────
-async function initMaizePage() {
-  // Set today's date
-  const dateEl = document.getElementById('maizeDate');
-  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+    async init() {
+      const dateEl = document.getElementById(p + 'Date');
+      if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+      await this.populateBuyers();
+      await this.load();
+    },
 
-  // Load buyer names from PigLog records + settings
-  await maizePopulateBuyers();
+    async populateBuyers() {
+      const sel = document.getElementById(p + 'Buyer');
+      if (!sel) return;
+      let names = [];
+      this.records.forEach(r => { if (r.Buyer && !names.includes(r.Buyer)) names.push(r.Buyer); });
+      try {
+        const r = await apiGet({ action: 'getSetting', key: 'WORKER_NAMES' });
+        if (r?.success && r.value) r.value.split('|').forEach(n => { const t=n.trim(); if(t&&!names.includes(t)) names.push(t); });
+      } catch(e) {}
+      const preferred = localStorage.getItem(this.prefKey) || '';
+      const current   = sel.value;
+      sel.innerHTML = '<option value="">— Select buyer —</option>';
+      names.sort().forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name; opt.textContent = name;
+        if (name === (current || preferred)) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (preferred && !names.includes(preferred)) {
+        const opt = document.createElement('option');
+        opt.value = preferred; opt.textContent = preferred; opt.selected = true;
+        sel.insertBefore(opt, sel.children[1]);
+      }
+    },
 
-  // Load records from backend
-  await maizeLoadRecords();
-}
+    async load() {
+      const result = await apiGet({ action: p + 'GetAll' });
+      if (result?.success) {
+        this.records = result.records || [];
+        const last = this.records[this.records.length - 1];
+        this.batchActive = !!(last && last.BatchDone !== 'yes');
+        this.batchId     = this.batchActive ? (last.BatchId || '') : null;
+        this.renderTable();
+        this.updateBatchUI();
+        this.updateAutoFields();
+      }
+    },
 
-// ── Buyer dropdown ────────────────────────────────────────────
-async function maizePopulateBuyers() {
-  const sel = document.getElementById('maizeBuyer');
-  if (!sel) return;
+    async toggleBatch() {
+      if (!this.batchActive) {
+        this.batchActive = true;
+        this.batchId     = new Date().toISOString();
+        this.updateBatchUI();
+        showToast('New ' + p + ' batch started');
+      } else {
+        if (!confirm('Mark this batch as done?')) return;
+        const result = await apiPost({ action: p + 'CloseBatch', batchId: this.batchId });
+        if (result?.success) {
+          this.batchActive = false; this.batchId = null;
+          await this.load(); showToast('Batch closed ✅');
+        } else showToast('Error: ' + (result?.error || 'unknown'), true);
+      }
+    },
 
-  // Get all people from allRecords (First + Last name fields) — use pig owners/staff
-  // Also fetch WORKER_NAMES from Settings as a fallback list
-  let names = [];
+    updateBatchUI() {
+      const color = p === 'maize' ? '#78350f' : '#4d7c0f';
+      document.getElementById(p + 'BatchLabel').textContent = this.batchActive ? '🟢 Batch in progress' : '🟡 No active batch';
+      document.getElementById(p + 'BatchSub').textContent   = this.batchActive ? 'Enter purchases below — toggle "Done?" when complete' : 'Start a new batch to record purchases';
+      const btn = document.getElementById(p + 'BatchBtn');
+      if (btn) { btn.textContent = this.batchActive ? '✅ Done?' : '🚀 New Batch'; btn.style.background = this.batchActive ? '#16a34a' : color; }
+      const form = document.getElementById(p + 'EntryForm');
+      if (form) form.style.display = this.batchActive ? 'block' : 'none';
+      if (this.batchActive) {
+        const dateEl = document.getElementById(p + 'Date');
+        if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+      }
+    },
 
-  // Pull unique buyer names from existing grain records
-  maizeRecords.forEach(r => { if (r.Buyer && !names.includes(r.Buyer)) names.push(r.Buyer); });
+    calcCost() {
+      const qty   = parseFloat(document.getElementById(p + 'Qty')?.value   || '0') || 0;
+      const price = parseFloat(document.getElementById(p + 'Price')?.value || '0') || 0;
+      const cost  = qty * price;
+      const el    = document.getElementById(p + 'CostDisplay');
+      if (el) el.textContent = cost > 0 ? 'K ' + cost.toFixed(2) : '—';
+      this.updateAutoFields();
+    },
 
-  // Pull worker names from settings
-  try {
-    const r = await apiGet({ action: 'getSetting', key: 'WORKER_NAMES' });
-    if (r?.success && r.value) {
-      r.value.split('|').forEach(n => { const t = n.trim(); if (t && !names.includes(t)) names.push(t); });
+    updateAutoFields() {
+      const batchRecs   = this.records.filter(r => r.BatchId === this.batchId);
+      const currentQty  = parseFloat(document.getElementById(p + 'Qty')?.value || '0') || 0;
+      const costText    = document.getElementById(p + 'CostDisplay')?.textContent || '';
+      const currentCost = parseFloat(costText.replace('K ','')) || 0;
+      const batchWt     = batchRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0), 0) + currentQty;
+      const batchTotal  = batchRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + currentCost;
+      const runTotal    = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + currentCost;
+      const bwEl = document.getElementById(p + 'BatchWeightDisplay');
+      const btEl = document.getElementById(p + 'BatchTotalDisplay');
+      const rtEl = document.getElementById(p + 'RunningDisplay');
+      if (bwEl) bwEl.textContent = batchWt   > 0 ? batchWt.toFixed(1) + ' kg' : '—';
+      if (btEl) btEl.textContent = batchTotal > 0 ? 'K ' + batchTotal.toFixed(2) : '—';
+      if (rtEl) rtEl.textContent = runTotal   > 0 ? 'K ' + runTotal.toFixed(2) : '—';
+    },
+
+    async addEntry() {
+      const errEl = document.getElementById(p + 'EntryError');
+      const date  = document.getElementById(p + 'Date')?.value  || '';
+      const buyer = document.getElementById(p + 'Buyer')?.value || '';
+      const qty   = parseFloat(document.getElementById(p + 'Qty')?.value   || '0') || 0;
+      const price = parseFloat(document.getElementById(p + 'Price')?.value || '0') || 0;
+      const cost  = qty * price;
+      const showErr = msg => { if(errEl){errEl.textContent=msg;errEl.style.display='block';} };
+      if (!date)    { showErr('Please select a date.'); return; }
+      if (!buyer)   { showErr('Please select a buyer.'); return; }
+      if (qty <= 0) { showErr('Please enter a quantity > 0.'); return; }
+      if (price<=0) { showErr('Please enter a price per kg.'); return; }
+      if (!this.batchActive) { showErr('Start a new batch first.'); return; }
+      if (errEl) errEl.style.display = 'none';
+      localStorage.setItem(this.prefKey, buyer);
+      const batchRecs  = this.records.filter(r => r.BatchId === this.batchId);
+      const batchWt    = batchRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0), 0) + qty;
+      const batchTotal = batchRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
+      const runTotal   = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
+      const data = { Date:date, Buyer:buyer, Qty:qty, PricePerKg:price, Cost:cost,
+                     BatchWeight:batchWt, BatchTotal:batchTotal, RunningTotal:runTotal,
+                     BatchId:this.batchId, BatchDone:'' };
+      const result = await apiPost({ action: p + 'Add', data });
+      if (result?.success) {
+        showToast('Entry saved ✅');
+        document.getElementById(p + 'Qty').value   = '';
+        document.getElementById(p + 'Price').value = '';
+        document.getElementById(p + 'CostDisplay').textContent = '—';
+        await this.load();
+      } else showErr('Save failed: ' + (result?.error || 'unknown'));
+    },
+
+    async deleteEntry(grId) {
+      if (!confirm('Delete this entry?')) return;
+      const result = await apiPost({ action: p + 'Delete', id: grId });
+      if (result?.success) { await this.load(); showToast('Entry deleted'); }
+      else showToast('Delete failed: ' + (result?.error || 'unknown'), true);
+    },
+
+    renderTable() {
+      const tbody = document.getElementById(p + 'TableBody');
+      const table = document.getElementById(p + 'Table');
+      const empty = document.getElementById(p + 'Empty');
+      if (!tbody) return;
+      if (!this.records.length) {
+        if (table) table.style.display = 'none';
+        if (empty) empty.style.display = 'block';
+        return;
+      }
+      if (table) table.style.display = 'table';
+      if (empty) empty.style.display = 'none';
+      const color   = p === 'maize' ? '#78350f' : '#4d7c0f';
+      const altBg   = p === 'maize' ? '#fffbeb' : '#f7fee7';
+      const batches = [...new Set(this.records.map(r => r.BatchId))];
+      const me = this;
+      tbody.innerHTML = this.records.map((rec, i) => {
+        const batchIdx      = batches.indexOf(rec.BatchId);
+        const isClosed      = rec.BatchDone === 'yes';
+        const isLastInBatch = me.records[i+1]?.BatchId !== rec.BatchId;
+        const rowBg         = batchIdx % 2 === 0 ? altBg : '#f0fdf4';
+        const boldStyle     = (isClosed && isLastInBatch) ? 'font-weight:900;border-top:2px solid ' + color + ';' : '';
+        const badge         = (isClosed && isLastInBatch)
+          ? '<span style="font-size:9px;background:' + color + ';color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>' : '';
+        const delBtn = isAdminEnabled()
+          ? `<button onclick="window['${p}Handler'].deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>` : '';
+        return `<tr style="background:${rowBg};${boldStyle}border-bottom:1px solid #e5e7eb">
+          <td style="padding:7px 10px;white-space:nowrap">${rec.Date||''}${badge}</td>
+          <td style="padding:7px 10px">${rec.Buyer||''}</td>
+          <td style="padding:7px 10px;text-align:right">${parseFloat(rec.Qty||0).toFixed(1)}</td>
+          <td style="padding:7px 10px;text-align:right">${parseFloat(rec.PricePerKg||0).toFixed(2)}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.Cost||0).toFixed(2)}</td>
+          <td style="padding:7px 10px;text-align:right">${parseFloat(rec.BatchWeight||0).toFixed(1)}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.BatchTotal||0).toFixed(2)}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:800;color:#c0392b">K ${parseFloat(rec.RunningTotal||0).toFixed(2)}</td>
+          <td style="padding:7px 4px;text-align:center">${delBtn}</td>
+        </tr>`;
+      }).join('');
     }
-  } catch(e) {}
-
-  // Pull names from PigLog records (PIG ID field has pig owner if structured)
-  // Use allRecords if loaded
-  if (allRecords.length) {
-    allRecords.forEach(r => {
-      const owner = String(r['Notes'] || '').trim(); // fallback
-      // Prefer a dedicated Owner/Person field if present
-    });
-  }
-
-  const preferred = localStorage.getItem(MAIZE_PREF_KEY) || '';
-  const current   = sel.value;
-
-  sel.innerHTML = '<option value="">— Select buyer —</option>';
-  names.sort().forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    if (name === (current || preferred)) opt.selected = true;
-    sel.appendChild(opt);
-  });
-
-  // Allow typing a new name
-  if (preferred && !names.includes(preferred)) {
-    const opt = document.createElement('option');
-    opt.value = preferred; opt.textContent = preferred;
-    opt.selected = true;
-    sel.insertBefore(opt, sel.children[1]);
-  }
-}
-
-// ── Load records ──────────────────────────────────────────────
-async function maizeLoadRecords() {
-  const result = await apiGet({ action: 'maizeGetAll' });
-  if (result?.success) {
-    maizeRecords = result.records || [];
-    // Detect if a batch is still open (last record has BatchDone !== 'yes')
-    const last = maizeRecords[maizeRecords.length - 1];
-    if (last && last.BatchDone !== 'yes') {
-      maizeBatchActive = true;
-      maizeBatchId     = last.BatchId || '';
-    } else {
-      maizeBatchActive = false;
-      maizeBatchId     = null;
-    }
-    maizeRenderTable();
-    maizeUpdateBatchUI();
-    maizeUpdateAutoFields();
-  }
-}
-
-// ── Batch toggle ──────────────────────────────────────────────
-async function maizeToggleBatch() {
-  if (!maizeBatchActive) {
-    // Start new batch
-    maizeBatchActive = true;
-    maizeBatchId     = new Date().toISOString(); // unique batch identifier
-    maizeUpdateBatchUI();
-    showToast('New batch started');
-  } else {
-    // Close current batch — mark last entry as batch done
-    if (!confirm('Mark this batch as done?')) return;
-    const result = await apiPost({ action: 'maizeCloseBatch', batchId: maizeBatchId });
-    if (result?.success) {
-      maizeBatchActive = false;
-      maizeBatchId     = null;
-      await maizeLoadRecords();
-      showToast('Batch closed ✅');
-    } else {
-      showToast('Error closing batch: ' + (result?.error || 'unknown'), true);
-    }
-  }
-}
-
-function maizeUpdateBatchUI() {
-  const label  = document.getElementById('maizeBatchLabel');
-  const sub    = document.getElementById('maizeBatchSub');
-  const btn    = document.getElementById('maizeBatchBtn');
-  const form   = document.getElementById('maizeEntryForm');
-  if (maizeBatchActive) {
-    if (label) label.textContent = '🟢 Batch in progress';
-    if (sub)   sub.textContent   = 'Enter purchases below — toggle "Done?" when batch is complete';
-    if (btn)   { btn.textContent = '✅ Done?'; btn.style.background = '#16a34a'; }
-    if (form)  form.style.display = 'block';
-    // Reset date to today
-    const dateEl = document.getElementById('maizeDate');
-    if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
-  } else {
-    if (label) label.textContent = '🟡 No active batch';
-    if (sub)   sub.textContent   = 'Start a new batch to record purchases';
-    if (btn)   { btn.textContent = '🚀 New Batch'; btn.style.background = '#78350f'; }
-    if (form)  form.style.display = 'none';
-  }
-}
-
-// ── Cost auto-calc ────────────────────────────────────────────
-function maizeCalcCost() {
-  const qty   = parseFloat(document.getElementById('maizeQty')?.value   || '0') || 0;
-  const price = parseFloat(document.getElementById('maizePrice')?.value || '0') || 0;
-  const cost  = qty * price;
-  const costEl = document.getElementById('maizeCostDisplay');
-  if (costEl) costEl.textContent = cost > 0 ? 'K ' + cost.toFixed(2) : '—';
-  maizeUpdateAutoFields();
-}
-
-// ── Auto-populate batch weight, batch total, running total ────
-function maizeUpdateAutoFields() {
-  const batchRecs   = maizeRecords.filter(r => r.BatchId === maizeBatchId);
-  const currentQty  = parseFloat(document.getElementById('maizeQty')?.value   || '0') || 0;
-  const currentCost = parseFloat(document.getElementById('maizeCostDisplay')?.textContent?.replace('K ','') || '0') || 0;
-
-  // Batch weight = sum of qty in current batch + current entry
-  const batchWt    = batchRecs.reduce((s, r) => s + (parseFloat(r.Qty) || 0), 0) + currentQty;
-  // Batch total cost = sum of cost in current batch + current entry
-  const batchTotal = batchRecs.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + currentCost;
-  // Running total = ALL records ever
-  const runTotal   = maizeRecords.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + currentCost;
-
-  const bwEl = document.getElementById('maizeBatchWeightDisplay');
-  const btEl = document.getElementById('maizeBatchTotalDisplay');
-  const rtEl = document.getElementById('maizeRunningDisplay');
-
-  if (bwEl) bwEl.textContent = batchWt > 0 ? batchWt.toFixed(1) + ' kg' : '—';
-  if (btEl) btEl.textContent = batchTotal > 0 ? 'K ' + batchTotal.toFixed(2) : '—';
-  if (rtEl) rtEl.textContent = runTotal  > 0 ? 'K ' + runTotal.toFixed(2)  : '—';
-}
-
-// ── Add entry ─────────────────────────────────────────────────
-async function maizeAddEntry() {
-  const errEl   = document.getElementById('maizeEntryError');
-  const date    = document.getElementById('maizeDate')?.value  || '';
-  const buyer   = document.getElementById('maizeBuyer')?.value || '';
-  const qty     = parseFloat(document.getElementById('maizeQty')?.value   || '0') || 0;
-  const price   = parseFloat(document.getElementById('maizePrice')?.value || '0') || 0;
-  const cost    = qty * price;
-
-  // Validation
-  if (!date)   { showMaizeErr('Please select a date.'); return; }
-  if (!buyer)  { showMaizeErr('Please select a buyer.'); return; }
-  if (qty <= 0) { showMaizeErr('Please enter a quantity greater than 0.'); return; }
-  if (price <= 0) { showMaizeErr('Please enter a price per kg.'); return; }
-  if (!maizeBatchActive) { showMaizeErr('Start a new batch first.'); return; }
-  if (errEl) errEl.style.display = 'none';
-
-  // Save preferred buyer
-  localStorage.setItem(MAIZE_PREF_KEY, buyer);
-
-  const batchRecs  = maizeRecords.filter(r => r.BatchId === maizeBatchId);
-  const batchWt    = batchRecs.reduce((s, r) => s + (parseFloat(r.Qty)  || 0), 0) + qty;
-  const batchTotal = batchRecs.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + cost;
-  const runTotal   = maizeRecords.reduce((s, r) => s + (parseFloat(r.Cost) || 0), 0) + cost;
-
-  const data = {
-    Date:         date,
-    Buyer:        buyer,
-    Qty:          qty,
-    PricePerKg:   price,
-    Cost:         cost,
-    BatchWeight:  batchWt,
-    BatchTotal:   batchTotal,
-    RunningTotal: runTotal,
-    BatchId:      maizeBatchId,
-    BatchDone:    ''
   };
-
-  const result = await apiPost({ action: 'maizeAdd', data });
-  if (result?.success) {
-    showToast('Entry saved ✅');
-    // Reset qty and price, keep date and buyer
-    document.getElementById('maizeQty').value   = '';
-    document.getElementById('maizePrice').value = '';
-    document.getElementById('maizeCostDisplay').textContent = '—';
-    await maizeLoadRecords();
-  } else {
-    showMaizeErr('Save failed: ' + (result?.error || 'unknown'));
-  }
 }
 
-function showMaizeErr(msg) {
-  const el = document.getElementById('maizeEntryError');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
-}
+// Create independent handler instances
+window.maizeHandler = _grainMakeHandlers({ prefix: 'maize' });
+window.soyHandler   = _grainMakeHandlers({ prefix: 'soy'   });
 
-// ── Render table ──────────────────────────────────────────────
-function maizeRenderTable() {
-  const tbody   = document.getElementById('maizeTableBody');
-  const table   = document.getElementById('maizeTable');
-  const empty   = document.getElementById('maizeEmpty');
-  if (!tbody) return;
-
-  if (!maizeRecords.length) {
-    if (table) table.style.display = 'none';
-    if (empty) empty.style.display = 'block';
-    return;
-  }
-  if (table) table.style.display = 'table';
-  if (empty) empty.style.display = 'none';
-
-  // Group by batch — shade alternately
-  const batches = [...new Set(maizeRecords.map(r => r.BatchId))];
-  tbody.innerHTML = maizeRecords.map((rec, i) => {
-    const batchIdx  = batches.indexOf(rec.BatchId);
-    const isClosed  = rec.BatchDone === 'yes';
-    const isLastInBatch = maizeRecords[i+1]?.BatchId !== rec.BatchId;
-    const rowBg     = batchIdx % 2 === 0 ? '#fffbeb' : '#f0fdf4';
-    const boldStyle = (isClosed && isLastInBatch) ? 'font-weight:900;border-top:2px solid #78350f;' : '';
-    const closedBadge = (isClosed && isLastInBatch)
-      ? '<span style="font-size:9px;background:#78350f;color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>' : '';
-    const delBtn = isAdminEnabled()
-      ? `<button onclick="maizeDeleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>`
-      : '';
-    return `<tr style="background:${rowBg};${boldStyle}border-bottom:1px solid #e5e7eb">
-      <td style="padding:7px 10px;white-space:nowrap">${rec.Date || ''}${closedBadge}</td>
-      <td style="padding:7px 10px">${rec.Buyer || ''}</td>
-      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.Qty||0).toFixed(1)}</td>
-      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.PricePerKg||0).toFixed(2)}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.Cost||0).toFixed(2)}</td>
-      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.BatchWeight||0).toFixed(1)}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.BatchTotal||0).toFixed(2)}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:800;color:#c0392b">K ${parseFloat(rec.RunningTotal||0).toFixed(2)}</td>
-      <td style="padding:7px 4px;text-align:center">${delBtn}</td>
-    </tr>`;
-  }).join('');
-}
-
-async function maizeDeleteEntry(grId) {
-  if (!confirm('Delete this entry?')) return;
-  const result = await apiPost({ action: 'maizeDelete', id: grId });
-  if (result?.success) { await maizeLoadRecords(); showToast('Entry deleted'); }
-  else showToast('Delete failed: ' + (result?.error || 'unknown'), true);
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  SOY BEAN LOG
-// ═══════════════════════════════════════════════════════════════
-
-let soyRecords     = [];
-let soyBatchActive = false;
-let soyBatchId     = null;
-const SOY_PREF_KEY = 'piglog_soy_buyer';
-
-async function initSoyPage() {
-  const dateEl = document.getElementById('soyDate');
-  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
-  await soyPopulateBuyers();
-  await soyLoadRecords();
-}
-
-async function soyPopulateBuyers() {
-  const sel = document.getElementById('soyBuyer');
-  if (!sel) return;
-  let names = [];
-  soyRecords.forEach(r => { if (r.Buyer && !names.includes(r.Buyer)) names.push(r.Buyer); });
-  try {
-    const r = await apiGet({ action: 'getSetting', key: 'WORKER_NAMES' });
-    if (r?.success && r.value) r.value.split('|').forEach(n => { const t=n.trim(); if(t&&!names.includes(t)) names.push(t); });
-  } catch(e) {}
-  const preferred = localStorage.getItem(SOY_PREF_KEY) || '';
-  const current   = sel.value;
-  sel.innerHTML = '<option value="">— Select buyer —</option>';
-  names.sort().forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name;
-    if (name === (current || preferred)) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  if (preferred && !names.includes(preferred)) {
-    const opt = document.createElement('option');
-    opt.value = preferred; opt.textContent = preferred; opt.selected = true;
-    sel.insertBefore(opt, sel.children[1]);
-  }
-}
-
-async function soyLoadRecords() {
-  const result = await apiGet({ action: 'soyGetAll' });
-  if (result?.success) {
-    soyRecords = result.records || [];
-    const last = soyRecords[soyRecords.length - 1];
-    if (last && last.BatchDone !== 'yes') {
-      soyBatchActive = true; soyBatchId = last.BatchId || '';
-    } else {
-      soyBatchActive = false; soyBatchId = null;
-    }
-    soyRenderTable();
-    soyUpdateBatchUI();
-    soyUpdateAutoFields();
-  }
-}
-
-async function soyToggleBatch() {
-  if (!soyBatchActive) {
-    soyBatchActive = true; soyBatchId = new Date().toISOString();
-    soyUpdateBatchUI(); showToast('New soy batch started');
-  } else {
-    if (!confirm('Mark this batch as done?')) return;
-    const result = await apiPost({ action: 'soyCloseBatch', batchId: soyBatchId });
-    if (result?.success) {
-      soyBatchActive = false; soyBatchId = null;
-      await soyLoadRecords(); showToast('Soy batch closed ✅');
-    } else showToast('Error: ' + (result?.error || 'unknown'), true);
-  }
-}
-
-function soyUpdateBatchUI() {
-  const label = document.getElementById('soyBatchLabel');
-  const sub   = document.getElementById('soyBatchSub');
-  const btn   = document.getElementById('soyBatchBtn');
-  const form  = document.getElementById('soyEntryForm');
-  if (soyBatchActive) {
-    if (label) label.textContent = '🟢 Batch in progress';
-    if (sub)   sub.textContent   = 'Enter purchases below — toggle "Done?" when batch is complete';
-    if (btn)   { btn.textContent = '✅ Done?'; btn.style.background = '#16a34a'; }
-    if (form)  form.style.display = 'block';
-    const dateEl = document.getElementById('soyDate');
-    if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
-  } else {
-    if (label) label.textContent = '🟡 No active batch';
-    if (sub)   sub.textContent   = 'Start a new batch to record purchases';
-    if (btn)   { btn.textContent = '🚀 New Batch'; btn.style.background = '#4d7c0f'; }
-    if (form)  form.style.display = 'none';
-  }
-}
-
-function soyCalcCost() {
-  const qty   = parseFloat(document.getElementById('soyQty')?.value   || '0') || 0;
-  const price = parseFloat(document.getElementById('soyPrice')?.value || '0') || 0;
-  const cost  = qty * price;
-  const costEl = document.getElementById('soyCostDisplay');
-  if (costEl) costEl.textContent = cost > 0 ? 'K ' + cost.toFixed(2) : '—';
-  soyUpdateAutoFields();
-}
-
-function soyUpdateAutoFields() {
-  const batchRecs   = soyRecords.filter(r => r.BatchId === soyBatchId);
-  const currentQty  = parseFloat(document.getElementById('soyQty')?.value || '0') || 0;
-  const currentCost = parseFloat(document.getElementById('soyCostDisplay')?.textContent?.replace('K ','') || '0') || 0;
-  const batchWt    = batchRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0), 0) + currentQty;
-  const batchTotal = batchRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + currentCost;
-  const runTotal   = soyRecords.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + currentCost;
-  const bwEl = document.getElementById('soyBatchWeightDisplay');
-  const btEl = document.getElementById('soyBatchTotalDisplay');
-  const rtEl = document.getElementById('soyRunningDisplay');
-  if (bwEl) bwEl.textContent = batchWt > 0 ? batchWt.toFixed(1) + ' kg' : '—';
-  if (btEl) btEl.textContent = batchTotal > 0 ? 'K ' + batchTotal.toFixed(2) : '—';
-  if (rtEl) rtEl.textContent = runTotal  > 0 ? 'K ' + runTotal.toFixed(2)  : '—';
-}
-
-async function soyAddEntry() {
-  const errEl = document.getElementById('soyEntryError');
-  const date  = document.getElementById('soyDate')?.value  || '';
-  const buyer = document.getElementById('soyBuyer')?.value || '';
-  const qty   = parseFloat(document.getElementById('soyQty')?.value   || '0') || 0;
-  const price = parseFloat(document.getElementById('soyPrice')?.value || '0') || 0;
-  const cost  = qty * price;
-  if (!date)    { showSoyErr('Please select a date.'); return; }
-  if (!buyer)   { showSoyErr('Please select a buyer.'); return; }
-  if (qty <= 0) { showSoyErr('Please enter a quantity greater than 0.'); return; }
-  if (price <=0){ showSoyErr('Please enter a price per kg.'); return; }
-  if (!soyBatchActive) { showSoyErr('Start a new batch first.'); return; }
-  if (errEl) errEl.style.display = 'none';
-  localStorage.setItem(SOY_PREF_KEY, buyer);
-  const batchRecs  = soyRecords.filter(r => r.BatchId === soyBatchId);
-  const batchWt    = batchRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0),  0) + qty;
-  const batchTotal = batchRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
-  const runTotal   = soyRecords.reduce((s,r)  => s+(parseFloat(r.Cost)||0), 0) + cost;
-  const data = { Date:date, Buyer:buyer, Qty:qty, PricePerKg:price, Cost:cost,
-                 BatchWeight:batchWt, BatchTotal:batchTotal, RunningTotal:runTotal,
-                 BatchId:soyBatchId, BatchDone:'' };
-  const result = await apiPost({ action: 'soyAdd', data });
-  if (result?.success) {
-    showToast('Soy entry saved ✅');
-    document.getElementById('soyQty').value = '';
-    document.getElementById('soyPrice').value = '';
-    document.getElementById('soyCostDisplay').textContent = '—';
-    await soyLoadRecords();
-  } else showSoyErr('Save failed: ' + (result?.error || 'unknown'));
-}
-
-function showSoyErr(msg) {
-  const el = document.getElementById('soyEntryError');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
-}
-
-function soyRenderTable() {
-  const tbody = document.getElementById('soyTableBody');
-  const table = document.getElementById('soyTable');
-  const empty = document.getElementById('soyEmpty');
-  if (!tbody) return;
-  if (!soyRecords.length) { if(table) table.style.display='none'; if(empty) empty.style.display='block'; return; }
-  if (table) table.style.display = 'table';
-  if (empty) empty.style.display = 'none';
-  const batches = [...new Set(soyRecords.map(r => r.BatchId))];
-  tbody.innerHTML = soyRecords.map((rec, i) => {
-    const batchIdx     = batches.indexOf(rec.BatchId);
-    const isClosed     = rec.BatchDone === 'yes';
-    const isLastInBatch= soyRecords[i+1]?.BatchId !== rec.BatchId;
-    const rowBg        = batchIdx % 2 === 0 ? '#f7fee7' : '#f0fdf4';
-    const boldStyle    = (isClosed && isLastInBatch) ? 'font-weight:900;border-top:2px solid #4d7c0f;' : '';
-    const closedBadge  = (isClosed && isLastInBatch)
-      ? '<span style="font-size:9px;background:#4d7c0f;color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>' : '';
-    const delBtn = isAdminEnabled()
-      ? `<button onclick="soyDeleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>`
-      : '';
-    return `<tr style="background:${rowBg};${boldStyle}border-bottom:1px solid #e5e7eb">
-      <td style="padding:7px 10px;white-space:nowrap">${rec.Date||''}${closedBadge}</td>
-      <td style="padding:7px 10px">${rec.Buyer||''}</td>
-      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.Qty||0).toFixed(1)}</td>
-      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.PricePerKg||0).toFixed(2)}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.Cost||0).toFixed(2)}</td>
-      <td style="padding:7px 10px;text-align:right">${parseFloat(rec.BatchWeight||0).toFixed(1)}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.BatchTotal||0).toFixed(2)}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:800;color:#c0392b">K ${parseFloat(rec.RunningTotal||0).toFixed(2)}</td>
-      <td style="padding:7px 4px;text-align:center">${delBtn}</td>
-    </tr>`;
-  }).join('');
-}
-
-async function soyDeleteEntry(grId) {
-  if (!confirm('Delete this entry?')) return;
-  const result = await apiPost({ action: 'soyDelete', id: grId });
-  if (result?.success) { await soyLoadRecords(); showToast('Entry deleted'); }
-  else showToast('Delete failed: ' + (result?.error || 'unknown'), true);
-}
+// Thin wrappers so HTML onclick attributes work
+function initMaizePage()    { maizeHandler.init(); }
+function initSoyPage()      { soyHandler.init(); }
+function maizeToggleBatch() { maizeHandler.toggleBatch(); }
+function soyToggleBatch()   { soyHandler.toggleBatch(); }
+function maizeCalcCost()    { maizeHandler.calcCost(); }
+function soyCalcCost()      { soyHandler.calcCost(); }
+function maizeAddEntry()    { maizeHandler.addEntry(); }
+function soyAddEntry()      { soyHandler.addEntry(); }
 
 </script>
 </body>

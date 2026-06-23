@@ -10,10 +10,6 @@
 // drive: https://www.googleapis.com/auth/drive
 
 const SHEET_NAME = "PigLog";
-
-// Spreadsheet cache — avoids repeated cold opens (each costs ~200ms)
-let _ssCache = null;
-function _getSS() { if (!_ssCache) _ssCache = _getSS(); return _ssCache; }
 const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "ServiceDate", "Sire", "Weight", "Dewormed", "Pen", "Notes", "Available"];
 
 // Key fields that define a unique pig record
@@ -22,30 +18,11 @@ const KEY_FIELDS = ["PIG ID", "Boar", "SOW"];
 // ── Helpers ──────────────────────────────────────────────────
 
 /**
- * Batch startup call — returns pig records + common settings in one round trip.
- * Replaces separate getAll + getSetting calls on app load.
- * @returns {{ success: boolean, records: Object[], settings: Object }}
- */
-function getAllInit() {
-  const recResult = getAllRecords();
-  const maxPen    = getSetting('maxPen');
-  const aiEnabled = getSetting('AI_ANALYSIS_ENABLED');
-  return {
-    success:  recResult.success,
-    records:  recResult.records || [],
-    settings: {
-      maxPen:             maxPen.value  || '50',
-      AI_ANALYSIS_ENABLED: aiEnabled.value || 'false'
-    }
-  };
-}
-
-/**
- * Gets or creates the main PigLog spreadsheet tab.
+ * Gets (or creates) the main PigLog spreadsheet tab.
  * @returns {Sheet} The PigLog Google Sheet object.
  */
 function getSheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
@@ -153,7 +130,6 @@ function doGet(e) {
 
   try {
     if (action === "getAll")       return respond(getAllRecords());
-    if (action === "getAllInit")    return respond(getAllInit()); // batch startup: records + settings
     if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString(), codeVersion: "3.1" });
     if (action === "debug")        return respond({ token: PropertiesService.getScriptProperties().getProperty('APP_TOKEN'), aiKey: !!PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY'), codeVersion: "3.1" });
     if (action === "clCount")      return respond(clCount());
@@ -242,8 +218,6 @@ function handlePostPayload(payload) {
     if (action === "soyAdd")          return respond(soyAdd(payload.data));
     if (action === "soyCloseBatch")   return respond(soyCloseBatch(payload.batchId));
     if (action === "soyDelete")       return respond(soyDelete(payload.id));
-    
-    
     if (action === "migrateBoarSow")   return respond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return respond(migrateSowLitterSowId());
     if (action === "runAIAnalysis")    return respond(runNightlyAIAnalysis(payload.targetDate || null, true));
@@ -522,7 +496,7 @@ const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes"
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The DailyChecklist sheet.
  */
 function getClSheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(CL_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(CL_SHEET);
@@ -689,7 +663,7 @@ function rowToClRecord(row, sheetHeaders, tz) {
 function clDebug() {
   try {
     const t0    = new Date().getTime();
-    const ss    = _getSS();
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
     const t1    = new Date().getTime();
     const sheet = ss.getSheetByName('DailyChecklist');
     const t2    = new Date().getTime();
@@ -1058,10 +1032,7 @@ const SL_HEADERS_GS = ["SL_ID","SowId","LitterBoar","FarrowDate","EstFarrowDate"
   "sl_lightest_today","sl_heaviest_today","sl_castrated",
   "sl_wt_d14","sl_alive_d14","sl_num_weaned","sl_date_weaned","sl_wean_wt",
   // Section photos & notes — one per highlighted section banner
-  "SlPhoto_farrow_1","SlPhotoTime_farrow_1",
-  "SlPhoto_farrow_2","SlPhotoTime_farrow_2",
-  "SlPhoto_farrow_3","SlPhotoTime_farrow_3",
-  "SlNotes_farrow",
+  "SlPhoto_farrow","SlPhotoTime_farrow","SlNotes_farrow",
   "SlPhoto_shdr_litter","SlPhotoTime_shdr_litter","SlNotes_shdr_litter",
   "SlPhoto_shdr_sowtreat","SlPhotoTime_shdr_sowtreat","SlNotes_shdr_sowtreat",
   "SlPhoto_mhdr_d01","SlPhotoTime_mhdr_d01","SlNotes_mhdr_d01",
@@ -1086,43 +1057,40 @@ const SL_TIME_COLS = [
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The SowLitter sheet.
  */
 function getSlSheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SL_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(SL_SHEET);
     sheet.appendRow(SL_HEADERS_GS);
     sheet.getRange(1,1,1,SL_HEADERS_GS.length).setFontWeight("bold").setBackground("#880e4f").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
-    _slApplyTimeFormats(sheet); // set @-format on time cols at creation
   } else {
-    // Add any missing columns to the right — apply time formats only when new cols added
+    // Ensure all expected columns exist — add any missing ones to the right
     const lastCol  = sheet.getLastColumn();
     const existing = lastCol > 0
       ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim())
       : [];
-    let added = false;
     SL_HEADERS_GS.forEach(h => {
       if (h && !existing.includes(h)) {
         const newCol = sheet.getLastColumn() + 1;
         sheet.getRange(1, newCol).setValue(h)
              .setFontWeight("bold").setBackground("#880e4f").setFontColor("#ffffff");
-        added = true;
       }
     });
-    if (added) _slApplyTimeFormats(sheet);
+  }
+  // Force plain-text format on all SlTime_* columns to prevent Sheets
+  // auto-converting "25 Mar 2026 09:15" strings into Date objects
+  const lastCol = sheet.getLastColumn();
+  if (lastCol > 0) {
+    const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    SL_TIME_COLS.forEach(colName => {
+      const colIdx = hdrs.findIndex(h => String(h).trim() === colName);
+      if (colIdx >= 0) {
+        sheet.getRange(2, colIdx + 1, Math.max(sheet.getLastRow() - 1, 1), 1).setNumberFormat('@');
+      }
+    });
   }
   return sheet;
-}
-
-function _slApplyTimeFormats(sheet) {
-  const lastCol = sheet.getLastColumn();
-  if (lastCol < 1) return;
-  const hdrs    = sheet.getRange(1,1,1,lastCol).getValues()[0];
-  const lastRow = Math.max(sheet.getLastRow() - 1, 1);
-  SL_TIME_COLS.forEach(colName => {
-    const colIdx = hdrs.findIndex(h => String(h).trim() === colName);
-    if (colIdx >= 0) sheet.getRange(2, colIdx+1, lastRow, 1).setNumberFormat('@');
-  });
 }
 
 /**
@@ -1358,7 +1326,7 @@ const WK_HEADERS_GS = ["WK_ID","Date","WeekNum","WeekYear","WeekKey","Pen","Chec
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WeeklyChecklist sheet.
  */
 function getWkSheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(WK_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(WK_SHEET);
@@ -1532,7 +1500,7 @@ function _toMonthKey(val) {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The MonthlyChecklist sheet.
  */
 function getMoSheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(MO_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(MO_SHEET);
@@ -1727,7 +1695,7 @@ function moDeduplicateAll() {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The Settings sheet.
  */
 function getSettingsSheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName("Settings");
   if (!sheet) {
     sheet = ss.insertSheet("Settings");
@@ -1809,7 +1777,7 @@ function saveSetting(key, value) {
  * Run this after adding new sheet columns (e.g. SlPhoto_*, SlNotes_*).
  */
 function migrateAllSheetHeaders() {
-  const ss  = _getSS();
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
   const log = [];
 
   const sheets = [
@@ -1969,7 +1937,7 @@ function migrateAllSheetHeaders() {
  * Useful for debugging "Unknown column" errors or verifying a migration ran correctly.
  */
 function diagnoseSheetHeaders() {
-  const ss  = _getSS();
+  const ss  = SpreadsheetApp.getActiveSpreadsheet();
   const log = [];
 
   const sheets = [
@@ -2124,7 +2092,7 @@ function migrateBoarSowToDbId() {
  *   notFound — PIG ID strings that had no matching record in PigLog.
  */
 function migrateSowLitterSowId() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // Build PIG ID → DB_ID lookup from PigLog
   const pigSheet = getSheet();
@@ -2744,7 +2712,7 @@ const WA_HEADERS = ['ACTION_ID','Date','Worker','Category','Action','Priority','
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WorkerActions sheet.
  */
 function getWaSheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(WA_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(WA_SHEET);
@@ -3100,216 +3068,103 @@ function _runAISafe(targetDate) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  GRAIN LOG — Sheet: GrainLog
+//  MAIZE LOG — Sheet: MaizeLog
 // ═══════════════════════════════════════════════════════════════
 
-const MAIZE_SHEET = 'MaizeLog';
-const SOY_SHEET   = 'SoyBeanLog';
-const MAIZE_HEADERS = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
-                    'BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
+const MAIZE_SHEET   = 'MaizeLog';
+const MAIZE_HEADERS = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost','BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
 
-/**
- * Gets or creates the GrainLog sheet.
- * @returns {GoogleAppsScript.Spreadsheet.Sheet}
- */
 function getMaizeSheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(MAIZE_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(MAIZE_SHEET);
-    sheet.appendRow(GR_HEADERS);
-    sheet.getRange(1,1,1,GR_HEADERS.length).setFontWeight('bold').setBackground('#78350f').setFontColor('#ffffff');
+    sheet.appendRow(MAIZE_HEADERS);
+    sheet.getRange(1,1,1,MAIZE_HEADERS.length).setFontWeight('bold').setBackground('#78350f').setFontColor('#fff');
     sheet.setFrozenRows(1);
   }
   return sheet;
 }
 
-/**
- * Returns all GrainLog records.
- * @returns {{ success: boolean, records: Object[] }}
- */
-function maizeGetAll() {
-  const sheet = getMaizeSheet();
-  const data  = sheet.getDataRange().getValues();
-  if (data.length < 2) return { success: true, records: [] };
-  const hdrs = data[0].map(h => String(h).trim());
-  const records = data.slice(1).filter(r => r[0] !== '').map(row => {
-    const rec = {};
-    hdrs.forEach((h, i) => {
-      const v = row[i];
-      rec[h] = v instanceof Date
-        ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd')
-        : String(v === null || v === undefined ? '' : v);
-    });
-    return rec;
-  });
-  return { success: true, records };
-}
-
-/**
- * Adds a new GrainLog entry.
- * @param {Object} data - Entry fields.
- * @returns {{ success: boolean, gr_id: number }}
- */
-function maizeAdd(data) {
-  const sheet = getMaizeSheet();
-  const lastCol = sheet.getLastColumn();
-  const hdrs = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
-  const lastRow = sheet.getLastRow();
-  const allData = lastRow > 1 ? sheet.getRange(2,1,lastRow-1,lastCol).getValues() : [];
-  const grIdIdx = hdrs.indexOf('GR_ID');
-  const maxId = allData.reduce((m, r) => Math.max(m, parseInt(r[grIdIdx]||0,10)||0), 0);
-  const newId = maxId + 1;
-  const row = GR_HEADERS.map(h => h === 'GR_ID' ? newId : (data[h] !== undefined ? data[h] : ''));
-  sheet.appendRow(row);
-  return { success: true, gr_id: newId };
-}
-
-/**
- * Closes a batch — sets BatchDone='yes' on all rows matching batchId.
- * The last row of the batch is also bolded.
- * @param {string} batchId - The batch identifier to close.
- * @returns {{ success: boolean }}
- */
-function maizeCloseBatch(batchId) {
-  const sheet = getMaizeSheet();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return { success: true };
-  const lastCol = sheet.getLastColumn();
-  const hdrs  = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
-  const data  = sheet.getRange(2,1,lastRow-1,lastCol).getValues();
-  const batchIdIdx  = hdrs.indexOf('BatchId');
-  const batchDoneIdx= hdrs.indexOf('BatchDone');
-  let lastMatchRow  = -1;
-  data.forEach((row, i) => {
-    if (String(row[batchIdIdx]).trim() === String(batchId).trim()) {
-      sheet.getRange(i+2, batchDoneIdx+1).setValue('yes');
-      lastMatchRow = i + 2;
-    }
-  });
-  // Bold the last row of the batch
-  if (lastMatchRow > 0) {
-    sheet.getRange(lastMatchRow, 1, 1, lastCol).setFontWeight('bold');
-  }
-  return { success: true };
-}
-
-/**
- * Deletes a GrainLog entry by GR_ID.
- * @param {number} id - The GR_ID to delete.
- * @returns {{ success: boolean, error?: string }}
- */
-function maizeDelete(id) {
-  const sheet = getMaizeSheet();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return { success: false, error: 'No records' };
-  const data = sheet.getRange(2,1,lastRow-1,1).getValues();
-  for (let i = 0; i < data.length; i++) {
-    if (String(data[i][0]).trim() === String(id).trim()) {
-      sheet.deleteRow(i + 2);
-      return { success: true };
-    }
-  }
-  return { success: false, error: 'Record not found' };
-}
-
+function maizeGetAll() { return _grainSheetGetAll(getMaizeSheet(), MAIZE_HEADERS); }
+function maizeAdd(data) { return _grainSheetAdd(getMaizeSheet(), MAIZE_HEADERS, data); }
+function maizeCloseBatch(batchId) { return _grainSheetCloseBatch(getMaizeSheet(), batchId); }
+function maizeDelete(id) { return _grainSheetDelete(getMaizeSheet(), id); }
 
 // ═══════════════════════════════════════════════════════════════
 //  SOY BEAN LOG — Sheet: SoyBeanLog
 // ═══════════════════════════════════════════════════════════════
 
-const SOY_HEADERS = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
-                     'BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
+const SOY_SHEET   = 'SoyBeanLog';
+const SOY_HEADERS = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost','BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
 
-/**
- * Gets or creates the SoyBeanLog sheet.
- * @returns {GoogleAppsScript.Spreadsheet.Sheet}
- */
 function getSoySheet() {
-  const ss = _getSS();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SOY_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(SOY_SHEET);
     sheet.appendRow(SOY_HEADERS);
-    sheet.getRange(1,1,1,SOY_HEADERS.length).setFontWeight('bold').setBackground('#4d7c0f').setFontColor('#ffffff');
+    sheet.getRange(1,1,1,SOY_HEADERS.length).setFontWeight('bold').setBackground('#4d7c0f').setFontColor('#fff');
     sheet.setFrozenRows(1);
   }
   return sheet;
 }
 
-/**
- * Returns all SoyBeanLog records.
- * @returns {{ success: boolean, records: Object[] }}
- */
-function soyGetAll() {
-  const sheet = getSoySheet();
-  const data  = sheet.getDataRange().getValues();
+function soyGetAll() { return _grainSheetGetAll(getSoySheet(), SOY_HEADERS); }
+function soyAdd(data) { return _grainSheetAdd(getSoySheet(), SOY_HEADERS, data); }
+function soyCloseBatch(batchId) { return _grainSheetCloseBatch(getSoySheet(), batchId); }
+function soyDelete(id) { return _grainSheetDelete(getSoySheet(), id); }
+
+// ── Shared helpers used by both logs ──────────────────────────
+
+function _grainSheetGetAll(sheet, headers) {
+  const data = sheet.getDataRange().getValues();
   if (data.length < 2) return { success: true, records: [] };
   const hdrs = data[0].map(h => String(h).trim());
+  const tz   = Session.getScriptTimeZone();
   const records = data.slice(1).filter(r => r[0] !== '').map(row => {
     const rec = {};
     hdrs.forEach((h, i) => {
       const v = row[i];
-      rec[h] = v instanceof Date
-        ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd')
-        : String(v === null || v === undefined ? '' : v);
+      rec[h] = v instanceof Date ? Utilities.formatDate(v, tz, 'yyyy-MM-dd') : String(v === null || v === undefined ? '' : v);
     });
     return rec;
   });
   return { success: true, records };
 }
 
-/**
- * Adds a new SoyBeanLog entry.
- * @param {Object} data - Entry fields.
- * @returns {{ success: boolean, gr_id: number }}
- */
-function soyAdd(data) {
-  const sheet = getSoySheet();
+function _grainSheetAdd(sheet, headers, data) {
   const lastCol = sheet.getLastColumn();
-  const hdrs = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
+  const hdrs    = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
   const lastRow = sheet.getLastRow();
-  const allData = lastRow > 1 ? sheet.getRange(2,1,lastRow-1,lastCol).getValues() : [];
-  const grIdIdx = hdrs.indexOf('GR_ID');
-  const maxId = allData.reduce((m, r) => Math.max(m, parseInt(r[grIdIdx]||0,10)||0), 0);
-  const newId = maxId + 1;
-  const row = SOY_HEADERS.map(h => h === 'GR_ID' ? newId : (data[h] !== undefined ? data[h] : ''));
+  const allData = lastRow > 1 ? sheet.getRange(2,1,lastRow-1,1).getValues() : [];
+  const maxId   = allData.reduce((m,r) => Math.max(m, parseInt(r[0]||0,10)||0), 0);
+  const newId   = maxId + 1;
+  const row     = headers.map(h => h === 'GR_ID' ? newId : (data[h] !== undefined ? data[h] : ''));
   sheet.appendRow(row);
   return { success: true, gr_id: newId };
 }
 
-/**
- * Closes a soy batch — sets BatchDone='yes' and bolds last row.
- * @param {string} batchId - The batch ID to close.
- * @returns {{ success: boolean }}
- */
-function soyCloseBatch(batchId) {
-  const sheet = getSoySheet();
+function _grainSheetCloseBatch(sheet, batchId) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { success: true };
   const lastCol = sheet.getLastColumn();
-  const hdrs = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
-  const data = sheet.getRange(2,1,lastRow-1,lastCol).getValues();
-  const batchIdIdx   = hdrs.indexOf('BatchId');
-  const batchDoneIdx = hdrs.indexOf('BatchDone');
-  let lastMatchRow   = -1;
+  const hdrs    = sheet.getRange(1,1,1,lastCol).getValues()[0].map(h => String(h).trim());
+  const data    = sheet.getRange(2,1,lastRow-1,lastCol).getValues();
+  const biIdx   = hdrs.indexOf('BatchId');
+  const bdIdx   = hdrs.indexOf('BatchDone');
+  let lastMatch = -1;
   data.forEach((row, i) => {
-    if (String(row[batchIdIdx]).trim() === String(batchId).trim()) {
-      sheet.getRange(i+2, batchDoneIdx+1).setValue('yes');
-      lastMatchRow = i + 2;
+    if (String(row[biIdx]).trim() === String(batchId).trim()) {
+      sheet.getRange(i+2, bdIdx+1).setValue('yes');
+      lastMatch = i + 2;
     }
   });
-  if (lastMatchRow > 0) sheet.getRange(lastMatchRow, 1, 1, lastCol).setFontWeight('bold');
+  if (lastMatch > 0) sheet.getRange(lastMatch,1,1,lastCol).setFontWeight('bold');
   return { success: true };
 }
 
-/**
- * Deletes a SoyBeanLog entry by GR_ID.
- * @param {number} id - The GR_ID to delete.
- * @returns {{ success: boolean, error?: string }}
- */
-function soyDelete(id) {
-  const sheet = getSoySheet();
+function _grainSheetDelete(sheet, id) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { success: false, error: 'No records' };
   const data = sheet.getRange(2,1,lastRow-1,1).getValues();
