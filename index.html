@@ -681,20 +681,12 @@
 
     <button class="action-card" style="border-color:#78350f;background:#fff" onclick="showPage('pageMaize')">
       <div class="card-icon" style="background:#fef3c7">🌽</div>
-      <div>
-        <div class="card-title" style="color:#78350f">Maize Log</div>
-        <div class="card-desc">Record maize purchases &amp; batch tracking</div>
-      </div>
+      <div><div class="card-title" style="color:#78350f">Maize Log</div><div class="card-desc">Record maize purchases &amp; batch tracking</div></div>
     </button>
-
     <button class="action-card" style="border-color:#4d7c0f;background:#fff" onclick="showPage('pageSoy')">
       <div class="card-icon" style="background:#f7fee7">🫘</div>
-      <div>
-        <div class="card-title" style="color:#4d7c0f">Soy Bean Log</div>
-        <div class="card-desc">Record soy bean purchases &amp; batch tracking</div>
-      </div>
+      <div><div class="card-title" style="color:#4d7c0f">Soy Bean Log</div><div class="card-desc">Record soy bean purchases &amp; batch tracking</div></div>
     </button>
-
     <!-- Admin-only: data migration tools -->
     <div id="homeAdminPanel" style="display:none;margin-top:18px;background:#fff9c4;border:1.5px solid #f59e0b;border-radius:12px;padding:14px 16px">
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:10px">⚙️ Admin — Data Tools</div>
@@ -2475,36 +2467,26 @@
   </div><!-- end pageWorkers -->
 
 
-  <!-- ═══════════ MAIZE LOG ═══════════ -->
+  <!-- ═══════ MAIZE LOG ═══════ -->
   <div id="pageMaize" style="display:none">
-    <div class="page-header">
-      <h2 class="page-title" style="color:#78350f">🌽 Maize Log</h2>
-      <p class="page-subtitle">Track maize purchases by batch</p>
-    </div>
+    <div class="page-header"><h2 class="page-title" style="color:#78350f">🌽 Maize Log</h2><p class="page-subtitle">Track maize purchases by batch</p></div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:12px 16px;margin-bottom:14px">
-      <div>
-        <div id="maizeBatchLabel" style="font-size:13px;font-weight:800;color:#78350f">🟡 No active batch</div>
-        <div id="maizeBatchSub" style="font-size:11px;color:#92400e;margin-top:2px"></div>
-      </div>
-      <button id="maizeBatchBtn" onclick="maizeToggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
+      <div><div id="maizeBatchLabel" style="font-size:13px;font-weight:800;color:#78350f">🟡 No active batch</div><div id="maizeBatchSub" style="font-size:11px;color:#92400e;margin-top:2px"></div></div>
+      <button id="maizeBatchBtn" onclick="maizeHandler.toggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
     <div id="maizeEntryForm" style="display:none;background:#fff;border:1.5px solid #f59e0b;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:12px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div><label class="form-label">Date</label><input type="date" id="maizeDate" class="form-input" style="font-weight:700"></div>
-        <div><label class="form-label">Buyer Name</label><select id="maizeBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
-        <div><label class="form-label">Quantity (kg)</label><input type="number" id="maizeQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="maizeCalcCost()"></div>
-        <div><label class="form-label">Price per kg (K)</label><input type="number" id="maizePrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="maizeCalcCost()"></div>
-        <div><label class="form-label">Cost (K) <span style="font-size:10px;color:#888">auto</span></label>
-          <div id="maizeCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Weight (kg) <span style="font-size:10px;color:#888">auto</span></label>
-          <div id="maizeBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Total (K) <span style="font-size:10px;color:#888">auto</span></label>
-          <div id="maizeBatchTotalDisplay" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#78350f;min-height:38px">—</div></div>
-        <div><label class="form-label">Running Total (K) <span style="font-size:10px;color:#888">auto</span></label>
-          <div id="maizeRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
+        <div><label class="form-label">Buyer</label><select id="maizeBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
+        <div><label class="form-label">Quantity (kg)</label><input type="number" id="maizeQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="maizeHandler.calcCost()"></div>
+        <div><label class="form-label">Price/kg (K)</label><input type="number" id="maizePrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="maizeHandler.calcCost()"></div>
+        <div><label class="form-label">Cost (K) <small style="color:#888">auto</small></label><div id="maizeCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
+        <div><label class="form-label">Batch Wt (kg) <small style="color:#888">auto</small></label><div id="maizeBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
+        <div><label class="form-label">Batch Total (K) <small style="color:#888">auto</small></label><div id="maizeBatchTotalDisplay" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#78350f;min-height:38px">—</div></div>
+        <div><label class="form-label">Running Total (K) <small style="color:#888">auto</small></label><div id="maizeRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
       </div>
-      <button onclick="maizeAddEntry()" style="margin-top:14px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
+      <button onclick="maizeHandler.addEntry()" style="margin-top:14px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="maizeEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
     <div style="overflow-x:auto">
@@ -2515,43 +2497,32 @@
           <th style="padding:8px 10px;text-align:right">Qty</th><th style="padding:8px 10px;text-align:right">Price</th>
           <th style="padding:8px 10px;text-align:right">Cost</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
           <th style="padding:8px 10px;text-align:right">Batch Total</th><th style="padding:8px 10px;text-align:right">Running Total</th>
-          <th style="padding:8px 4px"></th>
-        </tr></thead>
+          <th style="padding:8px 4px"></th></tr></thead>
         <tbody id="maizeTableBody"></tbody>
       </table>
     </div>
   </div><!-- end pageMaize -->
 
-  <!-- ═══════════ SOY BEAN LOG ═══════════ -->
+  <!-- ═══════ SOY BEAN LOG ═══════ -->
   <div id="pageSoy" style="display:none">
-    <div class="page-header">
-      <h2 class="page-title" style="color:#4d7c0f">🫘 Soy Bean Log</h2>
-      <p class="page-subtitle">Track soy bean purchases by batch</p>
-    </div>
+    <div class="page-header"><h2 class="page-title" style="color:#4d7c0f">🫘 Soy Bean Log</h2><p class="page-subtitle">Track soy bean purchases by batch</p></div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:#f7fee7;border:2px solid #86efac;border-radius:12px;padding:12px 16px;margin-bottom:14px">
-      <div>
-        <div id="soyBatchLabel" style="font-size:13px;font-weight:800;color:#4d7c0f">🟡 No active batch</div>
-        <div id="soyBatchSub" style="font-size:11px;color:#3f6212;margin-top:2px"></div>
-      </div>
-      <button id="soyBatchBtn" onclick="soyToggleBatch()" style="background:#4d7c0f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
+      <div><div id="soyBatchLabel" style="font-size:13px;font-weight:800;color:#4d7c0f">🟡 No active batch</div><div id="soyBatchSub" style="font-size:11px;color:#3f6212;margin-top:2px"></div></div>
+      <button id="soyBatchBtn" onclick="soyHandler.toggleBatch()" style="background:#4d7c0f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
     <div id="soyEntryForm" style="display:none;background:#fff;border:1.5px solid #86efac;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#4d7c0f;margin-bottom:12px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div><label class="form-label">Date</label><input type="date" id="soyDate" class="form-input" style="font-weight:700"></div>
-        <div><label class="form-label">Buyer Name</label><select id="soyBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
-        <div><label class="form-label">Quantity (kg)</label><input type="number" id="soyQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="soyCalcCost()"></div>
-        <div><label class="form-label">Price per kg (K)</label><input type="number" id="soyPrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="soyCalcCost()"></div>
-        <div><label class="form-label">Cost (K) <span style="font-size:10px;color:#888">auto</span></label>
-          <div id="soyCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Weight (kg) <span style="font-size:10px;color:#888">auto</span></label>
-          <div id="soyBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Total (K) <span style="font-size:10px;color:#888">auto</span></label>
-          <div id="soyBatchTotalDisplay" style="background:#f7fee7;border:1.5px solid #86efac;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#4d7c0f;min-height:38px">—</div></div>
-        <div><label class="form-label">Running Total (K) <span style="font-size:10px;color:#888">auto</span></label>
-          <div id="soyRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
+        <div><label class="form-label">Buyer</label><select id="soyBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
+        <div><label class="form-label">Quantity (kg)</label><input type="number" id="soyQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="soyHandler.calcCost()"></div>
+        <div><label class="form-label">Price/kg (K)</label><input type="number" id="soyPrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="soyHandler.calcCost()"></div>
+        <div><label class="form-label">Cost (K) <small style="color:#888">auto</small></label><div id="soyCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
+        <div><label class="form-label">Batch Wt (kg) <small style="color:#888">auto</small></label><div id="soyBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
+        <div><label class="form-label">Batch Total (K) <small style="color:#888">auto</small></label><div id="soyBatchTotalDisplay" style="background:#f7fee7;border:1.5px solid #86efac;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#4d7c0f;min-height:38px">—</div></div>
+        <div><label class="form-label">Running Total (K) <small style="color:#888">auto</small></label><div id="soyRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
       </div>
-      <button onclick="soyAddEntry()" style="margin-top:14px;width:100%;background:#4d7c0f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
+      <button onclick="soyHandler.addEntry()" style="margin-top:14px;width:100%;background:#4d7c0f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="soyEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
     <div style="overflow-x:auto">
@@ -2562,8 +2533,7 @@
           <th style="padding:8px 10px;text-align:right">Qty</th><th style="padding:8px 10px;text-align:right">Price</th>
           <th style="padding:8px 10px;text-align:right">Cost</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
           <th style="padding:8px 10px;text-align:right">Batch Total</th><th style="padding:8px 10px;text-align:right">Running Total</th>
-          <th style="padding:8px 4px"></th>
-        </tr></thead>
+          <th style="padding:8px 4px"></th></tr></thead>
         <tbody id="soyTableBody"></tbody>
       </table>
     </div>
@@ -2575,7 +2545,7 @@
 // ══════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════
-const APP_VERSION    = "3.1";
+const APP_VERSION    = "4.0";
 const SCRIPT_URL_KEY = "piglog_script_url";
 const ADMIN_ON_KEY   = "piglog_admin_on";    // session flag
 
@@ -2997,8 +2967,8 @@ function showPage(id) {
   if (id === "pageMonthly")  { _moPopulateDropdown(); const sel=document.getElementById('moMonth'); if(sel&&!sel.value){sel.value=_moCurrentKey();} moMonthChanged(); }
   if (id === "pageNotch")    { boarRecordCache = []; sowRecordCache = []; populateNotchDropdowns(); }
   if (id === "pageWorkers")  { initWorkerActions(); }
-  if (id === "pageMaize")    { initMaizePage(); }
-  if (id === "pageSoy")      { initSoyPage(); }
+  if (id === "pageMaize")    { maizeHandler.init(); }
+  if (id === "pageSoy")      { soyHandler.init(); }
 }
 
 function goHome() { showPage("pageHome"); }
@@ -3056,9 +3026,18 @@ const apiPostDirect = apiPost;
 
 async function loadRecords() {
   try {
-    const data = await apiGet({ action: "getAll" });
+    const data = await apiGet({ action: "getAllInit" });
     if (data && data.success) {
       allRecords = data.records || [];
+      // Apply settings from the same call — no extra round trips
+      if (data.settings) {
+        const mp = parseInt(data.settings.maxPen, 10) || 50;
+        clMaxPen = mp; wkMaxPen = mp;
+        _clApplyMaxPen(); _wkApplyMaxPen();
+        _aiAutoEnabled = data.settings.AI_ANALYSIS_ENABLED === 'true';
+        const aiBtn = document.getElementById('aiAutoToggleBtn');
+        if (aiBtn) aiBtn.textContent = _aiAutoEnabled ? 'ON' : 'OFF';
+      }
       updateCounts();
       prepSearchPage();
       populatePigDropdowns();
@@ -5874,11 +5853,7 @@ function initWeekly() {
   const el = document.getElementById('wkDate');
   if (el) el.value = today;
   _wkUpdateBadge(today);
-  // Load max pen from Settings (shared with daily checklist key "maxPen")
-  apiGet({ action: 'getSetting', key: 'maxPen' }).then(r => {
-    wkMaxPen = (r && r.success && r.value) ? (parseInt(r.value, 10) || 50) : 50;
-    _wkApplyMaxPen();
-  });
+  // maxPen loaded via getAllInit on startup — no separate API call needed
 }
 
 function _wkApplyMaxPen() {
@@ -8658,12 +8633,11 @@ function _updateDecodeResults() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  SHARED GRAIN LOG HELPERS
+//  MAIZE & SOY BEAN LOG  — shared handler factory
 // ═══════════════════════════════════════════════════════════
 
-function _grainMakeHandlers(cfg) {
-  // cfg = { prefix, sheet, color, btnColor }
-  const p = cfg.prefix; // 'maize' or 'soy'
+function _makeGrainHandler(prefix, headerColor) {
+  const p = prefix;
   return {
     records:     [],
     batchActive: false,
@@ -8671,10 +8645,10 @@ function _grainMakeHandlers(cfg) {
     prefKey:     'piglog_' + p + '_buyer',
 
     async init() {
-      const dateEl = document.getElementById(p + 'Date');
-      if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
-      await this.populateBuyers();
+      const d = document.getElementById(p + 'Date');
+      if (d && !d.value) d.value = new Date().toISOString().split('T')[0];
       await this.load();
+      await this.populateBuyers();
     },
 
     async populateBuyers() {
@@ -8686,26 +8660,26 @@ function _grainMakeHandlers(cfg) {
         const r = await apiGet({ action: 'getSetting', key: 'WORKER_NAMES' });
         if (r?.success && r.value) r.value.split('|').forEach(n => { const t=n.trim(); if(t&&!names.includes(t)) names.push(t); });
       } catch(e) {}
-      const preferred = localStorage.getItem(this.prefKey) || '';
-      const current   = sel.value;
+      const pref    = localStorage.getItem(this.prefKey) || '';
+      const current = sel.value;
       sel.innerHTML = '<option value="">— Select buyer —</option>';
       names.sort().forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name; opt.textContent = name;
-        if (name === (current || preferred)) opt.selected = true;
-        sel.appendChild(opt);
+        const o = document.createElement('option');
+        o.value = name; o.textContent = name;
+        if (name === (current || pref)) o.selected = true;
+        sel.appendChild(o);
       });
-      if (preferred && !names.includes(preferred)) {
-        const opt = document.createElement('option');
-        opt.value = preferred; opt.textContent = preferred; opt.selected = true;
-        sel.insertBefore(opt, sel.children[1]);
+      if (pref && !names.includes(pref)) {
+        const o = document.createElement('option');
+        o.value = pref; o.textContent = pref; o.selected = true;
+        sel.insertBefore(o, sel.children[1]);
       }
     },
 
     async load() {
-      const result = await apiGet({ action: p + 'GetAll' });
-      if (result?.success) {
-        this.records = result.records || [];
+      const r = await apiGet({ action: p + 'GetAll' });
+      if (r?.success) {
+        this.records = r.records || [];
         const last = this.records[this.records.length - 1];
         this.batchActive = !!(last && last.BatchDone !== 'yes');
         this.batchId     = this.batchActive ? (last.BatchId || '') : null;
@@ -8720,28 +8694,32 @@ function _grainMakeHandlers(cfg) {
         this.batchActive = true;
         this.batchId     = new Date().toISOString();
         this.updateBatchUI();
-        showToast('New ' + p + ' batch started');
+        showToast('New batch started');
       } else {
         if (!confirm('Mark this batch as done?')) return;
-        const result = await apiPost({ action: p + 'CloseBatch', batchId: this.batchId });
-        if (result?.success) {
+        const r = await apiPost({ action: p + 'CloseBatch', batchId: this.batchId });
+        if (r?.success) {
           this.batchActive = false; this.batchId = null;
           await this.load(); showToast('Batch closed ✅');
-        } else showToast('Error: ' + (result?.error || 'unknown'), true);
+        } else showToast('Error: ' + (r?.error || 'unknown'), true);
       }
     },
 
     updateBatchUI() {
-      const color = p === 'maize' ? '#78350f' : '#4d7c0f';
-      document.getElementById(p + 'BatchLabel').textContent = this.batchActive ? '🟢 Batch in progress' : '🟡 No active batch';
-      document.getElementById(p + 'BatchSub').textContent   = this.batchActive ? 'Enter purchases below — toggle "Done?" when complete' : 'Start a new batch to record purchases';
-      const btn = document.getElementById(p + 'BatchBtn');
-      if (btn) { btn.textContent = this.batchActive ? '✅ Done?' : '🚀 New Batch'; btn.style.background = this.batchActive ? '#16a34a' : color; }
-      const form = document.getElementById(p + 'EntryForm');
-      if (form) form.style.display = this.batchActive ? 'block' : 'none';
+      const el = id => document.getElementById(p + id);
+      const labelEl = el('BatchLabel'), subEl = el('BatchSub'), btnEl = el('BatchBtn'), formEl = el('EntryForm');
       if (this.batchActive) {
-        const dateEl = document.getElementById(p + 'Date');
-        if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+        if (labelEl) labelEl.textContent = '🟢 Batch in progress';
+        if (subEl)   subEl.textContent   = 'Enter purchases — toggle "Done?" when complete';
+        if (btnEl)   { btnEl.textContent = '✅ Done?'; btnEl.style.background = '#16a34a'; }
+        if (formEl)  formEl.style.display = 'block';
+        const d = document.getElementById(p + 'Date');
+        if (d) d.value = new Date().toISOString().split('T')[0];
+      } else {
+        if (labelEl) labelEl.textContent = '🟡 No active batch';
+        if (subEl)   subEl.textContent   = 'Start a new batch to record purchases';
+        if (btnEl)   { btnEl.textContent = '🚀 New Batch'; btnEl.style.background = headerColor; }
+        if (formEl)  formEl.style.display = 'none';
       }
     },
 
@@ -8755,58 +8733,58 @@ function _grainMakeHandlers(cfg) {
     },
 
     updateAutoFields() {
-      const batchRecs   = this.records.filter(r => r.BatchId === this.batchId);
-      const currentQty  = parseFloat(document.getElementById(p + 'Qty')?.value || '0') || 0;
-      const costText    = document.getElementById(p + 'CostDisplay')?.textContent || '';
-      const currentCost = parseFloat(costText.replace('K ','')) || 0;
-      const batchWt     = batchRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0), 0) + currentQty;
-      const batchTotal  = batchRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + currentCost;
-      const runTotal    = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + currentCost;
-      const bwEl = document.getElementById(p + 'BatchWeightDisplay');
-      const btEl = document.getElementById(p + 'BatchTotalDisplay');
-      const rtEl = document.getElementById(p + 'RunningDisplay');
-      if (bwEl) bwEl.textContent = batchWt   > 0 ? batchWt.toFixed(1) + ' kg' : '—';
-      if (btEl) btEl.textContent = batchTotal > 0 ? 'K ' + batchTotal.toFixed(2) : '—';
-      if (rtEl) rtEl.textContent = runTotal   > 0 ? 'K ' + runTotal.toFixed(2) : '—';
+      const bRecs = this.records.filter(r => r.BatchId === this.batchId);
+      const curQty  = parseFloat(document.getElementById(p + 'Qty')?.value || '0') || 0;
+      const costTxt = (document.getElementById(p + 'CostDisplay')?.textContent || '').replace('K ','');
+      const curCost = parseFloat(costTxt) || 0;
+      const bWt    = bRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0),  0) + curQty;
+      const bTotal = bRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + curCost;
+      const rTotal = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + curCost;
+      const set = (id, val, unit) => {
+        const el = document.getElementById(p + id);
+        if (el) el.textContent = val > 0 ? (unit ? unit + ' ' : '') + val.toFixed(unit ? 2 : 1) + (unit ? '' : ' kg') : '—';
+      };
+      set('BatchWeightDisplay', bWt,    null);
+      set('BatchTotalDisplay',  bTotal, 'K');
+      set('RunningDisplay',     rTotal, 'K');
     },
 
     async addEntry() {
-      const errEl = document.getElementById(p + 'EntryError');
-      const date  = document.getElementById(p + 'Date')?.value  || '';
-      const buyer = document.getElementById(p + 'Buyer')?.value || '';
-      const qty   = parseFloat(document.getElementById(p + 'Qty')?.value   || '0') || 0;
-      const price = parseFloat(document.getElementById(p + 'Price')?.value || '0') || 0;
-      const cost  = qty * price;
-      const showErr = msg => { if(errEl){errEl.textContent=msg;errEl.style.display='block';} };
-      if (!date)    { showErr('Please select a date.'); return; }
-      if (!buyer)   { showErr('Please select a buyer.'); return; }
-      if (qty <= 0) { showErr('Please enter a quantity > 0.'); return; }
-      if (price<=0) { showErr('Please enter a price per kg.'); return; }
-      if (!this.batchActive) { showErr('Start a new batch first.'); return; }
+      const errEl  = document.getElementById(p + 'EntryError');
+      const showE  = msg => { if(errEl){errEl.textContent=msg;errEl.style.display='block';} };
+      const date   = document.getElementById(p + 'Date')?.value  || '';
+      const buyer  = document.getElementById(p + 'Buyer')?.value || '';
+      const qty    = parseFloat(document.getElementById(p + 'Qty')?.value   || '0') || 0;
+      const price  = parseFloat(document.getElementById(p + 'Price')?.value || '0') || 0;
+      const cost   = qty * price;
+      if (!date)    { showE('Please select a date.'); return; }
+      if (!buyer)   { showE('Please select a buyer.'); return; }
+      if (qty <= 0) { showE('Please enter a quantity > 0.'); return; }
+      if (price<=0) { showE('Please enter a price per kg.'); return; }
+      if (!this.batchActive) { showE('Start a new batch first.'); return; }
       if (errEl) errEl.style.display = 'none';
       localStorage.setItem(this.prefKey, buyer);
-      const batchRecs  = this.records.filter(r => r.BatchId === this.batchId);
-      const batchWt    = batchRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0), 0) + qty;
-      const batchTotal = batchRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
-      const runTotal   = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
-      const data = { Date:date, Buyer:buyer, Qty:qty, PricePerKg:price, Cost:cost,
-                     BatchWeight:batchWt, BatchTotal:batchTotal, RunningTotal:runTotal,
-                     BatchId:this.batchId, BatchDone:'' };
-      const result = await apiPost({ action: p + 'Add', data });
-      if (result?.success) {
+      const bRecs  = this.records.filter(r => r.BatchId === this.batchId);
+      const bWt    = bRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0),  0) + qty;
+      const bTotal = bRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
+      const rTotal = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
+      const data   = { Date:date, Buyer:buyer, Qty:qty, PricePerKg:price, Cost:cost,
+                       BatchWeight:bWt, BatchTotal:bTotal, RunningTotal:rTotal,
+                       BatchId:this.batchId, BatchDone:'' };
+      const r = await apiPost({ action: p + 'Add', data });
+      if (r?.success) {
         showToast('Entry saved ✅');
-        document.getElementById(p + 'Qty').value   = '';
-        document.getElementById(p + 'Price').value = '';
-        document.getElementById(p + 'CostDisplay').textContent = '—';
+        ['Qty','Price'].forEach(f => { const el=document.getElementById(p+f); if(el) el.value=''; });
+        const cEl = document.getElementById(p+'CostDisplay'); if(cEl) cEl.textContent='—';
         await this.load();
-      } else showErr('Save failed: ' + (result?.error || 'unknown'));
+      } else showE('Save failed: ' + (r?.error || 'unknown'));
     },
 
     async deleteEntry(grId) {
       if (!confirm('Delete this entry?')) return;
-      const result = await apiPost({ action: p + 'Delete', id: grId });
-      if (result?.success) { await this.load(); showToast('Entry deleted'); }
-      else showToast('Delete failed: ' + (result?.error || 'unknown'), true);
+      const r = await apiPost({ action: p + 'Delete', id: grId });
+      if (r?.success) { await this.load(); showToast('Entry deleted'); }
+      else showToast('Delete failed: ' + (r?.error || 'unknown'), true);
     },
 
     renderTable() {
@@ -8821,21 +8799,29 @@ function _grainMakeHandlers(cfg) {
       }
       if (table) table.style.display = 'table';
       if (empty) empty.style.display = 'none';
-      const color   = p === 'maize' ? '#78350f' : '#4d7c0f';
-      const altBg   = p === 'maize' ? '#fffbeb' : '#f7fee7';
+
+      // Alternate batch shading
+      const p2    = p;
+      const altBg = p === 'maize' ? '#fffbeb' : '#f7fee7';
       const batches = [...new Set(this.records.map(r => r.BatchId))];
-      const me = this;
-      tbody.innerHTML = this.records.map((rec, i) => {
-        const batchIdx      = batches.indexOf(rec.BatchId);
-        const isClosed      = rec.BatchDone === 'yes';
-        const isLastInBatch = me.records[i+1]?.BatchId !== rec.BatchId;
-        const rowBg         = batchIdx % 2 === 0 ? altBg : '#f0fdf4';
-        const boldStyle     = (isClosed && isLastInBatch) ? 'font-weight:900;border-top:2px solid ' + color + ';' : '';
-        const badge         = (isClosed && isLastInBatch)
-          ? '<span style="font-size:9px;background:' + color + ';color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>' : '';
+      const recs    = this.records;
+
+      tbody.innerHTML = recs.map((rec, i) => {
+        const bIdx  = batches.indexOf(rec.BatchId);
+        const done  = rec.BatchDone === 'yes';
+        const isLast= recs[i+1]?.BatchId !== rec.BatchId;
+        const bg    = bIdx % 2 === 0 ? altBg : '#f0fdf4';
+
+        // Last entry of a closed batch: top AND bottom border + bold
+        const topBorder    = (done && isLast) ? `border-top:2px solid ${headerColor};`    : '';
+        const bottomBorder = (done && isLast) ? `border-bottom:2px solid ${headerColor};`  : 'border-bottom:1px solid #e5e7eb;';
+        const boldStyle    = (done && isLast) ? 'font-weight:900;'                         : '';
+        const badge        = (done && isLast)
+          ? `<span style="font-size:9px;background:${headerColor};color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>` : '';
         const delBtn = isAdminEnabled()
-          ? `<button onclick="window['${p}Handler'].deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>` : '';
-        return `<tr style="background:${rowBg};${boldStyle}border-bottom:1px solid #e5e7eb">
+          ? `<button onclick="(p==='maize'?maizeHandler:soyHandler).deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>` : '';
+
+        return `<tr style="background:${bg};${topBorder}${bottomBorder}${boldStyle}">
           <td style="padding:7px 10px;white-space:nowrap">${rec.Date||''}${badge}</td>
           <td style="padding:7px 10px">${rec.Buyer||''}</td>
           <td style="padding:7px 10px;text-align:right">${parseFloat(rec.Qty||0).toFixed(1)}</td>
@@ -8851,19 +8837,9 @@ function _grainMakeHandlers(cfg) {
   };
 }
 
-// Create independent handler instances
-window.maizeHandler = _grainMakeHandlers({ prefix: 'maize' });
-window.soyHandler   = _grainMakeHandlers({ prefix: 'soy'   });
-
-// Thin wrappers so HTML onclick attributes work
-function initMaizePage()    { maizeHandler.init(); }
-function initSoyPage()      { soyHandler.init(); }
-function maizeToggleBatch() { maizeHandler.toggleBatch(); }
-function soyToggleBatch()   { soyHandler.toggleBatch(); }
-function maizeCalcCost()    { maizeHandler.calcCost(); }
-function soyCalcCost()      { soyHandler.calcCost(); }
-function maizeAddEntry()    { maizeHandler.addEntry(); }
-function soyAddEntry()      { soyHandler.addEntry(); }
+// Independent handler instances
+const maizeHandler = _makeGrainHandler('maize', '#78350f');
+const soyHandler   = _makeGrainHandler('soy',   '#4d7c0f');
 
 </script>
 </body>
