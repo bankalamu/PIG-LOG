@@ -2473,6 +2473,25 @@
       <div><div id="maizeBatchLabel" style="font-size:13px;font-weight:800;color:#78350f">🟡 No active batch</div><div id="maizeBatchSub" style="font-size:11px;color:#92400e;margin-top:2px"></div></div>
       <button id="maizeBatchBtn" onclick="maizeHandler.toggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
+
+    <!-- Auto-field summary — always visible, updates on load/toggle/calc -->
+    <div id="maizeSummaryCard" style="display:none;background:#fff;border:1.5px solid #78350f33;border-radius:10px;padding:10px 14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">📊 Current Batch Summary</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#fef3c7;border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:#888;font-weight:600">Batch Weight</div>
+          <div id="maizeBatchWeightDisplay" style="font-size:16px;font-weight:900;color:#1a3a8a">—</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:#888;font-weight:600">Batch Total</div>
+          <div id="maizeBatchTotalDisplay" style="font-size:16px;font-weight:900;color:#78350f">—</div>
+        </div>
+        <div style="background:#fde8e8;border-radius:8px;padding:8px 10px;grid-column:span 2">
+          <div style="font-size:10px;color:#888;font-weight:600">Running Total (all batches)</div>
+          <div id="maizeRunningDisplay" style="font-size:18px;font-weight:900;color:#c0392b">—</div>
+        </div>
+      </div>
+    </div>
     <div id="maizeEntryForm" style="display:none;background:#fff;border:1.5px solid #f59e0b;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:10px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -2481,9 +2500,9 @@
         <div><label class="form-label">Quantity (kg)</label><input type="number" id="maizeQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="maizeHandler.calcCost()"></div>
         <div><label class="form-label">Price/kg (K)</label><input type="number" id="maizePrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="maizeHandler.calcCost()"></div>
         <div><label class="form-label">Cost (K) <small style="color:#888">auto</small></label><div id="maizeCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Wt (kg) <small style="color:#888">auto</small></label><div id="maizeBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Total (K) <small style="color:#888">auto</small></label><div id="maizeBatchTotalDisplay" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#78350f;min-height:38px">—</div></div>
-        <div><label class="form-label">Running Total (K) <small style="color:#888">auto</small></label><div id="maizeRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
+        
+        
+        
       </div>
       <button onclick="maizeHandler.addEntry()" style="margin-top:12px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="maizeEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
@@ -2508,6 +2527,25 @@
       <div><div id="soyBatchLabel" style="font-size:13px;font-weight:800;color:#4d7c0f">🟡 No active batch</div><div id="soyBatchSub" style="font-size:11px;color:#3f6212;margin-top:2px"></div></div>
       <button id="soyBatchBtn" onclick="soyHandler.toggleBatch()" style="background:#4d7c0f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
+
+    <!-- Auto-field summary — always visible, updates on load/toggle/calc -->
+    <div id="soySummaryCard" style="display:none;background:#fff;border:1.5px solid #4d7c0f33;border-radius:10px;padding:10px 14px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:800;color:#4d7c0f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">📊 Current Batch Summary</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#f7fee7;border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:#888;font-weight:600">Batch Weight</div>
+          <div id="soyBatchWeightDisplay" style="font-size:16px;font-weight:900;color:#1a3a8a">—</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:#888;font-weight:600">Batch Total</div>
+          <div id="soyBatchTotalDisplay" style="font-size:16px;font-weight:900;color:#4d7c0f">—</div>
+        </div>
+        <div style="background:#fde8e8;border-radius:8px;padding:8px 10px;grid-column:span 2">
+          <div style="font-size:10px;color:#888;font-weight:600">Running Total (all batches)</div>
+          <div id="soyRunningDisplay" style="font-size:18px;font-weight:900;color:#c0392b">—</div>
+        </div>
+      </div>
+    </div>
     <div id="soyEntryForm" style="display:none;background:#fff;border:1.5px solid #86efac;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#4d7c0f;margin-bottom:10px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -2516,9 +2554,9 @@
         <div><label class="form-label">Quantity (kg)</label><input type="number" id="soyQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="soyHandler.calcCost()"></div>
         <div><label class="form-label">Price/kg (K)</label><input type="number" id="soyPrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="soyHandler.calcCost()"></div>
         <div><label class="form-label">Cost (K) <small style="color:#888">auto</small></label><div id="soyCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Wt (kg) <small style="color:#888">auto</small></label><div id="soyBatchWeightDisplay" style="background:#f0f4ff;border:1.5px solid #1a3a8a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#1a3a8a;min-height:38px">—</div></div>
-        <div><label class="form-label">Batch Total (K) <small style="color:#888">auto</small></label><div id="soyBatchTotalDisplay" style="background:#f7fee7;border:1.5px solid #86efac;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#4d7c0f;min-height:38px">—</div></div>
-        <div><label class="form-label">Running Total (K) <small style="color:#888">auto</small></label><div id="soyRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
+        
+        
+        
       </div>
       <button onclick="soyHandler.addEntry()" style="margin-top:12px;width:100%;background:#4d7c0f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="soyEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
@@ -8698,6 +8736,7 @@ function _makeGrainHandler(p, hdrColor) {
         this.batchActive = true;
         this.batchId     = new Date().toISOString();
         this.updateBatchUI();
+        this.updateAutoFields(); // reset/recalc for new batch
         showToast('New batch started');
       } else {
         if (!confirm('Mark this batch as done?')) return;
@@ -8713,12 +8752,13 @@ function _makeGrainHandler(p, hdrColor) {
     // ── UI state ───────────────────────────────────────────
     updateBatchUI() {
       const $ = id => document.getElementById(p + id);
-      const lEl=$('BatchLabel'), sEl=$('BatchSub'), bEl=$('BatchBtn'), fEl=$('EntryForm');
+      const lEl=$('BatchLabel'), sEl=$('BatchSub'), bEl=$('BatchBtn'), fEl=$('EntryForm'), sc=$('SummaryCard');
       if (this.batchActive) {
         if (lEl) lEl.textContent = '🟢 Batch in progress';
         if (sEl) sEl.textContent = 'Enter purchases — toggle "Done?" when complete';
         if (bEl) { bEl.textContent = '✅ Done?'; bEl.style.background = '#16a34a'; }
         if (fEl) fEl.style.display = 'block';
+        if (sc)  sc.style.display  = 'block';
         const d = document.getElementById(p+'Date');
         if (d) d.value = new Date().toISOString().split('T')[0];
       } else {
@@ -8726,6 +8766,7 @@ function _makeGrainHandler(p, hdrColor) {
         if (sEl) sEl.textContent = 'Start a new batch to record purchases';
         if (bEl) { bEl.textContent = '🚀 New Batch'; bEl.style.background = hdrColor; }
         if (fEl) fEl.style.display = 'none';
+        if (sc)  sc.style.display  = 'none';
       }
     },
 
@@ -8740,20 +8781,32 @@ function _makeGrainHandler(p, hdrColor) {
     },
 
     // Key fix: recalcs from this.records so deletes are reflected immediately
+    // Called on: load, calcCost, toggleBatch, deleteEntry
     updateAutoFields() {
-      const bRecs  = this.records.filter(r => r.BatchId === this.batchId);
+      // Show summary card whenever there are records (active batch or historical)
+      const sc = document.getElementById(p + 'SummaryCard');
+      if (sc) sc.style.display = this.records.length > 0 ? 'block' : 'none';
+
+      const bRecs   = this.batchId
+        ? this.records.filter(r => r.BatchId === this.batchId)
+        : [];
       const curQty  = parseFloat(document.getElementById(p+'Qty')?.value || '0') || 0;
       const costTxt = (document.getElementById(p+'CostDisplay')?.textContent || '').replace('K ','');
       const curCost = parseFloat(costTxt) || 0;
 
+      // Batch Weight: sum of current batch qty + pending entry qty
       const bWt    = bRecs.reduce((s,r) => s + (parseFloat(r.Qty)  || 0), 0) + curQty;
+      // Batch Total: sum of current batch cost + pending entry cost
       const bTotal = bRecs.reduce((s,r) => s + (parseFloat(r.Cost) || 0), 0) + curCost;
+      // Running Total: ALL records ever + pending entry cost
       const rTotal = this.records.reduce((s,r) => s + (parseFloat(r.Cost) || 0), 0) + curCost;
 
       const setEl = (id, val, isKwacha) => {
         const el = document.getElementById(p + id);
         if (!el) return;
-        el.textContent = val > 0 ? (isKwacha ? 'K ' + val.toFixed(2) : val.toFixed(1) + ' kg') : '—';
+        el.textContent = val > 0
+          ? (isKwacha ? 'K ' + val.toFixed(2) : val.toFixed(1) + ' kg')
+          : '—';
       };
       setEl('BatchWeightDisplay', bWt,    false);
       setEl('BatchTotalDisplay',  bTotal, true);
