@@ -3132,38 +3132,54 @@ function _grGetAll(sheet) {
 }
 
 function _grAdd(sheet, data) {
-  // Ensure all expected columns exist
+  // Ensure all expected columns exist in the sheet header row
   var lc = sheet.getLastColumn();
-  var existingHdrs = lc > 0 ? sheet.getRange(1,1,1,lc).getValues()[0].map(function(h){return String(h).trim();}) : [];
+  var hdrs = lc > 0 ? sheet.getRange(1,1,1,lc).getValues()[0].map(function(h){return String(h).trim();}) : [];
+  var headersChanged = false;
   _GR_HDR.forEach(function(h) {
-    if (!existingHdrs.includes(h)) {
-      var newCol = sheet.getLastColumn() + 1;
-      sheet.getRange(1, newCol).setValue(h).setFontWeight('bold');
-      existingHdrs.push(h);
-      // Invalidate cached colMap since headers changed
-      delete _CC[sheet.getName()];
+    if (h && !hdrs.includes(h)) {
+      var nc = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nc).setValue(h).setFontWeight('bold');
+      hdrs.push(h);
+      headersChanged = true;
     }
   });
+  if (headersChanged) delete _CC[sheet.getName()]; // invalidate stale colMap
 
-  // Get next ID
+  // Re-read colMap after any header changes
+  var cm = _colMap(sheet);
+  var totalCols = sheet.getLastColumn();
+
+  // Next ID
   var lr  = sheet.getLastRow();
-  var ids = lr > 1 ? sheet.getRange(2,1,lr-1,1).getValues().map(function(r){return r[0];}) : [];
+  var ids = lr > 1 ? sheet.getRange(2,1,lr-1,1).getValues().flat() : [];
   var nid = ids.reduce(function(m,v){return Math.max(m, parseInt(v||0,10)||0);}, 0) + 1;
 
-  // Write each field to its correct column by name
-  var cm  = _colMap(sheet);
-  var newRow = lr + 1;
-  var writeData = { GR_ID:nid, Date:data.Date||'', Buyer:data.Buyer||'',
-    Qty:data.Qty||0, PricePerKg:data.PricePerKg||0, Cost:data.Cost||0,
-    BatchWeight:data.BatchWeight||0, BatchTotal:data.BatchTotal||0,
-    RunningTotal:data.RunningTotal||0, BatchId:data.BatchId||'', BatchDone:'' };
-
+  // Build a full row array (one entry per column) and write in a single call
+  var row = new Array(totalCols).fill('');
+  var writeData = {
+    GR_ID:        nid,
+    Date:         data.Date         || '',
+    Buyer:        data.Buyer        || '',
+    Qty:          Number(data.Qty)          || 0,
+    PricePerKg:   Number(data.PricePerKg)   || 0,
+    Cost:         Number(data.Cost)         || 0,
+    BatchWeight:  Number(data.BatchWeight)  || 0,
+    BatchTotal:   Number(data.BatchTotal)   || 0,
+    RunningTotal: Number(data.RunningTotal) || 0,
+    BatchId:      data.BatchId      || '',
+    BatchDone:    ''
+  };
   Object.keys(writeData).forEach(function(h) {
     var col = cm[h];
-    if (col) sheet.getRange(newRow, col).setValue(writeData[h]);
+    if (col && col <= totalCols) row[col - 1] = writeData[h];
   });
 
-  return {success:true, gr_id:nid};
+  // Single setValues call — much faster and atomic
+  var newRow = lr + 1;
+  sheet.getRange(newRow, 1, 1, totalCols).setValues([row]);
+
+  return { success: true, gr_id: nid };
 }
 
 function _grClose(sheet, batchId) {

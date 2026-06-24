@@ -8804,9 +8804,7 @@ function _makeGrainHandler(p, hdrColor) {
       const setEl = (id, val, isKwacha) => {
         const el = document.getElementById(p + id);
         if (!el) return;
-        el.textContent = val > 0
-          ? (isKwacha ? 'K ' + val.toFixed(2) : val.toFixed(1) + ' kg')
-          : '—';
+        el.textContent = isKwacha ? 'K ' + val.toFixed(2) : val.toFixed(1) + ' kg';
       };
       setEl('BatchWeightDisplay', bWt,    false);
       setEl('BatchTotalDisplay',  bTotal, true);
@@ -8896,7 +8894,7 @@ function _makeGrainHandler(p, hdrColor) {
           <td style="padding:7px 10px;text-align:right">${parseFloat(rec.Qty||0).toFixed(1)}</td>
           <td style="padding:7px 10px;text-align:right">${parseFloat(rec.PricePerKg||0).toFixed(2)}</td>
           <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.Cost||0).toFixed(2)}</td>
-          <td style="padding:7px 10px;text-align:right">${parseFloat(rec.BatchWeight||0).toFixed(1)}</td>
+          <td style="padding:7px 10px;text-align:right">${parseFloat(rec.BatchWeight||0).toFixed(1)} kg</td>
           <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.BatchTotal||0).toFixed(2)}</td>
           <td style="padding:7px 10px;text-align:right;font-weight:800;color:#c0392b">K ${parseFloat(rec.RunningTotal||0).toFixed(2)}</td>
           <td style="padding:7px 4px;text-align:center">${delBtn}</td>
