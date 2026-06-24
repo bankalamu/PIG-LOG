@@ -15,30 +15,24 @@ const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage"
 // Key fields that define a unique pig record
 const KEY_FIELDS = ["PIG ID", "Boar", "SOW"];
 
-// ── Execution-scoped caches (valid for one Apps Script request) ──
-// Apps Script runs each web request in a fresh V8 execution context.
-// These objects are reset to {} on every new request — no stale data risk.
-// They eliminate redundant getActiveSpreadsheet() and header-row reads
-// that otherwise happen on every save/load operation.
-var _SC = {};   // sheet cache:   sheetName → Sheet object
-var _CC = {};   // column cache:  sheetName → { headerName: 1-based colNum }
-
-function _getSheet(name, createFn) {
-  if (!_SC[name]) _SC[name] = createFn();
-  return _SC[name];
-}
+// ── Execution-scoped caches (reset on every new request) ──────
+// Eliminates redundant getActiveSpreadsheet() and header reads.
+var _SC = {};  // sheet cache:  name  → Sheet object
+var _CC = {};  // column cache: name  → { header: 1-based-col-num }
 
 function _colMap(sheet) {
-  const name = sheet.getName();
-  if (!_CC[name]) {
-    const last = sheet.getLastColumn();
-    const hdrs = last > 0 ? sheet.getRange(1,1,1,last).getValues()[0] : [];
-    const m = {};
-    hdrs.forEach((h,i) => { if(h) m[String(h).trim()] = i+1; });
-    _CC[name] = m;
+  const nm = sheet.getName();
+  if (!_CC[nm]) {
+    const lc = sheet.getLastColumn();
+    const hh = lc > 0 ? sheet.getRange(1,1,1,lc).getValues()[0] : [];
+    const m  = {};
+    hh.forEach((h,i) => { if (h) m[String(h).trim()] = i + 1; });
+    _CC[nm] = m;
   }
-  return _CC[name];
+  return _CC[nm];
 }
+// Invalidate colMap when headers change (e.g. after adding missing columns)
+function _invalidateColMap(sheet) { delete _CC[sheet.getName()]; }
 
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -72,6 +66,7 @@ function getSheet() {
       }
     });
   }
+  _SC["PigLog"] = sheet;
   return sheet;
 }
 
@@ -307,19 +302,16 @@ function getAllRecords() {
  *   record — full pig object if found; error — message if not found.
  */
 /**
- * Batch startup: returns pig records + settings in one round trip.
+ * Batch startup: records + settings in one round trip.
  */
 function getAllInit() {
-  const recs   = getAllRecords();
-  const maxPen = getSetting('maxPen');
-  const aiFlag = getSetting('AI_ANALYSIS_ENABLED');
+  const recs  = getAllRecords();
+  const mp    = getSetting('maxPen');
+  const ai    = getSetting('AI_ANALYSIS_ENABLED');
   return {
     success:  recs.success,
     records:  recs.records || [],
-    settings: {
-      maxPen:              maxPen.value  || '50',
-      AI_ANALYSIS_ENABLED: aiFlag.value || 'false'
-    }
+    settings: { maxPen: mp.value||'50', AI_ANALYSIS_ENABLED: ai.value||'false' }
   };
 }
 
@@ -541,7 +533,7 @@ const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes"
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The DailyChecklist sheet.
  */
 function getClSheet() {
-  if (_SC[CL_SHEET]) return _SC[CL_SHEET];
+  if (_SC["DailyChecklist"]) return _SC["DailyChecklist"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(CL_SHEET);
   if (!sheet) {
@@ -566,6 +558,7 @@ function getClSheet() {
       });
     }
   }
+  _SC["DailyChecklist"] = sheet;
   return sheet;
 }
 
@@ -810,14 +803,6 @@ function clGetRecent(days) {
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The DailyChecklist sheet.
  * @returns {Object} Map of { headerName: columnIndex } (1-based).
  */
-function _colMap(sheet) {
-  const lastCol = sheet.getLastColumn();
-  if (lastCol === 0) return {};
-  const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  const map  = {};
-  hdrs.forEach((h, i) => { if (h) map[String(h).trim()] = i + 1; });
-  return map;
-}
 
 /**
  * Creates or updates a checklist record matching the given Date + Pen combination.
@@ -1103,7 +1088,7 @@ const SL_TIME_COLS = [
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The SowLitter sheet.
  */
 function getSlSheet() {
-  if (_SC[SL_SHEET]) return _SC[SL_SHEET];
+  if (_SC["SowLitter"]) return _SC["SowLitter"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SL_SHEET);
   if (!sheet) {
@@ -1137,6 +1122,7 @@ function getSlSheet() {
       }
     });
   }
+  _SC["SowLitter"] = sheet;
   return sheet;
 }
 
@@ -1224,14 +1210,6 @@ function slUpsert(data) {
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The SowLitter sheet.
  * @returns {Object} Map of { headerName: columnIndex } (1-based).
  */
-function _colMap(sheet) {
-  const lastCol = sheet.getLastColumn();
-  if (lastCol === 0) return {};
-  const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  const map  = {};
-  hdrs.forEach((h, i) => { if (h) map[String(h).trim()] = i + 1; });
-  return map;
-}
 
 /**
  * Appends a new Sow & Litter record row to the SowLitter sheet.
@@ -1373,7 +1351,7 @@ const WK_HEADERS_GS = ["WK_ID","Date","WeekNum","WeekYear","WeekKey","Pen","Chec
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WeeklyChecklist sheet.
  */
 function getWkSheet() {
-  if (_SC[WK_SHEET]) return _SC[WK_SHEET];
+  if (_SC["WeeklyChecklist"]) return _SC["WeeklyChecklist"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(WK_SHEET);
   if (!sheet) {
@@ -1382,6 +1360,7 @@ function getWkSheet() {
     sheet.getRange(1,1,1,WK_HEADERS_GS.length).setFontWeight("bold").setBackground("#1a3a8a").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
   }
+  _SC["WeeklyChecklist"] = sheet;
   return sheet;
 }
 
@@ -1414,14 +1393,6 @@ function wkGetAll() {
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The WeeklyChecklist sheet.
  * @returns {Object} Map of { headerName: columnIndex } (1-based).
  */
-function _colMap(sheet) {
-  const lastCol = sheet.getLastColumn();
-  if (lastCol === 0) return {};
-  const hdrs = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  const map = {};
-  hdrs.forEach((h, i) => { if (h) map[String(h).trim()] = i + 1; });
-  return map;
-}
 
 /**
  * Appends a new Weekly Checklist record to the WeeklyChecklist sheet.
@@ -1548,7 +1519,7 @@ function _toMonthKey(val) {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The MonthlyChecklist sheet.
  */
 function getMoSheet() {
-  if (_SC[MO_SHEET]) return _SC[MO_SHEET];
+  if (_SC["MonthlyChecklist"]) return _SC["MonthlyChecklist"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(MO_SHEET);
   if (!sheet) {
@@ -1557,6 +1528,7 @@ function getMoSheet() {
     sheet.getRange(1,1,1,MO_HEADERS_GS.length).setFontWeight("bold").setBackground("#4a148c").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
   }
+  _SC["MonthlyChecklist"] = sheet;
   return sheet;
 }
 
@@ -1744,7 +1716,7 @@ function moDeduplicateAll() {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The Settings sheet.
  */
 function getSettingsSheet() {
-  if (_SC[SETTINGS_SHEET]) return _SC[SETTINGS_SHEET];
+  if (_SC["Settings"]) return _SC["Settings"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName("Settings");
   if (!sheet) {
@@ -1756,6 +1728,7 @@ function getSettingsSheet() {
     sheet.appendRow(["weaningWeeks", "5", "system", new Date()]);
     sheet.appendRow(["maxPen", "50", "system", new Date()]);
   }
+  _SC["Settings"] = sheet;
   return sheet;
 }
 
@@ -2762,7 +2735,7 @@ const WA_HEADERS = ['ACTION_ID','Date','Worker','Category','Action','Priority','
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WorkerActions sheet.
  */
 function getWaSheet() {
-  if (_SC[WA_SHEET]) return _SC[WA_SHEET];
+  if (_SC["WorkerActions"]) return _SC["WorkerActions"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(WA_SHEET);
   if (!sheet) {
@@ -2775,6 +2748,7 @@ function getWaSheet() {
     sheet.setColumnWidth(5, 250);
     sheet.setColumnWidth(9, 200);
   }
+  _SC["WorkerActions"] = sheet;
   return sheet;
 }
 
@@ -2783,12 +2757,6 @@ function getWaSheet() {
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - The WorkerActions sheet.
  * @returns {Object} Map of { headerName: columnIndex } (1-based).
  */
-function _colMap(sheet) {
-  const hdrs = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
-  const map = {};
-  hdrs.forEach((h,i) => { if (h) map[String(h).trim()] = i+1; });
-  return map;
-}
 
 /**
  * Returns all Worker Action task records from the WorkerActions sheet.
@@ -3119,69 +3087,80 @@ function _runAISafe(targetDate) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  MAIZE LOG  (MaizeLog sheet) & SOY BEAN LOG (SoyBeanLog sheet)
+//  MAIZE LOG  (MaizeLog) + SOY BEAN LOG (SoyBeanLog)  v4.0
 // ═══════════════════════════════════════════════════════════════
 
 const MAIZE_SHEET = 'MaizeLog';
 const SOY_SHEET   = 'SoyBeanLog';
 const _GR_HDR     = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
-                      'BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
+                     'BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
 
 function getMaizeSheet() {
   if (_SC[MAIZE_SHEET]) return _SC[MAIZE_SHEET];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let s = ss.getSheetByName(MAIZE_SHEET);
+  var s = ss.getSheetByName(MAIZE_SHEET);
   if (!s) { s=ss.insertSheet(MAIZE_SHEET); s.appendRow(_GR_HDR); s.getRange(1,1,1,_GR_HDR.length).setFontWeight('bold').setBackground('#78350f').setFontColor('#fff'); s.setFrozenRows(1); }
-  return (_SC[MAIZE_SHEET] = s);
+  return (_SC[MAIZE_SHEET]=s);
 }
 function getSoySheet() {
   if (_SC[SOY_SHEET]) return _SC[SOY_SHEET];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let s = ss.getSheetByName(SOY_SHEET);
+  var s = ss.getSheetByName(SOY_SHEET);
   if (!s) { s=ss.insertSheet(SOY_SHEET); s.appendRow(_GR_HDR); s.getRange(1,1,1,_GR_HDR.length).setFontWeight('bold').setBackground('#4d7c0f').setFontColor('#fff'); s.setFrozenRows(1); }
-  return (_SC[SOY_SHEET] = s);
+  return (_SC[SOY_SHEET]=s);
 }
 
-function maizeGetAll()            { return _grGetAll(getMaizeSheet()); }
-function maizeAdd(d)              { return _grAdd(getMaizeSheet(), d); }
-function maizeCloseBatch(bid)     { return _grClose(getMaizeSheet(), bid); }
-function maizeDelete(id)          { return _grDel(getMaizeSheet(), id); }
-function soyGetAll()              { return _grGetAll(getSoySheet()); }
-function soyAdd(d)                { return _grAdd(getSoySheet(), d); }
-function soyCloseBatch(bid)       { return _grClose(getSoySheet(), bid); }
-function soyDelete(id)            { return _grDel(getSoySheet(), id); }
+function maizeGetAll()          { return _grGetAll(getMaizeSheet()); }
+function maizeAdd(d)            { return _grAdd(getMaizeSheet(),d); }
+function maizeCloseBatch(bid)   { return _grClose(getMaizeSheet(),bid); }
+function maizeDelete(id)        { return _grDel(getMaizeSheet(),id); }
+function soyGetAll()            { return _grGetAll(getSoySheet()); }
+function soyAdd(d)              { return _grAdd(getSoySheet(),d); }
+function soyCloseBatch(bid)     { return _grClose(getSoySheet(),bid); }
+function soyDelete(id)          { return _grDel(getSoySheet(),id); }
 
 function _grGetAll(sheet) {
-  const data = sheet.getDataRange().getValues();
-  if (data.length < 2) return { success:true, records:[] };
-  const hdrs = data[0].map(h => String(h).trim());
-  const tz   = Session.getScriptTimeZone();
-  return { success:true, records: data.slice(1).filter(r=>r[0]!=='').map(row => {
-    const rec={}; hdrs.forEach((h,i)=>{ const v=row[i]; rec[h]=v instanceof Date?Utilities.formatDate(v,tz,'yyyy-MM-dd'):String(v===null||v===undefined?'':v); }); return rec;
+  var data=sheet.getDataRange().getValues();
+  if (data.length<2) return {success:true,records:[]};
+  var hdrs=data[0].map(function(h){return String(h).trim();});
+  var tz=Session.getScriptTimeZone();
+  return {success:true,records:data.slice(1).filter(function(r){return r[0]!=='';}).map(function(row){
+    var rec={};
+    hdrs.forEach(function(h,i){var v=row[i];rec[h]=v instanceof Date?Utilities.formatDate(v,tz,'yyyy-MM-dd'):String(v===null||v===undefined?'':v);});
+    return rec;
   })};
 }
+
 function _grAdd(sheet, data) {
-  const lr  = sheet.getLastRow();
-  const ids = lr>1 ? sheet.getRange(2,1,lr-1,1).getValues().flat() : [];
-  const nid = ids.reduce((m,v)=>Math.max(m,parseInt(v||0,10)||0),0)+1;
-  sheet.appendRow(_GR_HDR.map(h=>h==='GR_ID'?nid:(data[h]!==undefined?data[h]:'')));
-  return { success:true, gr_id:nid };
+  var lr=sheet.getLastRow();
+  var ids=lr>1?sheet.getRange(2,1,lr-1,1).getValues().map(function(r){return r[0];})  :[];
+  var nid=ids.reduce(function(m,v){return Math.max(m,parseInt(v||0,10)||0);},0)+1;
+  sheet.appendRow(_GR_HDR.map(function(h){return h==='GR_ID'?nid:(data[h]!==undefined?data[h]:'');}));
+  return {success:true,gr_id:nid};
 }
+
 function _grClose(sheet, batchId) {
-  const lr=sheet.getLastRow(); if(lr<2) return {success:true};
-  const lc=sheet.getLastColumn();
-  const cm=_colMap(sheet);
-  const biC=cm['BatchId'], bdC=cm['BatchDone'];
+  var lr=sheet.getLastRow(); if(lr<2) return {success:true};
+  var lc=sheet.getLastColumn();
+  var cm=_colMap(sheet);
+  var biC=cm['BatchId'],bdC=cm['BatchDone'];
   if(!biC||!bdC) return {success:false,error:'Missing columns'};
-  const data=sheet.getRange(2,1,lr-1,lc).getValues();
-  let last=-1;
-  data.forEach((row,i)=>{ if(String(row[biC-1]).trim()===String(batchId).trim()){sheet.getRange(i+2,bdC).setValue('yes');last=i+2;} });
+  var rows=sheet.getRange(2,1,lr-1,lc).getValues();
+  var last=-1;
+  rows.forEach(function(row,i){
+    if(String(row[biC-1]).trim()===String(batchId).trim()){
+      sheet.getRange(i+2,bdC).setValue('yes'); last=i+2;
+    }
+  });
   if(last>0) sheet.getRange(last,1,1,lc).setFontWeight('bold');
   return {success:true};
 }
+
 function _grDel(sheet, id) {
-  const lr=sheet.getLastRow(); if(lr<2) return {success:false,error:'No records'};
-  const ids=sheet.getRange(2,1,lr-1,1).getValues();
-  for(let i=0;i<ids.length;i++){if(String(ids[i][0]).trim()===String(id).trim()){sheet.deleteRow(i+2);return{success:true};}}
+  var lr=sheet.getLastRow(); if(lr<2) return {success:false,error:'No records'};
+  var ids=sheet.getRange(2,1,lr-1,1).getValues();
+  for(var i=0;i<ids.length;i++){
+    if(String(ids[i][0]).trim()===String(id).trim()){sheet.deleteRow(i+2);return {success:true};}
+  }
   return {success:false,error:'Not found'};
 }

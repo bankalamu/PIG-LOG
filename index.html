@@ -2467,7 +2467,6 @@
   </div><!-- end pageWorkers -->
 
 
-  <!-- ═══════ MAIZE LOG ═══════ -->
   <div id="pageMaize" style="display:none">
     <div class="page-header"><h2 class="page-title" style="color:#78350f">🌽 Maize Log</h2><p class="page-subtitle">Track maize purchases by batch</p></div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:12px 16px;margin-bottom:14px">
@@ -2475,7 +2474,7 @@
       <button id="maizeBatchBtn" onclick="maizeHandler.toggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
     <div id="maizeEntryForm" style="display:none;background:#fff;border:1.5px solid #f59e0b;border-radius:12px;padding:14px;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:12px">➕ Add Purchase Entry</div>
+      <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:10px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div><label class="form-label">Date</label><input type="date" id="maizeDate" class="form-input" style="font-weight:700"></div>
         <div><label class="form-label">Buyer</label><select id="maizeBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
@@ -2486,7 +2485,7 @@
         <div><label class="form-label">Batch Total (K) <small style="color:#888">auto</small></label><div id="maizeBatchTotalDisplay" style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#78350f;min-height:38px">—</div></div>
         <div><label class="form-label">Running Total (K) <small style="color:#888">auto</small></label><div id="maizeRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
       </div>
-      <button onclick="maizeHandler.addEntry()" style="margin-top:14px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
+      <button onclick="maizeHandler.addEntry()" style="margin-top:12px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="maizeEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
     <div style="overflow-x:auto">
@@ -2494,8 +2493,8 @@
       <table id="maizeTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:#78350f;color:#fff;font-weight:800;font-size:11px">
           <th style="padding:8px 10px;text-align:left">Date</th><th style="padding:8px 10px;text-align:left">Buyer</th>
-          <th style="padding:8px 10px;text-align:right">Qty</th><th style="padding:8px 10px;text-align:right">Price</th>
-          <th style="padding:8px 10px;text-align:right">Cost</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
+          <th style="padding:8px 10px;text-align:right">Qty(kg)</th><th style="padding:8px 10px;text-align:right">Price</th>
+          <th style="padding:8px 10px;text-align:right">Cost(K)</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
           <th style="padding:8px 10px;text-align:right">Batch Total</th><th style="padding:8px 10px;text-align:right">Running Total</th>
           <th style="padding:8px 4px"></th></tr></thead>
         <tbody id="maizeTableBody"></tbody>
@@ -2503,7 +2502,6 @@
     </div>
   </div><!-- end pageMaize -->
 
-  <!-- ═══════ SOY BEAN LOG ═══════ -->
   <div id="pageSoy" style="display:none">
     <div class="page-header"><h2 class="page-title" style="color:#4d7c0f">🫘 Soy Bean Log</h2><p class="page-subtitle">Track soy bean purchases by batch</p></div>
     <div style="display:flex;align-items:center;justify-content:space-between;background:#f7fee7;border:2px solid #86efac;border-radius:12px;padding:12px 16px;margin-bottom:14px">
@@ -2511,7 +2509,7 @@
       <button id="soyBatchBtn" onclick="soyHandler.toggleBatch()" style="background:#4d7c0f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
     <div id="soyEntryForm" style="display:none;background:#fff;border:1.5px solid #86efac;border-radius:12px;padding:14px;margin-bottom:14px">
-      <div style="font-size:12px;font-weight:800;color:#4d7c0f;margin-bottom:12px">➕ Add Purchase Entry</div>
+      <div style="font-size:12px;font-weight:800;color:#4d7c0f;margin-bottom:10px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div><label class="form-label">Date</label><input type="date" id="soyDate" class="form-input" style="font-weight:700"></div>
         <div><label class="form-label">Buyer</label><select id="soyBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
@@ -2522,7 +2520,7 @@
         <div><label class="form-label">Batch Total (K) <small style="color:#888">auto</small></label><div id="soyBatchTotalDisplay" style="background:#f7fee7;border:1.5px solid #86efac;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#4d7c0f;min-height:38px">—</div></div>
         <div><label class="form-label">Running Total (K) <small style="color:#888">auto</small></label><div id="soyRunningDisplay" style="background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#c0392b;min-height:38px">—</div></div>
       </div>
-      <button onclick="soyHandler.addEntry()" style="margin-top:14px;width:100%;background:#4d7c0f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
+      <button onclick="soyHandler.addEntry()" style="margin-top:12px;width:100%;background:#4d7c0f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="soyEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
     <div style="overflow-x:auto">
@@ -2530,8 +2528,8 @@
       <table id="soyTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:#4d7c0f;color:#fff;font-weight:800;font-size:11px">
           <th style="padding:8px 10px;text-align:left">Date</th><th style="padding:8px 10px;text-align:left">Buyer</th>
-          <th style="padding:8px 10px;text-align:right">Qty</th><th style="padding:8px 10px;text-align:right">Price</th>
-          <th style="padding:8px 10px;text-align:right">Cost</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
+          <th style="padding:8px 10px;text-align:right">Qty(kg)</th><th style="padding:8px 10px;text-align:right">Price</th>
+          <th style="padding:8px 10px;text-align:right">Cost(K)</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
           <th style="padding:8px 10px;text-align:right">Batch Total</th><th style="padding:8px 10px;text-align:right">Running Total</th>
           <th style="padding:8px 4px"></th></tr></thead>
         <tbody id="soyTableBody"></tbody>
@@ -3026,10 +3024,13 @@ const apiPostDirect = apiPost;
 
 async function loadRecords() {
   try {
-    const data = await apiGet({ action: "getAllInit" });
+    // Try batch endpoint first (returns records + settings in one call)
+    // Falls back to getAll if getAllInit not yet deployed
+    let data = await apiGet({ action: "getAllInit" });
+    if (!data || !data.success) data = await apiGet({ action: "getAll" });
     if (data && data.success) {
       allRecords = data.records || [];
-      // Apply settings from the same call — no extra round trips
+      // Apply settings if returned (from getAllInit)
       if (data.settings) {
         const mp = parseInt(data.settings.maxPen, 10) || 50;
         clMaxPen = mp; wkMaxPen = mp;
@@ -3045,7 +3046,7 @@ async function loadRecords() {
       if (currentPage === "pageList") renderList();
     }
   } catch (e) {
-    // silently fail if no URL yet
+    console.error('loadRecords error:', e);
   }
 }
 
@@ -5853,7 +5854,6 @@ function initWeekly() {
   const el = document.getElementById('wkDate');
   if (el) el.value = today;
   _wkUpdateBadge(today);
-  // maxPen loaded via getAllInit on startup — no separate API call needed
 }
 
 function _wkApplyMaxPen() {
@@ -8633,40 +8633,41 @@ function _updateDecodeResults() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  MAIZE & SOY BEAN LOG  — shared handler factory
+//  MAIZE & SOY BEAN LOG  — shared handler factory  v4.0
 // ═══════════════════════════════════════════════════════════
 
-function _makeGrainHandler(prefix, headerColor) {
-  const p = prefix;
+function _makeGrainHandler(p, hdrColor) {
   return {
     records:     [],
     batchActive: false,
     batchId:     null,
     prefKey:     'piglog_' + p + '_buyer',
 
+    // ── init ──────────────────────────────────────────────
     async init() {
       const d = document.getElementById(p + 'Date');
       if (d && !d.value) d.value = new Date().toISOString().split('T')[0];
-      await this.load();
+      await this.load();           // load records first so buyer list is populated
       await this.populateBuyers();
     },
 
+    // ── buyer dropdown ─────────────────────────────────────
     async populateBuyers() {
       const sel = document.getElementById(p + 'Buyer');
       if (!sel) return;
-      let names = [];
+      const names = [];
       this.records.forEach(r => { if (r.Buyer && !names.includes(r.Buyer)) names.push(r.Buyer); });
       try {
         const r = await apiGet({ action: 'getSetting', key: 'WORKER_NAMES' });
         if (r?.success && r.value) r.value.split('|').forEach(n => { const t=n.trim(); if(t&&!names.includes(t)) names.push(t); });
       } catch(e) {}
-      const pref    = localStorage.getItem(this.prefKey) || '';
-      const current = sel.value;
+      const pref = localStorage.getItem(this.prefKey) || '';
+      const cur  = sel.value;
       sel.innerHTML = '<option value="">— Select buyer —</option>';
       names.sort().forEach(name => {
         const o = document.createElement('option');
         o.value = name; o.textContent = name;
-        if (name === (current || pref)) o.selected = true;
+        if (name === (cur || pref)) o.selected = true;
         sel.appendChild(o);
       });
       if (pref && !names.includes(pref)) {
@@ -8676,19 +8677,22 @@ function _makeGrainHandler(prefix, headerColor) {
       }
     },
 
+    // ── load from backend ──────────────────────────────────
     async load() {
       const r = await apiGet({ action: p + 'GetAll' });
       if (r?.success) {
         this.records = r.records || [];
+        // Detect open batch from last record
         const last = this.records[this.records.length - 1];
         this.batchActive = !!(last && last.BatchDone !== 'yes');
         this.batchId     = this.batchActive ? (last.BatchId || '') : null;
         this.renderTable();
         this.updateBatchUI();
-        this.updateAutoFields();
+        this.updateAutoFields(); // recalc after every load (covers delete case)
       }
     },
 
+    // ── batch toggle ───────────────────────────────────────
     async toggleBatch() {
       if (!this.batchActive) {
         this.batchActive = true;
@@ -8700,97 +8704,115 @@ function _makeGrainHandler(prefix, headerColor) {
         const r = await apiPost({ action: p + 'CloseBatch', batchId: this.batchId });
         if (r?.success) {
           this.batchActive = false; this.batchId = null;
-          await this.load(); showToast('Batch closed ✅');
+          await this.load();
+          showToast('Batch closed ✅');
         } else showToast('Error: ' + (r?.error || 'unknown'), true);
       }
     },
 
+    // ── UI state ───────────────────────────────────────────
     updateBatchUI() {
-      const el = id => document.getElementById(p + id);
-      const labelEl = el('BatchLabel'), subEl = el('BatchSub'), btnEl = el('BatchBtn'), formEl = el('EntryForm');
+      const $ = id => document.getElementById(p + id);
+      const lEl=$('BatchLabel'), sEl=$('BatchSub'), bEl=$('BatchBtn'), fEl=$('EntryForm');
       if (this.batchActive) {
-        if (labelEl) labelEl.textContent = '🟢 Batch in progress';
-        if (subEl)   subEl.textContent   = 'Enter purchases — toggle "Done?" when complete';
-        if (btnEl)   { btnEl.textContent = '✅ Done?'; btnEl.style.background = '#16a34a'; }
-        if (formEl)  formEl.style.display = 'block';
-        const d = document.getElementById(p + 'Date');
+        if (lEl) lEl.textContent = '🟢 Batch in progress';
+        if (sEl) sEl.textContent = 'Enter purchases — toggle "Done?" when complete';
+        if (bEl) { bEl.textContent = '✅ Done?'; bEl.style.background = '#16a34a'; }
+        if (fEl) fEl.style.display = 'block';
+        const d = document.getElementById(p+'Date');
         if (d) d.value = new Date().toISOString().split('T')[0];
       } else {
-        if (labelEl) labelEl.textContent = '🟡 No active batch';
-        if (subEl)   subEl.textContent   = 'Start a new batch to record purchases';
-        if (btnEl)   { btnEl.textContent = '🚀 New Batch'; btnEl.style.background = headerColor; }
-        if (formEl)  formEl.style.display = 'none';
+        if (lEl) lEl.textContent = '🟡 No active batch';
+        if (sEl) sEl.textContent = 'Start a new batch to record purchases';
+        if (bEl) { bEl.textContent = '🚀 New Batch'; bEl.style.background = hdrColor; }
+        if (fEl) fEl.style.display = 'none';
       }
     },
 
+    // ── cost & autofields ─────────────────────────────────
     calcCost() {
-      const qty   = parseFloat(document.getElementById(p + 'Qty')?.value   || '0') || 0;
-      const price = parseFloat(document.getElementById(p + 'Price')?.value || '0') || 0;
+      const qty   = parseFloat(document.getElementById(p+'Qty')?.value   || '0') || 0;
+      const price = parseFloat(document.getElementById(p+'Price')?.value || '0') || 0;
       const cost  = qty * price;
-      const el    = document.getElementById(p + 'CostDisplay');
+      const el    = document.getElementById(p+'CostDisplay');
       if (el) el.textContent = cost > 0 ? 'K ' + cost.toFixed(2) : '—';
       this.updateAutoFields();
     },
 
+    // Key fix: recalcs from this.records so deletes are reflected immediately
     updateAutoFields() {
-      const bRecs = this.records.filter(r => r.BatchId === this.batchId);
-      const curQty  = parseFloat(document.getElementById(p + 'Qty')?.value || '0') || 0;
-      const costTxt = (document.getElementById(p + 'CostDisplay')?.textContent || '').replace('K ','');
+      const bRecs  = this.records.filter(r => r.BatchId === this.batchId);
+      const curQty  = parseFloat(document.getElementById(p+'Qty')?.value || '0') || 0;
+      const costTxt = (document.getElementById(p+'CostDisplay')?.textContent || '').replace('K ','');
       const curCost = parseFloat(costTxt) || 0;
-      const bWt    = bRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0),  0) + curQty;
-      const bTotal = bRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + curCost;
-      const rTotal = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + curCost;
-      const set = (id, val, unit) => {
+
+      const bWt    = bRecs.reduce((s,r) => s + (parseFloat(r.Qty)  || 0), 0) + curQty;
+      const bTotal = bRecs.reduce((s,r) => s + (parseFloat(r.Cost) || 0), 0) + curCost;
+      const rTotal = this.records.reduce((s,r) => s + (parseFloat(r.Cost) || 0), 0) + curCost;
+
+      const setEl = (id, val, isKwacha) => {
         const el = document.getElementById(p + id);
-        if (el) el.textContent = val > 0 ? (unit ? unit + ' ' : '') + val.toFixed(unit ? 2 : 1) + (unit ? '' : ' kg') : '—';
+        if (!el) return;
+        el.textContent = val > 0 ? (isKwacha ? 'K ' + val.toFixed(2) : val.toFixed(1) + ' kg') : '—';
       };
-      set('BatchWeightDisplay', bWt,    null);
-      set('BatchTotalDisplay',  bTotal, 'K');
-      set('RunningDisplay',     rTotal, 'K');
+      setEl('BatchWeightDisplay', bWt,    false);
+      setEl('BatchTotalDisplay',  bTotal, true);
+      setEl('RunningDisplay',     rTotal, true);
     },
 
+    // ── add entry ─────────────────────────────────────────
     async addEntry() {
-      const errEl  = document.getElementById(p + 'EntryError');
-      const showE  = msg => { if(errEl){errEl.textContent=msg;errEl.style.display='block';} };
-      const date   = document.getElementById(p + 'Date')?.value  || '';
-      const buyer  = document.getElementById(p + 'Buyer')?.value || '';
-      const qty    = parseFloat(document.getElementById(p + 'Qty')?.value   || '0') || 0;
-      const price  = parseFloat(document.getElementById(p + 'Price')?.value || '0') || 0;
-      const cost   = qty * price;
+      const errEl = document.getElementById(p+'EntryError');
+      const showE = msg => { if(errEl){errEl.textContent=msg;errEl.style.display='block';} };
+      const date  = document.getElementById(p+'Date')?.value  || '';
+      const buyer = document.getElementById(p+'Buyer')?.value || '';
+      const qty   = parseFloat(document.getElementById(p+'Qty')?.value   || '0') || 0;
+      const price = parseFloat(document.getElementById(p+'Price')?.value || '0') || 0;
+      const cost  = qty * price;
       if (!date)    { showE('Please select a date.'); return; }
       if (!buyer)   { showE('Please select a buyer.'); return; }
-      if (qty <= 0) { showE('Please enter a quantity > 0.'); return; }
+      if (qty  <=0) { showE('Please enter a quantity > 0.'); return; }
       if (price<=0) { showE('Please enter a price per kg.'); return; }
       if (!this.batchActive) { showE('Start a new batch first.'); return; }
       if (errEl) errEl.style.display = 'none';
       localStorage.setItem(this.prefKey, buyer);
+
+      // Compute cumulative fields from current records
       const bRecs  = this.records.filter(r => r.BatchId === this.batchId);
-      const bWt    = bRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0),  0) + qty;
-      const bTotal = bRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
-      const rTotal = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
-      const data   = { Date:date, Buyer:buyer, Qty:qty, PricePerKg:price, Cost:cost,
-                       BatchWeight:bWt, BatchTotal:bTotal, RunningTotal:rTotal,
-                       BatchId:this.batchId, BatchDone:'' };
-      const r = await apiPost({ action: p + 'Add', data });
-      if (r?.success) {
+      const bWt    = bRecs.reduce((s,r)=>s+(parseFloat(r.Qty)||0), 0) + qty;
+      const bTotal = bRecs.reduce((s,r)=>s+(parseFloat(r.Cost)||0), 0) + cost;
+      const rTotal = this.records.reduce((s,r)=>s+(parseFloat(r.Cost)||0), 0) + cost;
+
+      const result = await apiPost({ action: p+'Add', data: {
+        Date:date, Buyer:buyer, Qty:qty, PricePerKg:price, Cost:cost,
+        BatchWeight:bWt, BatchTotal:bTotal, RunningTotal:rTotal,
+        BatchId:this.batchId, BatchDone:''
+      }});
+      if (result?.success) {
         showToast('Entry saved ✅');
         ['Qty','Price'].forEach(f => { const el=document.getElementById(p+f); if(el) el.value=''; });
         const cEl = document.getElementById(p+'CostDisplay'); if(cEl) cEl.textContent='—';
-        await this.load();
-      } else showE('Save failed: ' + (r?.error || 'unknown'));
+        await this.load(); // reload recomputes everything including autofields
+      } else showE('Save failed: ' + (result?.error || 'unknown'));
     },
 
+    // ── delete entry ──────────────────────────────────────
+    // After delete: load() re-reads records and calls updateAutoFields()
+    // so all totals (batch weight, batch total, running total) recompute correctly
     async deleteEntry(grId) {
       if (!confirm('Delete this entry?')) return;
-      const r = await apiPost({ action: p + 'Delete', id: grId });
-      if (r?.success) { await this.load(); showToast('Entry deleted'); }
-      else showToast('Delete failed: ' + (r?.error || 'unknown'), true);
+      const r = await apiPost({ action: p+'Delete', id: grId });
+      if (r?.success) {
+        await this.load(); // full reload ensures autofields recalculate
+        showToast('Entry deleted');
+      } else showToast('Delete failed: ' + (r?.error || 'unknown'), true);
     },
 
+    // ── render table ──────────────────────────────────────
     renderTable() {
-      const tbody = document.getElementById(p + 'TableBody');
-      const table = document.getElementById(p + 'Table');
-      const empty = document.getElementById(p + 'Empty');
+      const tbody = document.getElementById(p+'TableBody');
+      const table = document.getElementById(p+'Table');
+      const empty = document.getElementById(p+'Empty');
       if (!tbody) return;
       if (!this.records.length) {
         if (table) table.style.display = 'none';
@@ -8799,29 +8821,23 @@ function _makeGrainHandler(prefix, headerColor) {
       }
       if (table) table.style.display = 'table';
       if (empty) empty.style.display = 'none';
-
-      // Alternate batch shading
-      const p2    = p;
-      const altBg = p === 'maize' ? '#fffbeb' : '#f7fee7';
+      const altBg  = p === 'maize' ? '#fffbeb' : '#f7fee7';
       const batches = [...new Set(this.records.map(r => r.BatchId))];
-      const recs    = this.records;
-
-      tbody.innerHTML = recs.map((rec, i) => {
+      const me      = this;
+      tbody.innerHTML = this.records.map((rec, i) => {
         const bIdx  = batches.indexOf(rec.BatchId);
         const done  = rec.BatchDone === 'yes';
-        const isLast= recs[i+1]?.BatchId !== rec.BatchId;
-        const bg    = bIdx % 2 === 0 ? altBg : '#f0fdf4';
-
-        // Last entry of a closed batch: top AND bottom border + bold
-        const topBorder    = (done && isLast) ? `border-top:2px solid ${headerColor};`    : '';
-        const bottomBorder = (done && isLast) ? `border-bottom:2px solid ${headerColor};`  : 'border-bottom:1px solid #e5e7eb;';
-        const boldStyle    = (done && isLast) ? 'font-weight:900;'                         : '';
-        const badge        = (done && isLast)
-          ? `<span style="font-size:9px;background:${headerColor};color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>` : '';
+        const isLast = !me.records[i+1] || me.records[i+1].BatchId !== rec.BatchId;
+        const bg     = bIdx % 2 === 0 ? altBg : '#f0fdf4';
+        // Closed batch last row: bold with border on BOTH top and bottom
+        const topB   = done && isLast ? `border-top:2px solid ${hdrColor};`    : '';
+        const botB   = done && isLast ? `border-bottom:2px solid ${hdrColor};` : 'border-bottom:1px solid #e5e7eb;';
+        const bold   = done && isLast ? 'font-weight:900;' : '';
+        const badge  = done && isLast
+          ? `<span style="font-size:9px;background:${hdrColor};color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>` : '';
         const delBtn = isAdminEnabled()
           ? `<button onclick="(p==='maize'?maizeHandler:soyHandler).deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>` : '';
-
-        return `<tr style="background:${bg};${topBorder}${bottomBorder}${boldStyle}">
+        return `<tr style="background:${bg};${topB}${botB}${bold}">
           <td style="padding:7px 10px;white-space:nowrap">${rec.Date||''}${badge}</td>
           <td style="padding:7px 10px">${rec.Buyer||''}</td>
           <td style="padding:7px 10px;text-align:right">${parseFloat(rec.Qty||0).toFixed(1)}</td>
@@ -8837,7 +8853,7 @@ function _makeGrainHandler(prefix, headerColor) {
   };
 }
 
-// Independent handler instances
+// Independent instances — no shared state
 const maizeHandler = _makeGrainHandler('maize', '#78350f');
 const soyHandler   = _makeGrainHandler('soy',   '#4d7c0f');
 
