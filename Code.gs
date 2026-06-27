@@ -163,6 +163,8 @@ function doGet(e) {
     if (action === "waGetAll")   return respond(waGetAll());
     if (action === "maizeGetAll") return respond(maizeGetAll());
     if (action === "soyGetAll")   return respond(soyGetAll());
+    if (action === "maizeRecalc") return respond(maizeRecalc());
+    if (action === "soyRecalc")   return respond(soyRecalc());
     return respond({ error: "Unknown action" });
   } catch (err) {
     return respond({ error: err.message });

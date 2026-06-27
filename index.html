@@ -560,7 +560,7 @@
     <div style="text-align:right">
       <div class="header-count" id="recordCount">— records</div>
       <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-top:3px">
-        <span id="versionBadge" style="font-size:9px;opacity:0.7;cursor:pointer" onclick="forceReload()" title="Tap to force reload">v<span id="versionNum"></span></span>
+        <span id="versionBadge" style="font-size:9px;opacity:0.7;cursor:pointer" onclick="forceReload()" title="Tap to force reload">App v<span id="versionNum"></span> · Backend <span id="backendVersionNum" style="color:#aaa">…</span></span>
         <button class="back-btn" id="backBtn" onclick="goHome()" style="display:none">← Home</button>
         <div id="adminBadge" style="display:none" onclick="toggleAdminMode()"></div>
       </div>
@@ -3122,7 +3122,11 @@ async function loadRecords() {
       updateRecordIssuesBanner();
       if (currentPage === "pageList") renderList();
       // Show backend version in console for deployment verification
-      if (data.codeVersion) console.log('✓ Backend Code.gs version:', data.codeVersion);
+      if (data.codeVersion) {
+        console.log('✓ Backend Code.gs version:', data.codeVersion);
+        const bv = document.getElementById('backendVersionNum');
+        if (bv) bv.textContent = 'v' + data.codeVersion;
+      }
     }
   } catch (e) { console.error('loadRecords:', e); }
 }
@@ -8910,9 +8914,10 @@ function _makeGrainHandler(p, hdrColor) {
     // Useful when rows were saved with blank auto-fields or after manual edits.
     async adminRecalc() {
       if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
-      if (!confirm('Recalculate all auto-fields (BatchWeight, RunningWeight, BatchTotal, RunningTotal) for every row? This updates the spreadsheet directly.')) return;
+      if (!confirm('Recalculate all auto-fields for every row? This rewrites BatchWeight, RunningWeight, BatchTotal and RunningTotal in the spreadsheet.')) return;
       showToast('Recalculating…');
-      const r = await apiPost({ action: p + 'Recalc' });
+      // Use apiGet with payload= (avoids any POST/CORS issues from GitHub Pages)
+      const r = await apiGet({ action: p + 'Recalc' });
       if (r?.success) {
         showToast('✅ Recalculated ' + (r.updated || 0) + ' rows');
         await this.load();
