@@ -3121,6 +3121,8 @@ async function loadRecords() {
       updateCounts(); prepSearchPage(); populatePigDropdowns();
       updateRecordIssuesBanner();
       if (currentPage === "pageList") renderList();
+      // Show backend version in console for deployment verification
+      if (data.codeVersion) console.log('✓ Backend Code.gs version:', data.codeVersion);
     }
   } catch (e) { console.error('loadRecords:', e); }
 }

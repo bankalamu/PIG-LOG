@@ -10,6 +10,7 @@
 // drive: https://www.googleapis.com/auth/drive
 
 const SHEET_NAME = "PigLog";
+const CODE_VERSION = "4.1"; // bump this when deploying to verify new version is live
 const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "ServiceDate", "Sire", "Weight", "Dewormed", "Pen", "Notes", "Available"];
 
 // Key fields that define a unique pig record
@@ -144,7 +145,7 @@ function doGet(e) {
   try {
     if (action === "getAll")       return respond(getAllRecords());
     if (action === "getAllInit")    return respond(getAllInit());
-    if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString(), codeVersion: "3.1" });
+    if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString(), codeVersion: CODE_VERSION });
     if (action === "debug")        return respond({ token: PropertiesService.getScriptProperties().getProperty('APP_TOKEN'), aiKey: !!PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY'), codeVersion: "3.1" });
     if (action === "clCount")      return respond(clCount());
     if (action === "clGetRecent")  return respond(clGetRecent(parseInt(e.parameter.days||'30')));
@@ -297,7 +298,7 @@ function getAllRecords() {
 
 function getAllInit() {
   var r=getAllRecords(),mp=getSetting('maxPen'),ai=getSetting('AI_ANALYSIS_ENABLED');
-  return {success:r.success,records:r.records||[],settings:{maxPen:mp.value||'50',AI_ANALYSIS_ENABLED:ai.value||'false'}};
+  return {success:r.success,records:r.records||[],codeVersion:CODE_VERSION,settings:{maxPen:mp.value||'50',AI_ANALYSIS_ENABLED:ai.value||'false'}};
 }
 
 function getByPigId(pigId) {
