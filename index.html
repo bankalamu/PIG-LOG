@@ -681,11 +681,11 @@
 
     <button class="action-card" style="border-color:#78350f;background:#fff" onclick="showPage('pageMaize')">
       <div class="card-icon" style="background:#fef3c7">🌽</div>
-      <div><div class="card-title" style="color:#78350f">Maize Log</div><div class="card-desc">Record maize purchases &amp; batch tracking</div></div>
+      <div><div class="card-title" style="color:#78350f">Maize Log</div><div class="card-desc">Track maize purchases &amp; batch totals</div></div>
     </button>
     <button class="action-card" style="border-color:#4d7c0f;background:#fff" onclick="showPage('pageSoy')">
       <div class="card-icon" style="background:#f7fee7">🫘</div>
-      <div><div class="card-title" style="color:#4d7c0f">Soy Bean Log</div><div class="card-desc">Record soy bean purchases &amp; batch tracking</div></div>
+      <div><div class="card-title" style="color:#4d7c0f">Soy Bean Log</div><div class="card-desc">Track soy bean purchases &amp; batch totals</div></div>
     </button>
     <!-- Admin-only: data migration tools -->
     <div id="homeAdminPanel" style="display:none;margin-top:18px;background:#fff9c4;border:1.5px solid #f59e0b;border-radius:12px;padding:14px 16px">
@@ -2468,30 +2468,47 @@
 
 
   <div id="pageMaize" style="display:none">
-    <div class="page-header"><h2 class="page-title" style="color:#78350f">🌽 Maize Log</h2><p class="page-subtitle">Track maize purchases by batch</p></div>
+    <div class="page-header">
+      <h2 class="page-title" style="color:#78350f">🌽 Maize Log</h2>
+      <p class="page-subtitle">Track maize purchases by batch</p>
+    </div>
+
+    <!-- Batch toggle banner -->
     <div style="display:flex;align-items:center;justify-content:space-between;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:12px 16px;margin-bottom:14px">
-      <div><div id="maizeBatchLabel" style="font-size:13px;font-weight:800;color:#78350f">🟡 No active batch</div><div id="maizeBatchSub" style="font-size:11px;color:#92400e;margin-top:2px"></div></div>
+      <div>
+        <div id="maizeBatchLabel" style="font-size:13px;font-weight:800;color:#78350f">🟡 No active batch</div>
+        <div id="maizeBatchSub" style="font-size:11px;color:#78350f99;margin-top:2px"></div>
+      </div>
       <button id="maizeBatchBtn" onclick="maizeHandler.toggleBatch()" style="background:#78350f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
 
-    <!-- Auto-field summary — always visible, updates on load/toggle/calc -->
-    <div id="maizeSummaryCard" style="display:none;background:#fff;border:1.5px solid #78350f33;border-radius:10px;padding:10px 14px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">📊 Current Batch Summary</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <!-- Summary card — always visible when records exist -->
+    <div id="maizeSummaryCard" style="display:none;background:#fff;border:1.5px solid #78350f33;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:0.05em">📊 Batch Summary</div>
+        <button id="maizeRecalcBtn" onclick="maizeHandler.adminRecalc()" style="display:none;background:#78350f;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">🔧 Recalc All</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
         <div style="background:#fef3c7;border-radius:8px;padding:8px 10px">
           <div style="font-size:10px;color:#888;font-weight:600">Batch Weight</div>
-          <div id="maizeBatchWeightDisplay" style="font-size:16px;font-weight:900;color:#1a3a8a">—</div>
+          <div id="maizeBatchWeightDisplay" style="font-size:15px;font-weight:900;color:#1a3a8a">—</div>
         </div>
         <div style="background:#fef3c7;border-radius:8px;padding:8px 10px">
-          <div style="font-size:10px;color:#888;font-weight:600">Batch Total</div>
-          <div id="maizeBatchTotalDisplay" style="font-size:16px;font-weight:900;color:#78350f">—</div>
+          <div style="font-size:10px;color:#888;font-weight:600">Running Weight</div>
+          <div id="maizeRunningWeightDisplay" style="font-size:15px;font-weight:900;color:#1a3a8a">—</div>
         </div>
-        <div style="background:#fde8e8;border-radius:8px;padding:8px 10px;grid-column:span 2">
-          <div style="font-size:10px;color:#888;font-weight:600">Running Total (all batches)</div>
-          <div id="maizeRunningDisplay" style="font-size:18px;font-weight:900;color:#c0392b">—</div>
+        <div style="background:#fef3c7;border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:#888;font-weight:600">Batch Total (K)</div>
+          <div id="maizeBatchTotalDisplay" style="font-size:15px;font-weight:900;color:#78350f">—</div>
+        </div>
+        <div style="background:#fde8e8;border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:#888;font-weight:600">Running Total (K)</div>
+          <div id="maizeRunningDisplay" style="font-size:15px;font-weight:900;color:#c0392b">—</div>
         </div>
       </div>
     </div>
+
+    <!-- Entry form -->
     <div id="maizeEntryForm" style="display:none;background:#fff;border:1.5px solid #f59e0b;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#78350f;margin-bottom:10px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -2499,53 +2516,75 @@
         <div><label class="form-label">Buyer</label><select id="maizeBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
         <div><label class="form-label">Quantity (kg)</label><input type="number" id="maizeQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="maizeHandler.calcCost()"></div>
         <div><label class="form-label">Price/kg (K)</label><input type="number" id="maizePrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="maizeHandler.calcCost()"></div>
-        <div><label class="form-label">Cost (K) <small style="color:#888">auto</small></label><div id="maizeCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
-        
-        
-        
+        <div style="grid-column:span 2"><label class="form-label">Cost (K) <small style="color:#888">auto</small></label>
+          <div id="maizeCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:18px;font-weight:900;color:#14532d">—</div></div>
       </div>
       <button onclick="maizeHandler.addEntry()" style="margin-top:12px;width:100%;background:#78350f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="maizeEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
+
+    <!-- Table — RunningWeight column added -->
     <div style="overflow-x:auto">
       <div id="maizeEmpty" style="text-align:center;color:#aaa;font-size:13px;padding:30px 0">No maize purchases recorded yet.</div>
       <table id="maizeTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:#78350f;color:#fff;font-weight:800;font-size:11px">
-          <th style="padding:8px 10px;text-align:left">Date</th><th style="padding:8px 10px;text-align:left">Buyer</th>
-          <th style="padding:8px 10px;text-align:right">Qty(kg)</th><th style="padding:8px 10px;text-align:right">Price</th>
-          <th style="padding:8px 10px;text-align:right">Cost(K)</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
-          <th style="padding:8px 10px;text-align:right">Batch Total</th><th style="padding:8px 10px;text-align:right">Running Total</th>
-          <th style="padding:8px 4px"></th></tr></thead>
+          <th style="padding:8px 10px;text-align:left">Date</th>
+          <th style="padding:8px 10px;text-align:left">Buyer</th>
+          <th style="padding:8px 10px;text-align:right">Qty (kg)</th>
+          <th style="padding:8px 10px;text-align:right">Price/kg</th>
+          <th style="padding:8px 10px;text-align:right">Cost (K)</th>
+          <th style="padding:8px 10px;text-align:right">Batch Wt</th>
+          <th style="padding:8px 10px;text-align:right">Run. Wt</th>
+          <th style="padding:8px 10px;text-align:right">Batch Total</th>
+          <th style="padding:8px 10px;text-align:right">Run. Total</th>
+          <th style="padding:8px 4px"></th>
+        </tr></thead>
         <tbody id="maizeTableBody"></tbody>
       </table>
     </div>
   </div><!-- end pageMaize -->
-
   <div id="pageSoy" style="display:none">
-    <div class="page-header"><h2 class="page-title" style="color:#4d7c0f">🫘 Soy Bean Log</h2><p class="page-subtitle">Track soy bean purchases by batch</p></div>
+    <div class="page-header">
+      <h2 class="page-title" style="color:#4d7c0f">🫘 Soy Bean Log</h2>
+      <p class="page-subtitle">Track soy purchases by batch</p>
+    </div>
+
+    <!-- Batch toggle banner -->
     <div style="display:flex;align-items:center;justify-content:space-between;background:#f7fee7;border:2px solid #86efac;border-radius:12px;padding:12px 16px;margin-bottom:14px">
-      <div><div id="soyBatchLabel" style="font-size:13px;font-weight:800;color:#4d7c0f">🟡 No active batch</div><div id="soyBatchSub" style="font-size:11px;color:#3f6212;margin-top:2px"></div></div>
+      <div>
+        <div id="soyBatchLabel" style="font-size:13px;font-weight:800;color:#4d7c0f">🟡 No active batch</div>
+        <div id="soyBatchSub" style="font-size:11px;color:#4d7c0f99;margin-top:2px"></div>
+      </div>
       <button id="soyBatchBtn" onclick="soyHandler.toggleBatch()" style="background:#4d7c0f;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:800;cursor:pointer">🚀 New Batch</button>
     </div>
 
-    <!-- Auto-field summary — always visible, updates on load/toggle/calc -->
-    <div id="soySummaryCard" style="display:none;background:#fff;border:1.5px solid #4d7c0f33;border-radius:10px;padding:10px 14px;margin-bottom:14px">
-      <div style="font-size:11px;font-weight:800;color:#4d7c0f;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">📊 Current Batch Summary</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <!-- Summary card — always visible when records exist -->
+    <div id="soySummaryCard" style="display:none;background:#fff;border:1.5px solid #4d7c0f33;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:800;color:#4d7c0f;text-transform:uppercase;letter-spacing:0.05em">📊 Batch Summary</div>
+        <button id="soyRecalcBtn" onclick="soyHandler.adminRecalc()" style="display:none;background:#4d7c0f;color:#fff;border:none;border-radius:6px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer">🔧 Recalc All</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
         <div style="background:#f7fee7;border-radius:8px;padding:8px 10px">
           <div style="font-size:10px;color:#888;font-weight:600">Batch Weight</div>
-          <div id="soyBatchWeightDisplay" style="font-size:16px;font-weight:900;color:#1a3a8a">—</div>
+          <div id="soyBatchWeightDisplay" style="font-size:15px;font-weight:900;color:#1a3a8a">—</div>
+        </div>
+        <div style="background:#f7fee7;border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:#888;font-weight:600">Running Weight</div>
+          <div id="soyRunningWeightDisplay" style="font-size:15px;font-weight:900;color:#1a3a8a">—</div>
         </div>
         <div style="background:#fef3c7;border-radius:8px;padding:8px 10px">
-          <div style="font-size:10px;color:#888;font-weight:600">Batch Total</div>
-          <div id="soyBatchTotalDisplay" style="font-size:16px;font-weight:900;color:#4d7c0f">—</div>
+          <div style="font-size:10px;color:#888;font-weight:600">Batch Total (K)</div>
+          <div id="soyBatchTotalDisplay" style="font-size:15px;font-weight:900;color:#4d7c0f">—</div>
         </div>
-        <div style="background:#fde8e8;border-radius:8px;padding:8px 10px;grid-column:span 2">
-          <div style="font-size:10px;color:#888;font-weight:600">Running Total (all batches)</div>
-          <div id="soyRunningDisplay" style="font-size:18px;font-weight:900;color:#c0392b">—</div>
+        <div style="background:#fde8e8;border-radius:8px;padding:8px 10px">
+          <div style="font-size:10px;color:#888;font-weight:600">Running Total (K)</div>
+          <div id="soyRunningDisplay" style="font-size:15px;font-weight:900;color:#c0392b">—</div>
         </div>
       </div>
     </div>
+
+    <!-- Entry form -->
     <div id="soyEntryForm" style="display:none;background:#fff;border:1.5px solid #86efac;border-radius:12px;padding:14px;margin-bottom:14px">
       <div style="font-size:12px;font-weight:800;color:#4d7c0f;margin-bottom:10px">➕ Add Purchase Entry</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -2553,28 +2592,33 @@
         <div><label class="form-label">Buyer</label><select id="soyBuyer" class="form-input" style="font-weight:700;font-size:12px"><option value="">— Select —</option></select></div>
         <div><label class="form-label">Quantity (kg)</label><input type="number" id="soyQty" min="0" step="0.1" placeholder="0.0" class="form-input" oninput="soyHandler.calcCost()"></div>
         <div><label class="form-label">Price/kg (K)</label><input type="number" id="soyPrice" min="0" step="0.01" placeholder="0.00" class="form-input" oninput="soyHandler.calcCost()"></div>
-        <div><label class="form-label">Cost (K) <small style="color:#888">auto</small></label><div id="soyCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:15px;font-weight:900;color:#14532d;min-height:38px">—</div></div>
-        
-        
-        
+        <div style="grid-column:span 2"><label class="form-label">Cost (K) <small style="color:#888">auto</small></label>
+          <div id="soyCostDisplay" style="background:#f0f9f0;border:1.5px solid #16a34a;border-radius:8px;padding:7px 10px;font-size:18px;font-weight:900;color:#14532d">—</div></div>
       </div>
       <button onclick="soyHandler.addEntry()" style="margin-top:12px;width:100%;background:#4d7c0f;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer">💾 Save Entry</button>
       <div id="soyEntryError" style="display:none;margin-top:8px;padding:8px 12px;background:#fde8e8;border:1.5px solid #c0392b;border-radius:8px;font-size:12px;font-weight:700;color:#c0392b"></div>
     </div>
+
+    <!-- Table — RunningWeight column added -->
     <div style="overflow-x:auto">
-      <div id="soyEmpty" style="text-align:center;color:#aaa;font-size:13px;padding:30px 0">No soy bean purchases recorded yet.</div>
+      <div id="soyEmpty" style="text-align:center;color:#aaa;font-size:13px;padding:30px 0">No soy purchases recorded yet.</div>
       <table id="soyTable" style="display:none;width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:#4d7c0f;color:#fff;font-weight:800;font-size:11px">
-          <th style="padding:8px 10px;text-align:left">Date</th><th style="padding:8px 10px;text-align:left">Buyer</th>
-          <th style="padding:8px 10px;text-align:right">Qty(kg)</th><th style="padding:8px 10px;text-align:right">Price</th>
-          <th style="padding:8px 10px;text-align:right">Cost(K)</th><th style="padding:8px 10px;text-align:right">Batch Wt</th>
-          <th style="padding:8px 10px;text-align:right">Batch Total</th><th style="padding:8px 10px;text-align:right">Running Total</th>
-          <th style="padding:8px 4px"></th></tr></thead>
+          <th style="padding:8px 10px;text-align:left">Date</th>
+          <th style="padding:8px 10px;text-align:left">Buyer</th>
+          <th style="padding:8px 10px;text-align:right">Qty (kg)</th>
+          <th style="padding:8px 10px;text-align:right">Price/kg</th>
+          <th style="padding:8px 10px;text-align:right">Cost (K)</th>
+          <th style="padding:8px 10px;text-align:right">Batch Wt</th>
+          <th style="padding:8px 10px;text-align:right">Run. Wt</th>
+          <th style="padding:8px 10px;text-align:right">Batch Total</th>
+          <th style="padding:8px 10px;text-align:right">Run. Total</th>
+          <th style="padding:8px 4px"></th>
+        </tr></thead>
         <tbody id="soyTableBody"></tbody>
       </table>
     </div>
   </div><!-- end pageSoy -->
-
 </div><!-- end #app -->
 
 <script>
@@ -3062,13 +3106,10 @@ const apiPostDirect = apiPost;
 
 async function loadRecords() {
   try {
-    // Try batch endpoint first (returns records + settings in one call)
-    // Falls back to getAll if getAllInit not yet deployed
     let data = await apiGet({ action: "getAllInit" });
     if (!data || !data.success) data = await apiGet({ action: "getAll" });
     if (data && data.success) {
       allRecords = data.records || [];
-      // Apply settings if returned (from getAllInit)
       if (data.settings) {
         const mp = parseInt(data.settings.maxPen, 10) || 50;
         clMaxPen = mp; wkMaxPen = mp;
@@ -3077,15 +3118,11 @@ async function loadRecords() {
         const aiBtn = document.getElementById('aiAutoToggleBtn');
         if (aiBtn) aiBtn.textContent = _aiAutoEnabled ? 'ON' : 'OFF';
       }
-      updateCounts();
-      prepSearchPage();
-      populatePigDropdowns();
+      updateCounts(); prepSearchPage(); populatePigDropdowns();
       updateRecordIssuesBanner();
       if (currentPage === "pageList") renderList();
     }
-  } catch (e) {
-    console.error('loadRecords error:', e);
-  }
+  } catch (e) { console.error('loadRecords:', e); }
 }
 
 // ── Count display ─────────────────────────────────
@@ -5892,6 +5929,7 @@ function initWeekly() {
   const el = document.getElementById('wkDate');
   if (el) el.value = today;
   _wkUpdateBadge(today);
+  // maxPen loaded via getAllInit on startup
 }
 
 function _wkApplyMaxPen() {
@@ -8671,7 +8709,9 @@ function _updateDecodeResults() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  MAIZE & SOY BEAN LOG  — shared handler factory  v4.0
+//  MAIZE & SOY BEAN LOG  v4.0
+//  Shared handler factory — creates independent instances
+//  per commodity with no shared state.
 // ═══════════════════════════════════════════════════════════
 
 function _makeGrainHandler(p, hdrColor) {
@@ -8681,15 +8721,18 @@ function _makeGrainHandler(p, hdrColor) {
     batchId:     null,
     prefKey:     'piglog_' + p + '_buyer',
 
-    // ── init ──────────────────────────────────────────────
+    // ── Init ──────────────────────────────────────────────
     async init() {
       const d = document.getElementById(p + 'Date');
       if (d && !d.value) d.value = new Date().toISOString().split('T')[0];
-      await this.load();           // load records first so buyer list is populated
+      await this.load();
       await this.populateBuyers();
+      // Show recalc button for admin
+      const rb = document.getElementById(p + 'RecalcBtn');
+      if (rb) rb.style.display = isAdminEnabled() ? 'inline-flex' : 'none';
     },
 
-    // ── buyer dropdown ─────────────────────────────────────
+    // ── Buyers dropdown ───────────────────────────────────
     async populateBuyers() {
       const sel = document.getElementById(p + 'Buyer');
       if (!sel) return;
@@ -8715,28 +8758,27 @@ function _makeGrainHandler(p, hdrColor) {
       }
     },
 
-    // ── load from backend ──────────────────────────────────
+    // ── Load from backend ──────────────────────────────────
     async load() {
       const r = await apiGet({ action: p + 'GetAll' });
       if (r?.success) {
         this.records = r.records || [];
-        // Detect open batch from last record
         const last = this.records[this.records.length - 1];
         this.batchActive = !!(last && last.BatchDone !== 'yes');
         this.batchId     = this.batchActive ? (last.BatchId || '') : null;
         this.renderTable();
         this.updateBatchUI();
-        this.updateAutoFields(); // recalc after every load (covers delete case)
+        this.updateAutoFields();
       }
     },
 
-    // ── batch toggle ───────────────────────────────────────
+    // ── Batch toggle ───────────────────────────────────────
     async toggleBatch() {
       if (!this.batchActive) {
         this.batchActive = true;
         this.batchId     = new Date().toISOString();
         this.updateBatchUI();
-        this.updateAutoFields(); // reset/recalc for new batch
+        this.updateAutoFields();
         showToast('New batch started');
       } else {
         if (!confirm('Mark this batch as done?')) return;
@@ -8752,73 +8794,76 @@ function _makeGrainHandler(p, hdrColor) {
     // ── UI state ───────────────────────────────────────────
     updateBatchUI() {
       const $ = id => document.getElementById(p + id);
-      const lEl=$('BatchLabel'), sEl=$('BatchSub'), bEl=$('BatchBtn'), fEl=$('EntryForm'), sc=$('SummaryCard');
+      const lEl=$('BatchLabel'), sEl=$('BatchSub'), bEl=$('BatchBtn'), fEl=$('EntryForm'), rb=$('RecalcBtn');
       if (this.batchActive) {
         if (lEl) lEl.textContent = '🟢 Batch in progress';
-        if (sEl) sEl.textContent = 'Enter purchases — toggle "Done?" when complete';
+        if (sEl) sEl.textContent = 'Enter purchases below — toggle "Done?" when complete';
         if (bEl) { bEl.textContent = '✅ Done?'; bEl.style.background = '#16a34a'; }
         if (fEl) fEl.style.display = 'block';
-        if (sc)  sc.style.display  = 'block';
-        const d = document.getElementById(p+'Date');
+        const d = document.getElementById(p + 'Date');
         if (d) d.value = new Date().toISOString().split('T')[0];
       } else {
         if (lEl) lEl.textContent = '🟡 No active batch';
         if (sEl) sEl.textContent = 'Start a new batch to record purchases';
         if (bEl) { bEl.textContent = '🚀 New Batch'; bEl.style.background = hdrColor; }
         if (fEl) fEl.style.display = 'none';
-        if (sc)  sc.style.display  = 'none';
       }
+      if (rb) rb.style.display = isAdminEnabled() ? 'inline-flex' : 'none';
     },
 
-    // ── cost & autofields ─────────────────────────────────
+    // ── Cost calc ──────────────────────────────────────────
     calcCost() {
-      const qty   = parseFloat(document.getElementById(p+'Qty')?.value   || '0') || 0;
-      const price = parseFloat(document.getElementById(p+'Price')?.value || '0') || 0;
+      const qty   = parseFloat(document.getElementById(p + 'Qty')?.value   || '0') || 0;
+      const price = parseFloat(document.getElementById(p + 'Price')?.value || '0') || 0;
       const cost  = qty * price;
-      const el    = document.getElementById(p+'CostDisplay');
-      if (el) el.textContent = cost > 0 ? 'K ' + cost.toFixed(2) : '—';
+      const el    = document.getElementById(p + 'CostDisplay');
+      if (el) el.textContent = 'K ' + cost.toFixed(2);
       this.updateAutoFields();
     },
 
-    // Key fix: recalcs from this.records so deletes are reflected immediately
-    // Called on: load, calcCost, toggleBatch, deleteEntry
+    // ── Auto-fields ────────────────────────────────────────
+    // Recalculates Batch Wt, Running Wt, Batch Total, Running Total
+    // from this.records (always fresh after load/save/delete).
     updateAutoFields() {
-      // Show summary card whenever there are records (active batch or historical)
       const sc = document.getElementById(p + 'SummaryCard');
-      if (sc) sc.style.display = this.records.length > 0 ? 'block' : 'none';
+      if (sc) sc.style.display = this.records.length > 0 || this.batchActive ? 'block' : 'none';
 
       const bRecs   = this.batchId
         ? this.records.filter(r => r.BatchId === this.batchId)
         : [];
-      const curQty  = parseFloat(document.getElementById(p+'Qty')?.value || '0') || 0;
-      const costTxt = (document.getElementById(p+'CostDisplay')?.textContent || '').replace('K ','');
+      const curQty  = parseFloat(document.getElementById(p + 'Qty')?.value || '0') || 0;
+      const costTxt = (document.getElementById(p + 'CostDisplay')?.textContent || '').replace('K ','');
       const curCost = parseFloat(costTxt) || 0;
 
-      // Batch Weight: sum of current batch qty + pending entry qty
+      // Batch weight = qty in current batch + pending entry
       const bWt    = bRecs.reduce((s,r) => s + (parseFloat(r.Qty)  || 0), 0) + curQty;
-      // Batch Total: sum of current batch cost + pending entry cost
+      // Running weight = ALL qty ever + pending entry
+      const rwt    = this.records.reduce((s,r) => s + (parseFloat(r.Qty)  || 0), 0) + curQty;
+      // Batch total cost = cost in current batch + pending
       const bTotal = bRecs.reduce((s,r) => s + (parseFloat(r.Cost) || 0), 0) + curCost;
-      // Running Total: ALL records ever + pending entry cost
+      // Running total cost = ALL cost ever + pending
       const rTotal = this.records.reduce((s,r) => s + (parseFloat(r.Cost) || 0), 0) + curCost;
 
-      const setEl = (id, val, isKwacha) => {
+      const setEl = (id, val, suffix) => {
         const el = document.getElementById(p + id);
-        if (!el) return;
-        el.textContent = isKwacha ? 'K ' + val.toFixed(2) : val.toFixed(1) + ' kg';
+        if (el) el.textContent = suffix === 'K'
+          ? 'K ' + val.toFixed(2)
+          : val.toFixed(1) + ' kg';
       };
-      setEl('BatchWeightDisplay', bWt,    false);
-      setEl('BatchTotalDisplay',  bTotal, true);
-      setEl('RunningDisplay',     rTotal, true);
+      setEl('BatchWeightDisplay',   bWt,    'kg');
+      setEl('RunningWeightDisplay', rwt,    'kg');
+      setEl('BatchTotalDisplay',    bTotal, 'K');
+      setEl('RunningDisplay',       rTotal, 'K');
     },
 
-    // ── add entry ─────────────────────────────────────────
+    // ── Add entry ─────────────────────────────────────────
     async addEntry() {
-      const errEl = document.getElementById(p+'EntryError');
+      const errEl = document.getElementById(p + 'EntryError');
       const showE = msg => { if(errEl){errEl.textContent=msg;errEl.style.display='block';} };
-      const date  = document.getElementById(p+'Date')?.value  || '';
-      const buyer = document.getElementById(p+'Buyer')?.value || '';
-      const qty   = parseFloat(document.getElementById(p+'Qty')?.value   || '0') || 0;
-      const price = parseFloat(document.getElementById(p+'Price')?.value || '0') || 0;
+      const date  = document.getElementById(p + 'Date')?.value  || '';
+      const buyer = document.getElementById(p + 'Buyer')?.value || '';
+      const qty   = parseFloat(document.getElementById(p + 'Qty')?.value   || '0') || 0;
+      const price = parseFloat(document.getElementById(p + 'Price')?.value || '0') || 0;
       const cost  = qty * price;
       if (!date)    { showE('Please select a date.'); return; }
       if (!buyer)   { showE('Please select a buyer.'); return; }
@@ -8828,42 +8873,55 @@ function _makeGrainHandler(p, hdrColor) {
       if (errEl) errEl.style.display = 'none';
       localStorage.setItem(this.prefKey, buyer);
 
-      // Compute cumulative fields from current records
-      const bRecs  = this.records.filter(r => r.BatchId === this.batchId);
-      const bWt    = bRecs.reduce((s,r)=>s+(parseFloat(r.Qty)||0), 0) + qty;
-      const bTotal = bRecs.reduce((s,r)=>s+(parseFloat(r.Cost)||0), 0) + cost;
-      const rTotal = this.records.reduce((s,r)=>s+(parseFloat(r.Cost)||0), 0) + cost;
+      // Compute cumulative fields from saved records
+      const bRecs        = this.records.filter(r => r.BatchId === this.batchId);
+      const batchWeight  = bRecs.reduce((s,r) => s+(parseFloat(r.Qty)||0),  0) + qty;
+      const runningWeight= this.records.reduce((s,r) => s+(parseFloat(r.Qty)||0),  0) + qty;
+      const batchTotal   = bRecs.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
+      const runningTotal = this.records.reduce((s,r) => s+(parseFloat(r.Cost)||0), 0) + cost;
 
-      const result = await apiPost({ action: p+'Add', data: {
-        Date:date, Buyer:buyer, Qty:qty, PricePerKg:price, Cost:cost,
-        BatchWeight:bWt, BatchTotal:bTotal, RunningTotal:rTotal,
-        BatchId:this.batchId, BatchDone:''
+      const result = await apiPost({ action: p + 'Add', data: {
+        Date: date, Buyer: buyer, Qty: qty, PricePerKg: price, Cost: cost,
+        BatchWeight: batchWeight, RunningWeight: runningWeight,
+        BatchTotal: batchTotal, RunningTotal: runningTotal,
+        BatchId: this.batchId, BatchDone: ''
       }});
       if (result?.success) {
         showToast('Entry saved ✅');
         ['Qty','Price'].forEach(f => { const el=document.getElementById(p+f); if(el) el.value=''; });
-        const cEl = document.getElementById(p+'CostDisplay'); if(cEl) cEl.textContent='—';
-        await this.load(); // reload recomputes everything including autofields
+        document.getElementById(p+'CostDisplay').textContent = '—';
+        await this.load();
       } else showE('Save failed: ' + (result?.error || 'unknown'));
     },
 
-    // ── delete entry ──────────────────────────────────────
-    // After delete: load() re-reads records and calls updateAutoFields()
-    // so all totals (batch weight, batch total, running total) recompute correctly
+    // ── Delete entry ──────────────────────────────────────
     async deleteEntry(grId) {
       if (!confirm('Delete this entry?')) return;
-      const r = await apiPost({ action: p+'Delete', id: grId });
-      if (r?.success) {
-        await this.load(); // full reload ensures autofields recalculate
-        showToast('Entry deleted');
-      } else showToast('Delete failed: ' + (r?.error || 'unknown'), true);
+      const r = await apiPost({ action: p + 'Delete', id: grId });
+      if (r?.success) { await this.load(); showToast('Entry deleted'); }
+      else showToast('Delete failed: ' + (r?.error || 'unknown'), true);
     },
 
-    // ── render table ──────────────────────────────────────
+    // ── Admin: recalculate all rows ────────────────────────
+    // Recomputes BatchWeight, RunningWeight, BatchTotal, RunningTotal
+    // for every row based on the actual data order.
+    // Useful when rows were saved with blank auto-fields or after manual edits.
+    async adminRecalc() {
+      if (!isAdminEnabled()) { showToast('Admin access required', true); return; }
+      if (!confirm('Recalculate all auto-fields (BatchWeight, RunningWeight, BatchTotal, RunningTotal) for every row? This updates the spreadsheet directly.')) return;
+      showToast('Recalculating…');
+      const r = await apiPost({ action: p + 'Recalc' });
+      if (r?.success) {
+        showToast('✅ Recalculated ' + (r.updated || 0) + ' rows');
+        await this.load();
+      } else showToast('Recalc failed: ' + (r?.error || 'unknown'), true);
+    },
+
+    // ── Render table ──────────────────────────────────────
     renderTable() {
-      const tbody = document.getElementById(p+'TableBody');
-      const table = document.getElementById(p+'Table');
-      const empty = document.getElementById(p+'Empty');
+      const tbody = document.getElementById(p + 'TableBody');
+      const table = document.getElementById(p + 'Table');
+      const empty = document.getElementById(p + 'Empty');
       if (!tbody) return;
       if (!this.records.length) {
         if (table) table.style.display = 'none';
@@ -8876,27 +8934,30 @@ function _makeGrainHandler(p, hdrColor) {
       const batches = [...new Set(this.records.map(r => r.BatchId))];
       const me      = this;
       tbody.innerHTML = this.records.map((rec, i) => {
-        const bIdx  = batches.indexOf(rec.BatchId);
-        const done  = rec.BatchDone === 'yes';
+        const bIdx   = batches.indexOf(rec.BatchId);
+        const done   = rec.BatchDone === 'yes';
         const isLast = !me.records[i+1] || me.records[i+1].BatchId !== rec.BatchId;
         const bg     = bIdx % 2 === 0 ? altBg : '#f0fdf4';
-        // Closed batch last row: bold with border on BOTH top and bottom
-        const topB   = done && isLast ? `border-top:2px solid ${hdrColor};`    : '';
-        const botB   = done && isLast ? `border-bottom:2px solid ${hdrColor};` : 'border-bottom:1px solid #e5e7eb;';
+        const topB   = done && isLast ? `border-top:2.5px solid ${hdrColor};`    : '';
+        const botB   = done && isLast ? `border-bottom:2.5px solid ${hdrColor};` : 'border-bottom:1px solid #e5e7eb;';
         const bold   = done && isLast ? 'font-weight:900;' : '';
         const badge  = done && isLast
           ? `<span style="font-size:9px;background:${hdrColor};color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>` : '';
         const delBtn = isAdminEnabled()
-          ? `<button onclick="(p==='maize'?maizeHandler:soyHandler).deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer">✕</button>` : '';
+          ? `<button onclick="(p==='maize'?maizeHandler:soyHandler).deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>` : '';
+        const fmt  = (v, dec) => parseFloat(v||0).toFixed(dec);
+        const fmtK = v => 'K ' + fmt(v, 2);
+        const fmtW = v => fmt(v, 1) + ' kg';
         return `<tr style="background:${bg};${topB}${botB}${bold}">
           <td style="padding:7px 10px;white-space:nowrap">${rec.Date||''}${badge}</td>
           <td style="padding:7px 10px">${rec.Buyer||''}</td>
-          <td style="padding:7px 10px;text-align:right">${parseFloat(rec.Qty||0).toFixed(1)}</td>
-          <td style="padding:7px 10px;text-align:right">${parseFloat(rec.PricePerKg||0).toFixed(2)}</td>
-          <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.Cost||0).toFixed(2)}</td>
-          <td style="padding:7px 10px;text-align:right">${parseFloat(rec.BatchWeight||0).toFixed(1)} kg</td>
-          <td style="padding:7px 10px;text-align:right;font-weight:700">K ${parseFloat(rec.BatchTotal||0).toFixed(2)}</td>
-          <td style="padding:7px 10px;text-align:right;font-weight:800;color:#c0392b">K ${parseFloat(rec.RunningTotal||0).toFixed(2)}</td>
+          <td style="padding:7px 10px;text-align:right">${fmtW(rec.Qty)}</td>
+          <td style="padding:7px 10px;text-align:right">${fmtK(rec.PricePerKg)}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:700">${fmtK(rec.Cost)}</td>
+          <td style="padding:7px 10px;text-align:right">${fmtW(rec.BatchWeight)}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:700;color:#1a3a8a">${fmtW(rec.RunningWeight)}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:700">${fmtK(rec.BatchTotal)}</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:800;color:#c0392b">${fmtK(rec.RunningTotal)}</td>
           <td style="padding:7px 4px;text-align:center">${delBtn}</td>
         </tr>`;
       }).join('');
@@ -8904,7 +8965,7 @@ function _makeGrainHandler(p, hdrColor) {
   };
 }
 
-// Independent instances — no shared state
+// Independent instances
 const maizeHandler = _makeGrainHandler('maize', '#78350f');
 const soyHandler   = _makeGrainHandler('soy',   '#4d7c0f');
 

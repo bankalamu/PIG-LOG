@@ -15,24 +15,15 @@ const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage"
 // Key fields that define a unique pig record
 const KEY_FIELDS = ["PIG ID", "Boar", "SOW"];
 
-// ── Execution-scoped caches (reset on every new request) ──────
-// Eliminates redundant getActiveSpreadsheet() and header reads.
-var _SC = {};  // sheet cache:  name  → Sheet object
-var _CC = {};  // column cache: name  → { header: 1-based-col-num }
-
+// ── Execution-scoped caches (reset per request) ──────────────
+var _SC = {};  // sheet cache
+var _CC = {};  // colMap cache
 function _colMap(sheet) {
-  const nm = sheet.getName();
-  if (!_CC[nm]) {
-    const lc = sheet.getLastColumn();
-    const hh = lc > 0 ? sheet.getRange(1,1,1,lc).getValues()[0] : [];
-    const m  = {};
-    hh.forEach((h,i) => { if (h) m[String(h).trim()] = i + 1; });
-    _CC[nm] = m;
-  }
+  var nm=sheet.getName();
+  if(!_CC[nm]){var lc=sheet.getLastColumn(),hh=lc>0?sheet.getRange(1,1,1,lc).getValues()[0]:[],m={};hh.forEach(function(h,i){if(h)m[String(h).trim()]=i+1;});_CC[nm]=m;}
   return _CC[nm];
 }
-// Invalidate colMap when headers change (e.g. after adding missing columns)
-function _invalidateColMap(sheet) { delete _CC[sheet.getName()]; }
+function _invalidateColMap(sheet){delete _CC[sheet.getName()];}
 
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -42,7 +33,7 @@ function _invalidateColMap(sheet) { delete _CC[sheet.getName()]; }
  * @returns {Sheet} The PigLog Google Sheet object.
  */
 function getSheet() {
-  if (_SC["PigLog"]) return _SC["PigLog"];
+  if(_SC["PigLog"]) return _SC["PigLog"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
@@ -66,7 +57,7 @@ function getSheet() {
       }
     });
   }
-  _SC["PigLog"] = sheet;
+  _SC["PigLog"]=sheet;
   return sheet;
 }
 
@@ -238,9 +229,11 @@ function handlePostPayload(payload) {
     if (action === "maizeAdd")        return respond(maizeAdd(payload.data));
     if (action === "maizeCloseBatch") return respond(maizeCloseBatch(payload.batchId));
     if (action === "maizeDelete")     return respond(maizeDelete(payload.id));
+    if (action === "maizeRecalc")     return respond(maizeRecalc());
     if (action === "soyAdd")          return respond(soyAdd(payload.data));
     if (action === "soyCloseBatch")   return respond(soyCloseBatch(payload.batchId));
     if (action === "soyDelete")       return respond(soyDelete(payload.id));
+    if (action === "soyRecalc")       return respond(soyRecalc());
     if (action === "migrateBoarSow")   return respond(migrateBoarSowToDbId());
     if (action === "migrateSowIds")    return respond(migrateSowLitterSowId());
     if (action === "runAIAnalysis")    return respond(runNightlyAIAnalysis(payload.targetDate || null, true));
@@ -301,18 +294,10 @@ function getAllRecords() {
  * @returns {{ success: boolean, record?: Object, error?: string }}
  *   record — full pig object if found; error — message if not found.
  */
-/**
- * Batch startup: records + settings in one round trip.
- */
+
 function getAllInit() {
-  const recs  = getAllRecords();
-  const mp    = getSetting('maxPen');
-  const ai    = getSetting('AI_ANALYSIS_ENABLED');
-  return {
-    success:  recs.success,
-    records:  recs.records || [],
-    settings: { maxPen: mp.value||'50', AI_ANALYSIS_ENABLED: ai.value||'false' }
-  };
+  var r=getAllRecords(),mp=getSetting('maxPen'),ai=getSetting('AI_ANALYSIS_ENABLED');
+  return {success:r.success,records:r.records||[],settings:{maxPen:mp.value||'50',AI_ANALYSIS_ENABLED:ai.value||'false'}};
 }
 
 function getByPigId(pigId) {
@@ -533,7 +518,7 @@ const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes"
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The DailyChecklist sheet.
  */
 function getClSheet() {
-  if (_SC["DailyChecklist"]) return _SC["DailyChecklist"];
+  if(_SC["DailyChecklist"]) return _SC["DailyChecklist"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(CL_SHEET);
   if (!sheet) {
@@ -558,7 +543,7 @@ function getClSheet() {
       });
     }
   }
-  _SC["DailyChecklist"] = sheet;
+  _SC["DailyChecklist"]=sheet;
   return sheet;
 }
 
@@ -1088,7 +1073,7 @@ const SL_TIME_COLS = [
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The SowLitter sheet.
  */
 function getSlSheet() {
-  if (_SC["SowLitter"]) return _SC["SowLitter"];
+  if(_SC["SowLitter"]) return _SC["SowLitter"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(SL_SHEET);
   if (!sheet) {
@@ -1122,7 +1107,7 @@ function getSlSheet() {
       }
     });
   }
-  _SC["SowLitter"] = sheet;
+  _SC["SowLitter"]=sheet;
   return sheet;
 }
 
@@ -1351,7 +1336,7 @@ const WK_HEADERS_GS = ["WK_ID","Date","WeekNum","WeekYear","WeekKey","Pen","Chec
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WeeklyChecklist sheet.
  */
 function getWkSheet() {
-  if (_SC["WeeklyChecklist"]) return _SC["WeeklyChecklist"];
+  if(_SC["WeeklyChecklist"]) return _SC["WeeklyChecklist"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(WK_SHEET);
   if (!sheet) {
@@ -1360,7 +1345,7 @@ function getWkSheet() {
     sheet.getRange(1,1,1,WK_HEADERS_GS.length).setFontWeight("bold").setBackground("#1a3a8a").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
   }
-  _SC["WeeklyChecklist"] = sheet;
+  _SC["WeeklyChecklist"]=sheet;
   return sheet;
 }
 
@@ -1519,7 +1504,7 @@ function _toMonthKey(val) {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The MonthlyChecklist sheet.
  */
 function getMoSheet() {
-  if (_SC["MonthlyChecklist"]) return _SC["MonthlyChecklist"];
+  if(_SC["MonthlyChecklist"]) return _SC["MonthlyChecklist"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(MO_SHEET);
   if (!sheet) {
@@ -1528,7 +1513,7 @@ function getMoSheet() {
     sheet.getRange(1,1,1,MO_HEADERS_GS.length).setFontWeight("bold").setBackground("#4a148c").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
   }
-  _SC["MonthlyChecklist"] = sheet;
+  _SC["MonthlyChecklist"]=sheet;
   return sheet;
 }
 
@@ -1716,7 +1701,7 @@ function moDeduplicateAll() {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The Settings sheet.
  */
 function getSettingsSheet() {
-  if (_SC["Settings"]) return _SC["Settings"];
+  if(_SC["Settings"]) return _SC["Settings"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName("Settings");
   if (!sheet) {
@@ -1728,7 +1713,7 @@ function getSettingsSheet() {
     sheet.appendRow(["weaningWeeks", "5", "system", new Date()]);
     sheet.appendRow(["maxPen", "50", "system", new Date()]);
   }
-  _SC["Settings"] = sheet;
+  _SC["Settings"]=sheet;
   return sheet;
 }
 
@@ -2735,7 +2720,7 @@ const WA_HEADERS = ['ACTION_ID','Date','Worker','Category','Action','Priority','
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WorkerActions sheet.
  */
 function getWaSheet() {
-  if (_SC["WorkerActions"]) return _SC["WorkerActions"];
+  if(_SC["WorkerActions"]) return _SC["WorkerActions"];
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(WA_SHEET);
   if (!sheet) {
@@ -2748,7 +2733,7 @@ function getWaSheet() {
     sheet.setColumnWidth(5, 250);
     sheet.setColumnWidth(9, 200);
   }
-  _SC["WorkerActions"] = sheet;
+  _SC["WorkerActions"]=sheet;
   return sheet;
 }
 
@@ -3088,37 +3073,45 @@ function _runAISafe(targetDate) {
 
 // ═══════════════════════════════════════════════════════════════
 //  MAIZE LOG  (MaizeLog) + SOY BEAN LOG (SoyBeanLog)  v4.0
+//  New column: RunningWeight — cumulative kg bought all time
+//  Admin function: *Recalc() — recomputes all auto-fields in-place
 // ═══════════════════════════════════════════════════════════════
 
 const MAIZE_SHEET = 'MaizeLog';
 const SOY_SHEET   = 'SoyBeanLog';
-const _GR_HDR     = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
-                     'BatchWeight','BatchTotal','RunningTotal','BatchId','BatchDone'];
+// Header order — RunningWeight added after BatchWeight
+const _GR_HDR = [
+  'GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
+  'BatchWeight','RunningWeight','BatchTotal','RunningTotal',
+  'BatchId','BatchDone'
+];
 
 function getMaizeSheet() {
   if (_SC[MAIZE_SHEET]) return _SC[MAIZE_SHEET];
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  var s = ss.getSheetByName(MAIZE_SHEET);
-  if (!s) { s=ss.insertSheet(MAIZE_SHEET); s.appendRow(_GR_HDR); s.getRange(1,1,1,_GR_HDR.length).setFontWeight('bold').setBackground('#78350f').setFontColor('#fff'); s.setFrozenRows(1); }
-  return (_SC[MAIZE_SHEET]=s);
+  var ss=SpreadsheetApp.getActiveSpreadsheet(), s=ss.getSheetByName(MAIZE_SHEET);
+  if (!s){s=ss.insertSheet(MAIZE_SHEET);s.appendRow(_GR_HDR);s.getRange(1,1,1,_GR_HDR.length).setFontWeight('bold').setBackground('#78350f').setFontColor('#fff');s.setFrozenRows(1);}
+  return(_SC[MAIZE_SHEET]=s);
 }
 function getSoySheet() {
   if (_SC[SOY_SHEET]) return _SC[SOY_SHEET];
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  var s = ss.getSheetByName(SOY_SHEET);
-  if (!s) { s=ss.insertSheet(SOY_SHEET); s.appendRow(_GR_HDR); s.getRange(1,1,1,_GR_HDR.length).setFontWeight('bold').setBackground('#4d7c0f').setFontColor('#fff'); s.setFrozenRows(1); }
-  return (_SC[SOY_SHEET]=s);
+  var ss=SpreadsheetApp.getActiveSpreadsheet(), s=ss.getSheetByName(SOY_SHEET);
+  if (!s){s=ss.insertSheet(SOY_SHEET);s.appendRow(_GR_HDR);s.getRange(1,1,1,_GR_HDR.length).setFontWeight('bold').setBackground('#4d7c0f').setFontColor('#fff');s.setFrozenRows(1);}
+  return(_SC[SOY_SHEET]=s);
 }
 
 function maizeGetAll()          { return _grGetAll(getMaizeSheet()); }
-function maizeAdd(d)            { return _grAdd(getMaizeSheet(),d); }
-function maizeCloseBatch(bid)   { return _grClose(getMaizeSheet(),bid); }
-function maizeDelete(id)        { return _grDel(getMaizeSheet(),id); }
-function soyGetAll()            { return _grGetAll(getSoySheet()); }
-function soyAdd(d)              { return _grAdd(getSoySheet(),d); }
-function soyCloseBatch(bid)     { return _grClose(getSoySheet(),bid); }
-function soyDelete(id)          { return _grDel(getSoySheet(),id); }
+function maizeAdd(d)            { return _grAdd(getMaizeSheet(), d); }
+function maizeCloseBatch(bid)   { return _grClose(getMaizeSheet(), bid); }
+function maizeDelete(id)        { return _grDel(getMaizeSheet(), id); }
+function maizeRecalc()          { return _grRecalc(getMaizeSheet()); }
 
+function soyGetAll()            { return _grGetAll(getSoySheet()); }
+function soyAdd(d)              { return _grAdd(getSoySheet(), d); }
+function soyCloseBatch(bid)     { return _grClose(getSoySheet(), bid); }
+function soyDelete(id)          { return _grDel(getSoySheet(), id); }
+function soyRecalc()            { return _grRecalc(getSoySheet()); }
+
+// ── Read all records ──────────────────────────────────────────
 function _grGetAll(sheet) {
   var data=sheet.getDataRange().getValues();
   if (data.length<2) return {success:true,records:[]};
@@ -3126,67 +3119,63 @@ function _grGetAll(sheet) {
   var tz=Session.getScriptTimeZone();
   return {success:true,records:data.slice(1).filter(function(r){return r[0]!=='';}).map(function(row){
     var rec={};
-    hdrs.forEach(function(h,i){var v=row[i];rec[h]=v instanceof Date?Utilities.formatDate(v,tz,'yyyy-MM-dd'):String(v===null||v===undefined?'':v);});
+    hdrs.forEach(function(h,i){
+      var v=row[i];
+      rec[h]=v instanceof Date?Utilities.formatDate(v,tz,'yyyy-MM-dd'):String(v===null||v===undefined?'':v);
+    });
     return rec;
   })};
 }
 
+// ── Add one entry ─────────────────────────────────────────────
 function _grAdd(sheet, data) {
-  // Ensure all expected columns exist in the sheet header row
-  var lc = sheet.getLastColumn();
-  var hdrs = lc > 0 ? sheet.getRange(1,1,1,lc).getValues()[0].map(function(h){return String(h).trim();}) : [];
-  var headersChanged = false;
-  _GR_HDR.forEach(function(h) {
-    if (h && !hdrs.includes(h)) {
-      var nc = sheet.getLastColumn() + 1;
-      sheet.getRange(1, nc).setValue(h).setFontWeight('bold');
-      hdrs.push(h);
-      headersChanged = true;
+  // Ensure all columns exist (adds missing ones for existing sheets)
+  var lc=sheet.getLastColumn();
+  var hdrs=lc>0?sheet.getRange(1,1,1,lc).getValues()[0].map(function(h){return String(h).trim();}):[];
+  var changed=false;
+  _GR_HDR.forEach(function(h){
+    if(h&&!hdrs.includes(h)){
+      sheet.getRange(1,sheet.getLastColumn()+1).setValue(h).setFontWeight('bold');
+      hdrs.push(h);changed=true;
     }
   });
-  if (headersChanged) delete _CC[sheet.getName()]; // invalidate stale colMap
-
-  // Re-read colMap after any header changes
-  var cm = _colMap(sheet);
-  var totalCols = sheet.getLastColumn();
+  if(changed) _invalidateColMap(sheet);
 
   // Next ID
-  var lr  = sheet.getLastRow();
-  var ids = lr > 1 ? sheet.getRange(2,1,lr-1,1).getValues().flat() : [];
-  var nid = ids.reduce(function(m,v){return Math.max(m, parseInt(v||0,10)||0);}, 0) + 1;
+  var lr=sheet.getLastRow();
+  var ids=lr>1?sheet.getRange(2,1,lr-1,1).getValues().map(function(r){return r[0];}):[];
+  var nid=ids.reduce(function(m,v){return Math.max(m,parseInt(v||0,10)||0);},0)+1;
 
-  // Build a full row array (one entry per column) and write in a single call
-  var row = new Array(totalCols).fill('');
-  var writeData = {
+  // Build full row array keyed by column position
+  var cm=_colMap(sheet);
+  var totalCols=sheet.getLastColumn();
+  var row=new Array(totalCols).fill('');
+  var wd={
     GR_ID:        nid,
-    Date:         data.Date         || '',
-    Buyer:        data.Buyer        || '',
-    Qty:          Number(data.Qty)          || 0,
-    PricePerKg:   Number(data.PricePerKg)   || 0,
-    Cost:         Number(data.Cost)         || 0,
-    BatchWeight:  Number(data.BatchWeight)  || 0,
-    BatchTotal:   Number(data.BatchTotal)   || 0,
-    RunningTotal: Number(data.RunningTotal) || 0,
-    BatchId:      data.BatchId      || '',
+    Date:         data.Date         ||'',
+    Buyer:        data.Buyer        ||'',
+    Qty:          Number(data.Qty)          ||0,
+    PricePerKg:   Number(data.PricePerKg)   ||0,
+    Cost:         Number(data.Cost)         ||0,
+    BatchWeight:  Number(data.BatchWeight)  ||0,
+    RunningWeight:Number(data.RunningWeight)||0,
+    BatchTotal:   Number(data.BatchTotal)   ||0,
+    RunningTotal: Number(data.RunningTotal) ||0,
+    BatchId:      data.BatchId      ||'',
     BatchDone:    ''
   };
-  Object.keys(writeData).forEach(function(h) {
-    var col = cm[h];
-    if (col && col <= totalCols) row[col - 1] = writeData[h];
-  });
+  Object.keys(wd).forEach(function(h){var c=cm[h];if(c&&c<=totalCols)row[c-1]=wd[h];});
 
-  // Single setValues call — much faster and atomic
-  var newRow = lr + 1;
-  sheet.getRange(newRow, 1, 1, totalCols).setValues([row]);
-
-  return { success: true, gr_id: nid };
+  // Single atomic write — much faster than per-cell setValue
+  sheet.getRange(lr+1,1,1,totalCols).setValues([row]);
+  return {success:true,gr_id:nid};
 }
 
+// ── Close batch ───────────────────────────────────────────────
 function _grClose(sheet, batchId) {
   var lr=sheet.getLastRow(); if(lr<2) return {success:true};
-  var lc=sheet.getLastColumn();
-  var cm=_colMap(sheet);
-  var biC=cm['BatchId'],bdC=cm['BatchDone'];
+  var lc=sheet.getLastColumn(), cm=_colMap(sheet);
+  var biC=cm['BatchId'], bdC=cm['BatchDone'];
   if(!biC||!bdC) return {success:false,error:'Missing columns'};
   var rows=sheet.getRange(2,1,lr-1,lc).getValues();
   var last=-1;
@@ -3199,6 +3188,7 @@ function _grClose(sheet, batchId) {
   return {success:true};
 }
 
+// ── Delete one entry ──────────────────────────────────────────
 function _grDel(sheet, id) {
   var lr=sheet.getLastRow(); if(lr<2) return {success:false,error:'No records'};
   var ids=sheet.getRange(2,1,lr-1,1).getValues();
@@ -3206,4 +3196,43 @@ function _grDel(sheet, id) {
     if(String(ids[i][0]).trim()===String(id).trim()){sheet.deleteRow(i+2);return {success:true};}
   }
   return {success:false,error:'Not found'};
+}
+
+// ── Admin: recalculate all auto-fields ────────────────────────
+// Walks every row in order and recomputes:
+//   BatchWeight  = sum of Qty in same batch up to this row
+//   RunningWeight= cumulative Qty from row 1 to this row
+//   BatchTotal   = sum of Cost in same batch up to this row
+//   RunningTotal = cumulative Cost from row 1 to this row
+// Writes all corrected values back in one batch setValues call.
+function _grRecalc(sheet) {
+  var lr=sheet.getLastRow(); if(lr<2) return {success:true,updated:0};
+  var lc=sheet.getLastColumn(), cm=_colMap(sheet);
+  var data=sheet.getRange(2,1,lr-1,lc).getValues();
+  var qC=cm['Qty'],cC=cm['Cost'],biC=cm['BatchId'],
+      bwC=cm['BatchWeight'],rwC=cm['RunningWeight'],
+      btC=cm['BatchTotal'],rtC=cm['RunningTotal'];
+  if(!qC||!cC||!biC) return {success:false,error:'Missing required columns'};
+
+  var batchTotals={}, batchWeights={};
+  var runQty=0, runCost=0;
+
+  data.forEach(function(row){
+    var bid=String(row[biC-1]||'').trim();
+    var qty =Number(row[qC-1])||0;
+    var cost=Number(row[cC-1])||0;
+    if(!batchWeights[bid]) batchWeights[bid]=0;
+    if(!batchTotals[bid])  batchTotals[bid]=0;
+    batchWeights[bid]+=qty;
+    batchTotals[bid] +=cost;
+    runQty +=qty;
+    runCost+=cost;
+    if(bwC) row[bwC-1]=batchWeights[bid];
+    if(rwC) row[rwC-1]=runQty;
+    if(btC) row[btC-1]=batchTotals[bid];
+    if(rtC) row[rtC-1]=runCost;
+  });
+
+  sheet.getRange(2,1,data.length,lc).setValues(data);
+  return {success:true, updated:data.length};
 }
