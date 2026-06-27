@@ -2981,7 +2981,14 @@ async function testConnection() {
       return;
     }
 
-    if (resultEl) resultEl.innerHTML = "✅ Ping OK — now checking sheet…";
+    // Show backend version immediately
+    const codeVer = pingData.codeVersion || '(old — no version)';
+    const hasGrain = pingData.codeVersion && parseFloat(pingData.codeVersion) >= 4.1;
+    const bv = document.getElementById('backendVersionNum');
+    if (bv) bv.textContent = 'v' + codeVer;
+
+    if (resultEl) resultEl.innerHTML = `<span style="color:#2d6a2d">✅ Ping OK</span> — Backend <strong>v${codeVer}</strong> ${hasGrain ? '✅ grain functions available' : '⚠️ <span style="color:#c0392b">OLD VERSION — redeploy Code.gs</span>'}<br>`;
+    if (!hasGrain) return; // stop here if old version — no point testing sheets
 
     // Step 2: clDebug
     const dbgRes  = await fetch(testUrl + "?action=clDebug");
@@ -3052,6 +3059,23 @@ function showPage(id) {
 }
 
 function goHome() { showPage("pageHome"); }
+
+function testBackendConnection() {
+  if (!SCRIPT_URL) { showToast('No script URL set', true); return; }
+  const testUrl = SCRIPT_URL + '?action=ping';
+  showToast('Testing connection…');
+  fetch(testUrl)
+    .then(r => r.json())
+    .then(d => {
+      const msg = d.codeVersion
+        ? '✅ Backend v' + d.codeVersion + ' — connected!'
+        : '⚠️ Old backend (no version) — please redeploy Code.gs';
+      const hasRecalc = '✓ Has maizeRecalc: check console';
+      showToast(msg, !d.codeVersion);
+      console.log('Backend ping:', JSON.stringify(d));
+    })
+    .catch(e => showToast('❌ Connection failed: ' + e.message, true));
+}
 
 function forceReload() {
   if (confirm("Force reload the app to get the latest version?")) {
