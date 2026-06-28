@@ -3225,13 +3225,20 @@ function _grDel(sheet, id) {
 }
 
 function _grRecalc(sheet) {
+  // Ensure all columns exist first (adds RunningWeight if missing from older sheets)
+  _grEnsureCols(sheet);
+
   var lr = sheet.getLastRow(); if (lr < 2) return {success:true, updated:0};
   var lc = sheet.getLastColumn();
+  // Re-read colMap AFTER ensuring cols (so new columns are included)
   var cm = _grColMap(sheet);
   var qC=cm['Qty'], cC=cm['Cost'], biC=cm['BatchId'];
   var bwC=cm['BatchWeight'], rwC=cm['RunningWeight'];
   var btC=cm['BatchTotal'],  rtC=cm['RunningTotal'];
-  if (!qC||!cC||!biC) return {success:false, error:'Missing columns'};
+  if (!qC||!cC||!biC) return {success:false, error:'Missing required columns: Qty, Cost, BatchId'};
+
+  // Read all data rows
+  lc = sheet.getLastColumn(); // re-read in case columns were added
   var data = sheet.getRange(2,1,lr-1,lc).getValues();
   var bWt={}, bTotal={}, runWt=0, runCost=0;
   data.forEach(function(row){
