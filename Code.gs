@@ -1,7 +1,9 @@
 // ============================================================
-//  PIG LOG — Google Apps Script Backend
+//  PIG LOG — Google Apps Script Backend  v4.1
 //  Paste this entire file into your Apps Script project
 // ============================================================
+// VERSION CHECK: if ping returns codeVersion "4.1" this file is deployed
+const CODE_VERSION = "4.1";
 
 // Required OAuth scopes (Apps Script reads these comments to request permissions):
 // @ts-nocheck
@@ -10,7 +12,15 @@
 // drive: https://www.googleapis.com/auth/drive
 
 const SHEET_NAME = "PigLog";
-const CODE_VERSION = "4.1";
+
+// SPREADSHEET_ID: set this if running as a standalone script (not container-bound)
+// Leave blank if this script was created from inside the Google Sheet
+const SPREADSHEET_ID = "1Hzq-FNTbnppp3IS2LW5y9amdCit259yFyUWkM-4e_GY";
+
+function _getSpreadsheet() {
+  if (SPREADSHEET_ID) return SpreadsheetApp.openById(SPREADSHEET_ID);
+  return _getSpreadsheet();
+}
 const HEADERS = ["DB_ID", "PIG ID", "Boar", "SOW", "DOB", "SEX", "Type", "Stage", "Status", "ServiceDate", "Sire", "Weight", "Dewormed", "Pen", "Notes", "Available"];
 
 // Key fields that define a unique pig record
@@ -23,7 +33,7 @@ const KEY_FIELDS = ["PIG ID", "Boar", "SOW"];
  * @returns {Sheet} The PigLog Google Sheet object.
  */
 function getSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _getSpreadsheet();
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
@@ -132,8 +142,8 @@ function doGet(e) {
   try {
     if (action === "getAll")       return respond(getAllRecords());
     if (action === "getAllInit")    return respond(getAllInit());
-    if (action === "ping")         return respond({ success: true, message: "pong", time: new Date().toISOString(), codeVersion: CODE_VERSION });
-    if (action === "debug")        return respond({ token: PropertiesService.getScriptProperties().getProperty('APP_TOKEN'), aiKey: !!PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY'), codeVersion: "3.1" });
+    if (action === "ping")         return respond({ success: true, message: "PIGLOG_V41_PONG", time: new Date().toISOString(), codeVersion: CODE_VERSION || "4.1", newCode: true });
+    if (action === "debug")        return respond({ token: PropertiesService.getScriptProperties().getProperty('APP_TOKEN'), aiKey: !!PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY'), codeVersion: CODE_VERSION || "4.1" });
     if (action === "clCount")      return respond(clCount());
     if (action === "clGetRecent")  return respond(clGetRecent(parseInt(e.parameter.days||'30')));
     if (action === "clDebug")      return respond(clDebug());
@@ -506,7 +516,7 @@ const CL_HEADERS = ["CL_ID","Date","Pen","CheckedBy","Status","Concerns","Notes"
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The DailyChecklist sheet.
  */
 function getClSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _getSpreadsheet();
   let sheet = ss.getSheetByName(CL_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(CL_SHEET);
@@ -673,7 +683,7 @@ function rowToClRecord(row, sheetHeaders, tz) {
 function clDebug() {
   try {
     const t0    = new Date().getTime();
-    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const ss    = _getSpreadsheet();
     const t1    = new Date().getTime();
     const sheet = ss.getSheetByName('DailyChecklist');
     const t2    = new Date().getTime();
@@ -1067,7 +1077,7 @@ const SL_TIME_COLS = [
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The SowLitter sheet.
  */
 function getSlSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _getSpreadsheet();
   let sheet = ss.getSheetByName(SL_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(SL_SHEET);
@@ -1336,7 +1346,7 @@ const WK_HEADERS_GS = ["WK_ID","Date","WeekNum","WeekYear","WeekKey","Pen","Chec
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WeeklyChecklist sheet.
  */
 function getWkSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _getSpreadsheet();
   let sheet = ss.getSheetByName(WK_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(WK_SHEET);
@@ -1510,7 +1520,7 @@ function _toMonthKey(val) {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The MonthlyChecklist sheet.
  */
 function getMoSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _getSpreadsheet();
   let sheet = ss.getSheetByName(MO_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(MO_SHEET);
@@ -1705,7 +1715,7 @@ function moDeduplicateAll() {
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The Settings sheet.
  */
 function getSettingsSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _getSpreadsheet();
   let sheet = ss.getSheetByName("Settings");
   if (!sheet) {
     sheet = ss.insertSheet("Settings");
@@ -1787,7 +1797,7 @@ function saveSetting(key, value) {
  * Run this after adding new sheet columns (e.g. SlPhoto_*, SlNotes_*).
  */
 function migrateAllSheetHeaders() {
-  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  const ss  = _getSpreadsheet();
   const log = [];
 
   const sheets = [
@@ -1947,7 +1957,7 @@ function migrateAllSheetHeaders() {
  * Useful for debugging "Unknown column" errors or verifying a migration ran correctly.
  */
 function diagnoseSheetHeaders() {
-  const ss  = SpreadsheetApp.getActiveSpreadsheet();
+  const ss  = _getSpreadsheet();
   const log = [];
 
   const sheets = [
@@ -2102,7 +2112,7 @@ function migrateBoarSowToDbId() {
  *   notFound — PIG ID strings that had no matching record in PigLog.
  */
 function migrateSowLitterSowId() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _getSpreadsheet();
 
   // Build PIG ID → DB_ID lookup from PigLog
   const pigSheet = getSheet();
@@ -2722,7 +2732,7 @@ const WA_HEADERS = ['ACTION_ID','Date','Worker','Category','Action','Priority','
  * @returns {GoogleAppsScript.Spreadsheet.Sheet} The WorkerActions sheet.
  */
 function getWaSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = _getSpreadsheet();
   let sheet = ss.getSheetByName(WA_SHEET);
   if (!sheet) {
     sheet = ss.insertSheet(WA_SHEET);
@@ -3088,7 +3098,7 @@ const _GR_HDR = ['GR_ID','Date','Buyer','Qty','PricePerKg','Cost',
                  'BatchId','BatchDone'];
 
 function getMaizeSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = _getSpreadsheet();
   var s  = ss.getSheetByName(MAIZE_SHEET);
   if (!s) {
     s = ss.insertSheet(MAIZE_SHEET);
@@ -3100,7 +3110,7 @@ function getMaizeSheet() {
 }
 
 function getSoySheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = _getSpreadsheet();
   var s  = ss.getSheetByName(SOY_SHEET);
   if (!s) {
     s = ss.insertSheet(SOY_SHEET);
