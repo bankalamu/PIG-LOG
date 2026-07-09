@@ -8999,7 +8999,7 @@ function _makeGrainHandler(p, hdrColor) {
         const badge  = done && isLast
           ? `<span style="font-size:9px;background:${hdrColor};color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>` : '';
         const delBtn = isAdminEnabled()
-          ? `<button onclick="window['${p}Handler'].deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>` : '';
+          ? `<button onclick="${p}Delete('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>` : '';
         const fmt  = (v, dec) => parseFloat(v||0).toFixed(dec);
         const fmtK = v => 'K ' + fmt(v, 2);
         const fmtW = v => fmt(v, 1) + ' kg';
@@ -9023,6 +9023,12 @@ function _makeGrainHandler(p, hdrColor) {
 // Independent instances
 const maizeHandler = _makeGrainHandler('maize', '#78350f');
 const soyHandler   = _makeGrainHandler('soy',   '#4d7c0f');
+window.maizeHandler = maizeHandler;
+window.soyHandler   = soyHandler;
+
+// Plain global functions for inline onclick (most reliable approach)
+function maizeDelete(id) { maizeHandler.deleteEntry(id); }
+function soyDelete(id)   { soyHandler.deleteEntry(id); }
 
 </script>
 </body>
