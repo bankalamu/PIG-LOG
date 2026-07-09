@@ -3110,13 +3110,14 @@ async function apiGet(params) {
 async function apiPost(body) {
   if (!SCRIPT_URL) { showToast("⚙️ Please set your Apps Script URL first", true); return null; }
   try {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 60000);
-    const res  = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body:   JSON.stringify(body),
-      signal: ctrl.signal
-    });
+    // Use GET + base64 payload to avoid CORS issues with true POST from GitHub Pages
+    // The backend's doGet handler decodes payload= and routes to handlePostPayload
+    const json    = JSON.stringify(body);
+    const encoded = btoa(encodeURIComponent(json));
+    const url     = SCRIPT_URL + '?payload=' + encoded;
+    const ctrl    = new AbortController();
+    const tid     = setTimeout(() => ctrl.abort(), 60000);
+    const res     = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
     return res.json();
   } catch(e) {
@@ -8951,7 +8952,7 @@ function _makeGrainHandler(p, hdrColor) {
     // ── Delete entry ──────────────────────────────────────
     async deleteEntry(grId) {
       if (!confirm('Delete this entry?')) return;
-      const r = await apiGet({ action: p + 'Delete', id: grId });
+      const r = await apiPost({ action: p + 'Delete', id: grId });
       if (r?.success) { await this.load(); showToast('Entry deleted'); }
       else showToast('Delete failed: ' + (r?.error || 'unknown'), true);
     },
