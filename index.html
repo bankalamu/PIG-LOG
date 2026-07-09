@@ -8951,7 +8951,7 @@ function _makeGrainHandler(p, hdrColor) {
     // ── Delete entry ──────────────────────────────────────
     async deleteEntry(grId) {
       if (!confirm('Delete this entry?')) return;
-      const r = await apiPost({ action: p + 'Delete', id: grId });
+      const r = await apiGet({ action: p + 'Delete', id: grId });
       if (r?.success) { await this.load(); showToast('Entry deleted'); }
       else showToast('Delete failed: ' + (r?.error || 'unknown'), true);
     },

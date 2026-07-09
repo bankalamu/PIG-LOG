@@ -162,6 +162,8 @@ function doGet(e) {
     if (action === "soyGetAll")   return respond(soyGetAll());
     if (action === "maizeRecalc") return respond(maizeRecalc());
     if (action === "soyRecalc")   return respond(soyRecalc());
+    if (action === "maizeDelete") return respond(maizeDelete(e.parameter.id));
+    if (action === "soyDelete")   return respond(soyDelete(e.parameter.id));
     return respond({ error: "Unknown action" });
   } catch (err) {
     return respond({ error: err.message });
