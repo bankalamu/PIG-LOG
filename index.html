@@ -3133,6 +3133,7 @@ async function loadRecords() {
     let data = await apiGet({ action: "getAllInit" });
     if (!data || !data.success) data = await apiGet({ action: "getAll" });
     if (data && data.success) {
+      hideLoadError();
       allRecords = data.records || [];
       if (data.settings) {
         const mp = parseInt(data.settings.maxPen, 10) || 50;
@@ -3145,14 +3146,37 @@ async function loadRecords() {
       updateCounts(); prepSearchPage(); populatePigDropdowns();
       updateRecordIssuesBanner();
       if (currentPage === "pageList") renderList();
-      // Show backend version in console for deployment verification
       if (data.codeVersion) {
         console.log('✓ Backend Code.gs version:', data.codeVersion);
         const bv = document.getElementById('backendVersionNum');
         if (bv) bv.textContent = 'v' + data.codeVersion;
       }
+    } else {
+      showLoadError(data?.error || 'Server returned no data');
     }
-  } catch (e) { console.error('loadRecords:', e); }
+  } catch (e) {
+    console.error('loadRecords:', e);
+    showLoadError(e.message || 'Network error');
+  }
+}
+
+function showLoadError(msg) {
+  let banner = document.getElementById('loadErrorBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'loadErrorBanner';
+    banner.style.cssText = 'background:#fde8e8;border:2px solid #c0392b;border-radius:10px;padding:12px 16px;margin:10px 14px;font-size:12px;color:#c0392b;font-weight:700';
+    const app = document.getElementById('app');
+    if (app) app.insertBefore(banner, app.firstChild);
+  }
+  banner.innerHTML = `⚠️ Could not load records: ${msg}<br><span style="font-weight:400;font-size:11px">Check your internet connection, or tap the version badge → Admin → 🔌 Test Now to diagnose.</span>
+    <button onclick="loadRecords()" style="display:block;margin-top:8px;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer">🔄 Retry</button>`;
+  banner.style.display = 'block';
+}
+
+function hideLoadError() {
+  const banner = document.getElementById('loadErrorBanner');
+  if (banner) banner.style.display = 'none';
 }
 
 // ── Count display ─────────────────────────────────
@@ -8975,7 +8999,7 @@ function _makeGrainHandler(p, hdrColor) {
         const badge  = done && isLast
           ? `<span style="font-size:9px;background:${hdrColor};color:#fff;border-radius:6px;padding:1px 5px;margin-left:4px">DONE</span>` : '';
         const delBtn = isAdminEnabled()
-          ? `<button onclick="(p==='maize'?maizeHandler:soyHandler).deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>` : '';
+          ? `<button onclick="window['${p}Handler'].deleteEntry('${rec.GR_ID}')" style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer">✕</button>` : '';
         const fmt  = (v, dec) => parseFloat(v||0).toFixed(dec);
         const fmtK = v => 'K ' + fmt(v, 2);
         const fmtW = v => fmt(v, 1) + ' kg';
