@@ -7888,14 +7888,15 @@ async function loadSlActive() {
   }
 }
 
-// A record is "closed" if: weaned date set, OR weaned task done, OR today > farrowDate + 35 days
+// A record is "closed" if: weaned date set, OR weaned task done, OR today > farrowDate + 60 days
 function slIsClosed(rec) {
   if (rec['sl_date_weaned'] && rec['sl_date_weaned'] !== '') return true;
-  if (rec['weaned'] === 'done') return true;
+  if (rec['weaned']    === 'done') return true;
+  if (rec['sl_weaned'] === 'done') return true; // legacy key
   if (rec.FarrowDate) {
     const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
     const today  = new Date(); today.setHours(0,0,0,0);
-    if ((today - farrow) / 86400000 > 35) return true;
+    if ((today - farrow) / 86400000 > 60) return true;
   }
   return false;
 }
@@ -7916,6 +7917,14 @@ function _slBuildExpiredBanner(records) {
   const issues = [];
   records.forEach(rec => {
     const sowId = getSowPigIdFromDbId(rec.SowId) || ('SL_ID:' + rec.SL_ID);
+
+    // Skip properly closed records — weaned or auto-closed past 60 days
+    const isWeaned = (rec.sl_date_weaned && String(rec.sl_date_weaned).trim() !== '')
+                  || rec.weaned      === 'done'
+                  || rec.sl_weaned   === 'done'; // legacy key
+
+    if (isWeaned) return; // properly weaned — remove from attention list
+
     // No farrow date
     if (!rec.FarrowDate || String(rec.FarrowDate).trim() === '') {
       issues.push({ rec, sowId, type: 'no_farrow', days: null, missing: [] });
@@ -7924,13 +7933,11 @@ function _slBuildExpiredBanner(records) {
     const farrow = new Date(rec.FarrowDate); farrow.setHours(0,0,0,0);
     if (isNaN(farrow)) { issues.push({ rec, sowId, type: 'no_farrow', days: null, missing: [] }); return; }
     const days = Math.floor((today - farrow) / 86400000);
-    // Overdue — past day 35 without weaning
-    if (days > 35 && !rec.sl_date_weaned && rec.weaned !== 'done') {
-      const missing = SECTIONS.filter(s => days > s.max && !s.check(rec)).map(s => s.label);
-      issues.push({ rec, sowId, type: 'overdue', days, missing });
-      return;
-    }
-    // Any section past deadline and not filled
+
+    // Auto-closed past 60 days — remove from attention list
+    if (days > 60) return;
+
+    // Any section past its deadline and not filled
     const missing = SECTIONS.filter(s => days > s.max && !s.check(rec)).map(s => s.label);
     if (missing.length > 0) {
       issues.push({ rec, sowId, type: 'missing_sections', days, missing });
@@ -7943,9 +7950,6 @@ function _slBuildExpiredBanner(records) {
     let badge = '', detail = '';
     if (type === 'no_farrow') {
       badge = `<span style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800">⚠ No Farrow Date</span>`;
-    } else if (type === 'overdue') {
-      badge = `<span style="background:#fde8e8;color:#c0392b;border:1px solid #c0392b;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800">🔒 Day ${days} — not weaned</span>`;
-      if (missing.length) detail = `<div style="font-size:10px;color:#c0392b;margin-top:2px">Missing: ${missing.join(', ')}</div>`;
     } else {
       badge = `<span style="background:#fff3e0;color:#e65100;border:1px solid #ff9800;border-radius:8px;padding:1px 7px;font-size:10px;font-weight:800">⚠ Day ${days}</span>`;
       if (missing.length) detail = `<div style="font-size:10px;color:#c0392b;margin-top:2px">Overdue: ${missing.join(', ')}</div>`;
